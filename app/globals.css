@@ -1,26 +1,58 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #F5F6F8;
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@theme {
+  --color-bg-page: #F5F6F8;
+  --color-bg-surface: #FFFFFF;
+
+  --color-text-main: #000000;
+  --color-text-muted: #252525;
+  --color-text-light: #F2D2DE;
+
+  --color-border-soft: #E5E7EB;
+
+  --color-brand: #B34A73;
+  --color-brand-hover: #EAB4C8;
+  --color-brand-soft: #CC6E92;
+
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+}
+
+@layer components {
+  .btn-base {
+    @apply inline-flex items-center justify-center rounded-md border px-4 py-2 font-medium transition-colors;
+  }
+
+  .btn-light {
+    @apply bg-white border-border-soft text-text-main hover:bg-brand-soft hover:border-brand-soft hover:text-white font-semibold;
+  }
+
+  .btn-dark {
+    @apply bg-brand border-brand text-white hover:bg-brand-soft hover:border-brand-soft font-semibold;
+  }
+
+  .btn-auth-submit {
+    @apply inline-flex w-full cursor-pointer items-center justify-center rounded-md border px-4 py-2 font-semibold transition-colors bg-brand border-brand text-white hover:bg-brand-soft hover:border-brand-soft;
+  }
+
+  .btn-google {
+    @apply inline-flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 font-medium transition-colors bg-white border-border-soft text-text-main hover:bg-gray-50 hover:border-border-soft hover:text-text-main;
+  }
 }
