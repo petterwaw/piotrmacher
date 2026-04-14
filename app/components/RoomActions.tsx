@@ -1,0 +1,189 @@
+'use client'
+
+import { createRoom } from '@/app/utils/rooms/createRoom'
+import { joinRoom } from '@/app/utils/rooms/joinRoom'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState, useTransition } from 'react'
+
+type ModalMode = 'create' | 'join' | null
+
+type ApiResponse = {
+  error?: string
+  roomId?: string
+}
+
+async function parseResponse(response: Response) {
+  const data = (await response.json().catch(() => ({}))) as ApiResponse
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Request failed.')
+  }
+
+  return data
+}
+
+const modalCopy = {
+  create: {
+    title: 'Create room',
+    description: 'Give the room a name and create it instantly.',
+    label: 'Room name',
+    placeholder: 'Premier League Weekend',
+    action: 'Create room',
+  },
+  join: {
+    title: 'Join room',
+    description: 'Paste the invite code you received from the host.',
+    label: 'Invite code',
+    placeholder: 'ab12cd34',
+    action: 'Join room',
+  },
+} as const
+
+export default function RoomActions() {
+  const router = useRouter()
+  const [mode, setMode] = useState<ModalMode>(null)
+  const [value, setValue] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  useEffect(() => {
+    if (!mode) {
+      return
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isPending) {
+        setMode(null)
+        setError(null)
+        setValue('')
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [isPending, mode])
+
+  const openModal = (nextMode: Exclude<ModalMode, null>) => {
+    setMode(nextMode)
+    setValue('')
+    setError(null)
+  }
+
+  const closeModal = () => {
+    if (isPending) {
+      return
+    }
+
+    setMode(null)
+    setValue('')
+    setError(null)
+  }
+
+  const handleSubmit = () => {
+    if (!mode) {
+      return
+    }
+
+    const trimmedValue = value.trim()
+
+    if (mode === 'create' && trimmedValue.length < 3) {
+      setError('Room name must be at least 3 characters long.')
+      return
+    }
+
+    if (mode === 'join' && trimmedValue.length < 4) {
+      setError('Enter a valid invite code.')
+      return
+    }
+
+    setError(null)
+
+    startTransition(async () => {
+      try {
+        const response =
+          mode === 'create'
+            ? await createRoom({ name: trimmedValue })
+            : await joinRoom({ code: trimmedValue })
+
+        const data = await parseResponse(response)
+
+        if (!data.roomId) {
+          throw new Error('Room was not returned by the server.')
+        }
+
+        setMode(null)
+        setValue('')
+        setError(null)
+        router.push(`/home/${data.roomId}`)
+        router.refresh()
+      } catch (submitError) {
+        setError(
+          submitError instanceof Error ? submitError.message : 'Something went wrong. Try again.'
+        )
+      }
+    })
+  }
+
+  const copy = mode ? modalCopy[mode] : null
+
+  return (
+    <>
+      <div className="mb-4 flex flex-wrap gap-4">
+        <button type="button" className="btn-base btn-dark" onClick={() => openModal('create')}>
+          New room
+        </button>
+        <button type="button" className="btn-base btn-light" onClick={() => openModal('join')}>
+          Join with a code
+        </button>
+      </div>
+
+      {mode && copy ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
+          <div className="w-full max-w-md rounded-2xl border border-border-soft bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-text-main">{copy.title}</h2>
+                <p className="mt-1 text-sm text-text-muted">{copy.description}</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="rounded-full border border-border-soft px-3 py-1 text-sm text-text-muted transition-colors hover:border-brand-soft hover:text-text-main"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-text-main" htmlFor="room-modal-input">
+                {copy.label}
+              </label>
+              <input
+                id="room-modal-input"
+                type="text"
+                value={value}
+                onChange={(event) => setValue(event.target.value)}
+                placeholder={copy.placeholder}
+                className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-brand"
+                disabled={isPending}
+                maxLength={mode === 'create' ? 60 : 32}
+                autoFocus
+              />
+            </div>
+
+            {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button type="button" className="btn-base btn-light" onClick={closeModal} disabled={isPending}>
+                Cancel
+              </button>
+              <button type="button" className="btn-base btn-dark" onClick={handleSubmit} disabled={isPending}>
+                {isPending ? 'Working...' : copy.action}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
+}

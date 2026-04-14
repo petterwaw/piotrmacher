@@ -19,6 +19,7 @@ body {
 
 @theme {
   --color-bg-page: #F5F6F8;
+  --color-bg-hover: #F3F4F6;
   --color-bg-surface: #FFFFFF;
 
   --color-text-main: #000000;
@@ -37,7 +38,7 @@ body {
 
 @layer components {
   .btn-base {
-    @apply inline-flex items-center justify-center rounded-md border px-4 py-2 font-medium transition-colors;
+    @apply inline-flex hover:cursor-pointer items-center justify-center rounded-md border px-4 py-2 font-medium transition-colors;
   }
 
   .btn-light {
@@ -45,7 +46,7 @@ body {
   }
 
   .btn-dark {
-    @apply bg-brand border-brand text-white hover:bg-brand-soft hover:border-brand-soft font-semibold;
+    @apply bg-brand border-brand text-white hover:bg-brand-hover hover:border-brand-hover font-semibold;
   }
 
   .btn-auth-submit {
