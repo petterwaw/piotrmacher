@@ -12,6 +12,13 @@ type ApiResponse = {
   roomId?: string
 }
 
+type EventOption = {
+  id: string
+  name: string
+  season: string
+  displayName: string
+}
+
 async function parseResponse(response: Response) {
   const data = (await response.json().catch(() => ({}))) as ApiResponse
 
@@ -43,8 +50,53 @@ export default function RoomActions() {
   const router = useRouter()
   const [mode, setMode] = useState<ModalMode>(null)
   const [value, setValue] = useState('')
+  const [eventId, setEventId] = useState('')
+  const [events, setEvents] = useState<EventOption[]>([])
+  const [eventsLoading, setEventsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  useEffect(() => {
+    if (mode !== 'create') {
+      return
+    }
+
+    let isCancelled = false
+    setEventsLoading(true)
+
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch('/api/events')
+        const data = (await response.json().catch(() => ({ events: [] }))) as {
+          events?: EventOption[]
+        }
+
+        if (!response.ok) {
+          throw new Error('Could not load events')
+        }
+
+        if (!isCancelled) {
+          const nextEvents = data.events ?? []
+          setEvents(nextEvents)
+          setEventId((current) => current || nextEvents[0]?.id || '')
+        }
+      } catch {
+        if (!isCancelled) {
+          setEvents([])
+        }
+      } finally {
+        if (!isCancelled) {
+          setEventsLoading(false)
+        }
+      }
+    }
+
+    fetchEvents()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [mode])
 
   useEffect(() => {
     if (!mode) {
@@ -56,6 +108,7 @@ export default function RoomActions() {
         setMode(null)
         setError(null)
         setValue('')
+        setEventId('')
       }
     }
 
@@ -66,6 +119,7 @@ export default function RoomActions() {
   const openModal = (nextMode: Exclude<ModalMode, null>) => {
     setMode(nextMode)
     setValue('')
+    setEventId('')
     setError(null)
   }
 
@@ -76,6 +130,7 @@ export default function RoomActions() {
 
     setMode(null)
     setValue('')
+    setEventId('')
     setError(null)
   }
 
@@ -91,6 +146,11 @@ export default function RoomActions() {
       return
     }
 
+    if (mode === 'create' && !eventId) {
+      setError('Select event for this room.')
+      return
+    }
+
     if (mode === 'join' && trimmedValue.length < 4) {
       setError('Enter a valid invite code.')
       return
@@ -102,7 +162,7 @@ export default function RoomActions() {
       try {
         const response =
           mode === 'create'
-            ? await createRoom({ name: trimmedValue })
+            ? await createRoom({ name: trimmedValue, eventId })
             : await joinRoom({ code: trimmedValue })
 
         const data = await parseResponse(response)
@@ -113,6 +173,7 @@ export default function RoomActions() {
 
         setMode(null)
         setValue('')
+        setEventId('')
         setError(null)
         router.push(`/home/${data.roomId}`)
         router.refresh()
@@ -169,6 +230,30 @@ export default function RoomActions() {
                 maxLength={mode === 'create' ? 60 : 32}
                 autoFocus
               />
+
+              {mode === 'create' ? (
+                <>
+                  <label className="mt-3 block text-sm font-medium text-text-main" htmlFor="room-modal-event">
+                    Event
+                  </label>
+                  <select
+                    id="room-modal-event"
+                    value={eventId}
+                    onChange={(event) => setEventId(event.target.value)}
+                    className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-brand"
+                    disabled={isPending || eventsLoading || events.length === 0}
+                  >
+                    {events.length === 0 ? (
+                      <option value="">No events available</option>
+                    ) : null}
+                    {events.map((eventOption) => (
+                      <option key={eventOption.id} value={eventOption.id}>
+                        {eventOption.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : null}
             </div>
 
             {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}

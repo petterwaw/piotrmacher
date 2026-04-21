@@ -3,15 +3,25 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-export default function RoomNavigation({ roomId }: { roomId: string }) {
+export default function RoomNavigation({
+  roomId,
+  showSettings,
+}: {
+  roomId: string
+  showSettings: boolean
+}) {
   const pathname = usePathname()
 
-  const tabs = [
+  const tabs: Array<{ href: string; label: string; exact?: boolean }> = [
     { href: `/home/${roomId}`, label: 'Bets', exact: true },
     { href: `/home/${roomId}/history`, label: 'History' },
     { href: `/home/${roomId}/standings`, label: 'Standings' },
     { href: `/home/${roomId}/rules`, label: 'Rules' },
   ]
+
+  if (showSettings) {
+    tabs.push({ href: `/home/${roomId}/settings`, label: 'Settings' })
+  }
 
   const isActive = (href: string, exact?: boolean) => {
     if (exact) {

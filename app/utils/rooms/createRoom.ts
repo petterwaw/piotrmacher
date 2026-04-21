@@ -1,5 +1,6 @@
 export type CreateRoomPayload = {
   name: string
+  eventId?: string
 }
 
 export async function createRoom(payload: CreateRoomPayload) {

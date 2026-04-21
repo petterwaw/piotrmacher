@@ -23,10 +23,45 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => null)
     const name = typeof body?.name === 'string' ? body.name.trim() : ''
+    const eventIdFromBody = typeof body?.eventId === 'string' ? body.eventId : null
 
     if (name.length < 3 || name.length > 60) {
       return NextResponse.json(
         { error: 'Room name must be between 3 and 60 characters.' },
+        { status: 400 }
+      )
+    }
+
+    let eventId = eventIdFromBody
+
+    if (eventId) {
+      const { data: selectedEvent } = await supabase
+        .from('events')
+        .select('id')
+        .eq('id', eventId)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (!selectedEvent) {
+        return NextResponse.json({ error: 'Selected event is not active.' }, { status: 400 })
+      }
+    }
+
+    if (!eventId) {
+      const { data: fallbackEvent } = await supabase
+        .from('events')
+        .select('id')
+        .eq('is_active', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+
+      eventId = fallbackEvent?.id ?? null
+    }
+
+    if (!eventId) {
+      return NextResponse.json(
+        { error: 'No active event configured. Create an event first.' },
         { status: 400 }
       )
     }
@@ -36,13 +71,13 @@ export async function POST(request: NextRequest) {
       .insert({
         name,
         host_id: user.id,
+        event_id: eventId,
         rules: defaultRules,
       })
       .select('id')
       .single()
 
     if (roomError || !room) {
-      console.error('Create room error:', roomError)
       return NextResponse.json({ error: 'Could not create room.' }, { status: 500 })
     }
 
@@ -58,12 +93,11 @@ export async function POST(request: NextRequest) {
     )
 
     if (memberError) {
-      console.error('Create room membership error:', memberError)
+      return NextResponse.json({ error: 'Room created, but membership could not be added.' }, { status: 500 })
     }
 
     return NextResponse.json({ roomId: room.id }, { status: 201 })
-  } catch (error) {
-    console.error('Create room route error:', error)
+  } catch {
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })
   }
 }
