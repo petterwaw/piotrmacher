@@ -10,6 +10,19 @@ const defaultRules = {
   exact_draw: 1,
 }
 
+function parseOptionalDate(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) {
+    return null
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return null
+  }
+
+  return parsed.toISOString()
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient()
@@ -24,6 +37,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => null)
     const name = typeof body?.name === 'string' ? body.name.trim() : ''
     const eventIdFromBody = typeof body?.eventId === 'string' ? body.eventId : null
+    const roomEndAt = parseOptionalDate(body?.roomEndAt)
 
     if (name.length < 3 || name.length > 60) {
       return NextResponse.json(
@@ -59,6 +73,14 @@ export async function POST(request: NextRequest) {
       eventId = fallbackEvent?.id ?? null
     }
 
+    if (typeof body?.roomEndAt === 'string' && !roomEndAt) {
+      return NextResponse.json({ error: 'Invalid room end date.' }, { status: 400 })
+    }
+
+    if (roomEndAt && new Date(roomEndAt).getTime() <= Date.now()) {
+      return NextResponse.json({ error: 'Room end date must be in the future.' }, { status: 400 })
+    }
+
     if (!eventId) {
       return NextResponse.json(
         { error: 'No active event configured. Create an event first.' },
@@ -73,6 +95,7 @@ export async function POST(request: NextRequest) {
         host_id: user.id,
         event_id: eventId,
         rules: defaultRules,
+        room_end_at: roomEndAt,
       })
       .select('id')
       .single()

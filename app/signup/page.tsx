@@ -1,9 +1,10 @@
 'use client'
 
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
-export default function SignupPage() {
+function SignupPageContent() {
     const searchParams = useSearchParams()
     const error = searchParams.get('error')
 
@@ -112,3 +113,11 @@ export default function SignupPage() {
         </section>
     )
 } 
+
+export default function SignupPage() {
+    return (
+        <Suspense fallback={null}>
+            <SignupPageContent />
+        </Suspense>
+    )
+}

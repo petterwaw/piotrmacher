@@ -41,6 +41,23 @@ function sanitizeRules(payload: unknown): Rules | null {
   return nextRules
 }
 
+function parseOptionalDate(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') {
+    return null
+  }
+
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return null
+  }
+
+  return parsed.toISOString()
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ room_id: string }> }
@@ -58,7 +75,7 @@ export async function PATCH(
 
     const { data: room } = await supabase
       .from('rooms')
-      .select('id, host_id, status')
+      .select('id, host_id, status, room_end_at')
       .eq('id', room_id)
       .maybeSingle()
 
@@ -78,6 +95,13 @@ export async function PATCH(
         return NextResponse.json({ error: 'Room is already started.' }, { status: 400 })
       }
 
+      if (room.room_end_at && new Date(room.room_end_at).getTime() <= Date.now()) {
+        return NextResponse.json(
+          { error: 'Room end date is in the past. Update it before starting.' },
+          { status: 400 }
+        )
+      }
+
       const { error: startError } = await supabase
         .from('rooms')
         .update({ status: 'active' })
@@ -87,7 +111,27 @@ export async function PATCH(
         return NextResponse.json({ error: 'Could not start room.' }, { status: 500 })
       }
 
-      return NextResponse.json({ ok: true })
+      const cronSecret = process.env.CRON_SECRET
+      let syncTriggered = false
+
+      if (cronSecret) {
+        try {
+          const syncUrl = new URL('/api/internal/sync-matches', request.nextUrl.origin)
+          const syncResponse = await fetch(syncUrl, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${cronSecret}`,
+            },
+            cache: 'no-store',
+          })
+
+          syncTriggered = syncResponse.ok
+        } catch {
+          syncTriggered = false
+        }
+      }
+
+      return NextResponse.json({ ok: true, syncTriggered })
     }
 
     if (room.status !== 'waiting') {
@@ -99,9 +143,15 @@ export async function PATCH(
 
     const eventId = typeof body?.eventId === 'string' ? body.eventId : null
     const rules = sanitizeRules(body?.rules)
+    const roomEndAt = parseOptionalDate(body?.roomEndAt)
+    const hasRoomEndInput = body?.roomEndAt !== undefined && body?.roomEndAt !== null && body?.roomEndAt !== ''
 
-    if (!eventId || !rules) {
+    if (!eventId || !rules || (hasRoomEndInput && !roomEndAt)) {
       return NextResponse.json({ error: 'Invalid payload.' }, { status: 400 })
+    }
+
+    if (roomEndAt && new Date(roomEndAt).getTime() <= Date.now()) {
+      return NextResponse.json({ error: 'Room end date must be in the future.' }, { status: 400 })
     }
 
     const { data: event } = await supabase
@@ -120,6 +170,7 @@ export async function PATCH(
       .update({
         event_id: eventId,
         rules,
+        room_end_at: roomEndAt,
       })
       .eq('id', room_id)
 

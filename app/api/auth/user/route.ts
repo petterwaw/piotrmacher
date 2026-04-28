@@ -13,11 +13,17 @@ export async function GET() {
       return NextResponse.json({ user: null })
     }
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', user.id)
+      .maybeSingle()
+
     return NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
-        username: user.user_metadata?.username || 'User',
+        username: profile?.username || user.user_metadata?.username || 'User',
       },
     })
   } catch (err) {

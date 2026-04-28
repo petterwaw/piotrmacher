@@ -51,6 +51,8 @@ export default function RoomActions() {
   const [mode, setMode] = useState<ModalMode>(null)
   const [value, setValue] = useState('')
   const [eventId, setEventId] = useState('')
+  const [roomEndAt, setRoomEndAt] = useState('')
+  const [endMode, setEndMode] = useState<'full_event' | 'set_end_date'>('full_event')
   const [events, setEvents] = useState<EventOption[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -109,6 +111,8 @@ export default function RoomActions() {
         setError(null)
         setValue('')
         setEventId('')
+        setRoomEndAt('')
+        setEndMode('full_event')
       }
     }
 
@@ -120,6 +124,8 @@ export default function RoomActions() {
     setMode(nextMode)
     setValue('')
     setEventId('')
+    setRoomEndAt('')
+    setEndMode('full_event')
     setError(null)
   }
 
@@ -131,6 +137,8 @@ export default function RoomActions() {
     setMode(null)
     setValue('')
     setEventId('')
+    setRoomEndAt('')
+    setEndMode('full_event')
     setError(null)
   }
 
@@ -162,7 +170,11 @@ export default function RoomActions() {
       try {
         const response =
           mode === 'create'
-            ? await createRoom({ name: trimmedValue, eventId })
+            ? await createRoom({
+                name: trimmedValue,
+                eventId,
+                roomEndAt: endMode === 'set_end_date' ? roomEndAt || null : null,
+              })
             : await joinRoom({ code: trimmedValue })
 
         const data = await parseResponse(response)
@@ -174,6 +186,8 @@ export default function RoomActions() {
         setMode(null)
         setValue('')
         setEventId('')
+        setRoomEndAt('')
+        setEndMode('full_event')
         setError(null)
         router.push(`/home/${data.roomId}`)
         router.refresh()
@@ -252,6 +266,48 @@ export default function RoomActions() {
                       </option>
                     ))}
                   </select>
+
+                  <fieldset className="mt-3 space-y-2">
+                    <legend className="block text-sm font-medium text-text-main">Room duration</legend>
+                    <label className="flex items-center gap-2 text-sm text-text-main">
+                      <input
+                        type="radio"
+                        name="room-duration-create"
+                        value="full_event"
+                        checked={endMode === 'full_event'}
+                        onChange={() => setEndMode('full_event')}
+                        disabled={isPending}
+                      />
+                      <span>Full event</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-text-main">
+                      <input
+                        type="radio"
+                        name="room-duration-create"
+                        value="set_end_date"
+                        checked={endMode === 'set_end_date'}
+                        onChange={() => setEndMode('set_end_date')}
+                        disabled={isPending}
+                      />
+                      <span>Set end date</span>
+                    </label>
+                  </fieldset>
+
+                  {endMode === 'set_end_date' ? (
+                    <>
+                      <label className="mt-2 block text-sm font-medium text-text-main" htmlFor="room-modal-end-at">
+                        End date
+                      </label>
+                      <input
+                        id="room-modal-end-at"
+                        type="datetime-local"
+                        value={roomEndAt}
+                        onChange={(event) => setRoomEndAt(event.target.value)}
+                        className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-brand"
+                        disabled={isPending}
+                      />
+                    </>
+                  ) : null}
                 </>
               ) : null}
             </div>

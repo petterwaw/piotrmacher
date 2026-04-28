@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
+import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -8,9 +9,17 @@ export async function POST(request: NextRequest) {
   const confirmPassword = formData.get('confirmPassword') as string
   const username = formData.get('username') as string
 
-  if (!email || !password || !confirmPassword || !username) {
+  const normalizedUsername = username?.trim()
+
+  if (!email || !password || !confirmPassword || !normalizedUsername) {
     return NextResponse.redirect(
       new URL('/signup?error=' + encodeURIComponent('All fields are required'), request.url)
+    )
+  }
+
+  if (!/^[a-zA-Z0-9_.]{3,24}$/.test(normalizedUsername)) {
+    return NextResponse.redirect(
+      new URL('/signup?error=' + encodeURIComponent('Username must be 3-24 chars: letters, numbers, _ or .'), request.url)
     )
   }
 
@@ -27,6 +36,20 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const serviceSupabase = createServiceRoleSupabaseClient()
+    const { data: existingProfile } = await serviceSupabase
+      .from('profiles')
+      .select('id')
+      .ilike('username', normalizedUsername)
+      .limit(1)
+      .maybeSingle()
+
+    if (existingProfile?.id) {
+      return NextResponse.redirect(
+        new URL('/signup?error=' + encodeURIComponent('Username already exists'), request.url)
+      )
+    }
+
     const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase.auth.signUp({
@@ -34,13 +57,13 @@ export async function POST(request: NextRequest) {
       password,
       options: {
         data: {
-          username,
+          username: normalizedUsername,
         },
       },
     })
 
     if (error) {
-      console.log('Sign up error:', { error: error.message, email, username })
+      console.log('Sign up error:', { error: error.message, email, username: normalizedUsername })
       return NextResponse.redirect(
         new URL('/signup?error=' + encodeURIComponent(error.message), request.url)
       )

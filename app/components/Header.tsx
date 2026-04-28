@@ -43,6 +43,9 @@ export default function Header() {
             <Link href='/home' className='btn-base btn-light'>
               <p>Rooms</p>
             </Link>
+            <Link href='/profile' className='btn-base btn-light'>
+              <p>Profile</p>
+            </Link>
             <form action='/api/auth/logout' method='post' className='inline'>
               <button type='submit' className='btn-base btn-dark'>
                 Logout

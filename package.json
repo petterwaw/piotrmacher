@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:events": "node scripts/seed-api-football-events.mjs"
+    "seed:events": "node scripts/seed-api-football-events.mjs",
+    "seed:matches": "node scripts/seed-matches.mjs",
+    "cron:local": "node scripts/local-cron-sync.mjs",
+    "cron": "node scripts/local-cron-sync.mjs",
+    "score:once": "node scripts/local-cron-sync.mjs --once"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

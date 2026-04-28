@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/internal/sync-matches",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/internal/score-finished-matches",
+      "schedule": "*/2 * * * *"
+    }
+  ]
+}

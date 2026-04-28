@@ -12,8 +12,7 @@ type Rules = {
 const ruleLabels: Array<{ key: keyof Rules; label: string }> = [
   { key: 'correct_winner', label: 'Correct winner' },
   { key: 'correct_difference', label: 'Correct goal difference' },
-  { key: 'correct_away_goals', label: 'Correct away goals' },
-  { key: 'correct_home_goals', label: 'Correct home goals' },
+  { key: 'correct_home_goals', label: 'Correct team goals' },
   { key: 'exact_score', label: 'Exact score' },
   { key: 'exact_draw', label: 'Exact draw' },
 ]
@@ -42,6 +41,7 @@ export default async function RulesPage({
     .maybeSingle()
 
   const rules = (room?.rules as Rules | null) ?? defaultRules
+  const teamGoalsPoints = Math.max(rules.correct_home_goals, rules.correct_away_goals)
 
   return (
     <div>
@@ -53,7 +53,9 @@ export default async function RulesPage({
             {ruleLabels.map((rule) => (
               <li key={rule.key} className="flex items-center justify-between gap-3 border-b border-border-soft py-2">
                 <span>{rule.label}</span>
-                <span className="font-semibold text-text-main">{rules[rule.key]} pts</span>
+                <span className="font-semibold text-text-main">
+                  {rule.key === 'correct_home_goals' ? teamGoalsPoints : rules[rule.key]} pts
+                </span>
               </li>
             ))}
           </ul>

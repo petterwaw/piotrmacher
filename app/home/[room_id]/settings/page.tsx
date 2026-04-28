@@ -25,7 +25,7 @@ export default async function RoomSettingsPage({
 
   const { data: room } = await supabase
     .from('rooms')
-    .select('id, host_id, status, event_id, invite_code, rules')
+    .select('id, host_id, status, event_id, invite_code, rules, room_end_at')
     .eq('id', room_id)
     .maybeSingle()
 
@@ -46,6 +46,7 @@ export default async function RoomSettingsPage({
       roomId={room_id}
       initialStatus={room.status as 'waiting' | 'active' | 'finished'}
       initialEventId={room.event_id}
+      initialRoomEndAt={room.room_end_at}
       inviteCode={room.invite_code}
       events={events}
       initialRules={rules}

@@ -1,8 +1,19 @@
 'use client'
 
-import { type MatchStatus } from '@/app/data/matches.mock'
-import { getMockPrediction, saveMockPrediction, type Prediction } from '@/app/utils/bets/mockPredictionStore'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
+
+type MatchStatus = 'scheduled' | 'delayed' | 'live' | 'finished' | 'cancelled'
+
+type Prediction = {
+  home: number
+  away: number
+}
+
+type LivePrediction = {
+  username: string
+  homeScore: number
+  awayScore: number
+}
 
 export type BasicMatch = {
   id: string
@@ -10,11 +21,18 @@ export type BasicMatch = {
   awayTeam: string
   startTime: string
   status: MatchStatus
+  liveMinute?: number | null
+  liveScore?: {
+    home: number | null
+    away: number | null
+  }
   prediction: Prediction | null
 }
 
 type ScorePredictionCardProps = {
+  roomId: string
   match: BasicMatch
+  livePredictions?: LivePrediction[]
   roomStatus?: 'waiting' | 'active' | 'finished'
 }
 
@@ -30,16 +48,24 @@ function getStatusLabel(status: MatchStatus) {
   if (status === 'scheduled') return 'Scheduled'
   if (status === 'delayed') return 'Delayed'
   if (status === 'live') return 'Live'
+  if (status === 'cancelled') return 'Cancelled'
   return 'Finished'
 }
 
-export default function ScorePredictionCard({ match, roomStatus = 'waiting' }: ScorePredictionCardProps) {
+export default function ScorePredictionCard({
+  roomId,
+  match,
+  livePredictions = [],
+  roomStatus = 'waiting',
+}: ScorePredictionCardProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [homeScore, setHomeScore] = useState(0)
   const [awayScore, setAwayScore] = useState(0)
   const [savedPrediction, setSavedPrediction] = useState<Prediction | null>(match.prediction)
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
-  const isStarted = match.status === 'live' || match.status === 'finished'
+  const isStarted = match.status === 'live' || match.status === 'finished' || match.status === 'cancelled'
   const isRoomActive = roomStatus === 'active'
   const canEdit = isRoomActive && !isStarted
 
@@ -49,13 +75,6 @@ export default function ScorePredictionCard({ match, roomStatus = 'waiting' }: S
     if (match.status === 'delayed') return 'bg-orange-100 text-orange-800'
     return 'bg-blue-100 text-blue-800'
   }, [match.status])
-
-  useEffect(() => {
-    const storedPrediction = getMockPrediction(match.id)
-    if (storedPrediction) {
-      setSavedPrediction(storedPrediction)
-    }
-  }, [match.id])
 
   const decreaseHome = () => setHomeScore((prev) => Math.max(0, prev - 1))
   const increaseHome = () => setHomeScore((prev) => prev + 1)
@@ -68,23 +87,52 @@ export default function ScorePredictionCard({ match, roomStatus = 'waiting' }: S
       return
     }
 
+    setError(null)
     setIsEditing(true)
-    setHomeScore(0)
-    setAwayScore(0)
+    setHomeScore(savedPrediction?.home ?? 0)
+    setAwayScore(savedPrediction?.away ?? 0)
   }
 
   const cancelEditing = () => {
+    setError(null)
     setIsEditing(false)
   }
 
   const handleSave = () => {
-    const nextPrediction = saveMockPrediction(match.id, {
-      home: homeScore,
-      away: awayScore,
-    })
+    setError(null)
 
-    setSavedPrediction(nextPrediction)
-    setIsEditing(false)
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/rooms/${roomId}/bets`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            matchId: match.id,
+            homeScore,
+            awayScore,
+          }),
+        })
+
+        const data = (await response.json().catch(() => ({}))) as {
+          error?: string
+          bet?: { homeScore: number; awayScore: number }
+        }
+
+        if (!response.ok || !data.bet) {
+          throw new Error(data.error || 'Could not save bet.')
+        }
+
+        setSavedPrediction({
+          home: data.bet.homeScore,
+          away: data.bet.awayScore,
+        })
+        setIsEditing(false)
+      } catch (saveError) {
+        setError(saveError instanceof Error ? saveError.message : 'Could not save bet.')
+      }
+    })
   }
 
   return (
@@ -102,13 +150,32 @@ export default function ScorePredictionCard({ match, roomStatus = 'waiting' }: S
       </div>
 
       <div className="rounded-xl border border-border-soft p-4">
+        {match.status === 'live' ? (
+          <div className="mb-3 flex items-center justify-center gap-2 text-sm font-semibold text-red-600">
+            <span className="inline-block h-2 w-2 rounded-full bg-red-600" />
+            <span>
+              LIVE{typeof match.liveMinute === 'number' ? ` ${match.liveMinute}'` : ''}
+            </span>
+          </div>
+        ) : null}
+
         <div className="mb-4 text-center text-base font-semibold text-text-main sm:text-lg">
           {match.homeTeam} - {match.awayTeam}
         </div>
 
+        {(match.status === 'live' || match.status === 'finished') &&
+        typeof match.liveScore?.home === 'number' &&
+        typeof match.liveScore?.away === 'number' ? (
+          <div className="mb-4 text-center">
+            <span className={`text-3xl font-bold ${match.status === 'live' ? 'text-red-700' : 'text-text-main'}`}>
+              {match.liveScore.home} : {match.liveScore.away}
+            </span>
+          </div>
+        ) : null}
+
         {!isEditing ? (
           <div className="flex min-h-14 items-center justify-center">
-            {savedPrediction ? (
+            {!isStarted && savedPrediction ? (
               <span className="text-3xl font-bold text-text-main">
                 {savedPrediction.home} : {savedPrediction.away}
               </span>
@@ -163,18 +230,40 @@ export default function ScorePredictionCard({ match, roomStatus = 'waiting' }: S
         <p className="mt-4 text-sm text-text-muted">Match started: editing is locked.</p>
       ) : null}
 
+      {match.status === 'live' || match.status === 'finished' ? (
+        <div className="mt-4 rounded-lg border border-border-soft bg-bg-page p-3">
+          <p className="text-sm font-semibold text-text-main">Players bets</p>
+          {livePredictions.length === 0 ? (
+            <p className="mt-2 text-sm text-text-muted">No bets submitted yet.</p>
+          ) : (
+            <ul className="mt-2 space-y-1">
+              {livePredictions.map((item) => (
+                <li key={`${item.username}-${item.homeScore}-${item.awayScore}`} className="flex items-center justify-between text-sm text-text-main">
+                  <span>{item.username}</span>
+                  <span className="font-semibold">
+                    {item.homeScore} : {item.awayScore}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+
+      {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
+
       <div className="mt-5 flex items-center justify-end gap-3">
         {!isEditing ? (
-          <button type="button" className="btn-base btn-light" onClick={startEditing} disabled={!canEdit}>
+          <button type="button" className="btn-base btn-light" onClick={startEditing} disabled={!canEdit || isPending}>
             Edit
           </button>
         ) : (
           <>
-            <button type="button" className="btn-base btn-light" onClick={cancelEditing}>
+            <button type="button" className="btn-base btn-light" onClick={cancelEditing} disabled={isPending}>
               Cancel
             </button>
-            <button type="button" className="btn-base btn-dark" onClick={handleSave}>
-              Save
+            <button type="button" className="btn-base btn-dark" onClick={handleSave} disabled={isPending}>
+              {isPending ? 'Saving...' : 'Save'}
             </button>
           </>
         )}
