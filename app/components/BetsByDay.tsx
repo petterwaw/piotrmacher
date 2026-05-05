@@ -19,11 +19,16 @@ type BetsByDayMatch = {
 type Props = {
   roomId: string
   roomStatus: 'waiting' | 'active' | 'finished'
+  visibleDaysAhead?: number
   matches: BetsByDayMatch[]
 }
 
 function toDayKey(isoDate: string) {
   const date = new Date(isoDate)
+  return toLocalDayKey(date)
+}
+
+function toLocalDayKey(date: Date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
@@ -39,7 +44,25 @@ function formatDayLabel(dayKey: string) {
   })
 }
 
-export default function BetsByDay({ roomId, roomStatus, matches }: Props) {
+function startOfDay(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate())
+}
+
+function addDays(value: Date, days: number) {
+  const next = new Date(value)
+  next.setDate(next.getDate() + days)
+  return next
+}
+
+function buildDayRange(daysAhead: number) {
+  const start = startOfDay(new Date())
+  return Array.from({ length: daysAhead + 1 }, (_, index) => {
+    const day = addDays(start, index)
+    return toLocalDayKey(day)
+  })
+}
+
+export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, matches }: Props) {
   const router = useRouter()
   const sortedMatches = useMemo(
     () => [...matches].sort((a, b) => new Date(a.match.startTime).getTime() - new Date(b.match.startTime).getTime()),
@@ -51,15 +74,13 @@ export default function BetsByDay({ roomId, roomStatus, matches }: Props) {
     [sortedMatches]
   )
 
-  const dayKeys = useMemo(() => {
-    const unique = new Set<string>()
-    for (const item of sortedMatches) {
-      unique.add(toDayKey(item.match.startTime))
-    }
-    return [...unique]
-  }, [sortedMatches])
+  const dayKeys = useMemo(() => buildDayRange(visibleDaysAhead), [visibleDaysAhead])
+  const matchDayKeys = useMemo(
+    () => new Set(sortedMatches.map((item) => toDayKey(item.match.startTime))),
+    [sortedMatches]
+  )
 
-  const [selectedDay, setSelectedDay] = useState(dayKeys[0] ?? '')
+  const [selectedDay, setSelectedDay] = useState(() => dayKeys.find((dayKey) => matchDayKeys.has(dayKey)) ?? dayKeys[0] ?? '')
 
   useEffect(() => {
     if (dayKeys.length === 0) {
@@ -68,9 +89,9 @@ export default function BetsByDay({ roomId, roomStatus, matches }: Props) {
     }
 
     if (!dayKeys.includes(selectedDay)) {
-      setSelectedDay(dayKeys[0])
+      setSelectedDay(dayKeys.find((dayKey) => matchDayKeys.has(dayKey)) ?? dayKeys[0])
     }
-  }, [dayKeys, selectedDay])
+  }, [dayKeys, matchDayKeys, selectedDay])
 
   useEffect(() => {
     if (roomStatus !== 'active') {
@@ -100,7 +121,21 @@ export default function BetsByDay({ roomId, roomStatus, matches }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <p className="text-sm text-text-muted">
+        Matches are currently visible up to {visibleDaysAhead} days ahead.
+      </p>
+
+      <div
+        className="hide-scrollbar flex gap-2 overflow-x-auto pb-1"
+        onWheel={(event) => {
+          if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+            return
+          }
+
+          event.preventDefault()
+          event.currentTarget.scrollLeft += event.deltaY
+        }}
+      >
         {dayKeys.map((dayKey) => {
           const isActive = dayKey === selectedDay
 
@@ -109,10 +144,10 @@ export default function BetsByDay({ roomId, roomStatus, matches }: Props) {
               key={dayKey}
               type="button"
               onClick={() => setSelectedDay(dayKey)}
-              className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`whitespace-nowrap border-2 px-3 py-1.5 text-sm font-semibold uppercase tracking-wide transition-colors ${
                 isActive
                   ? 'border-brand bg-brand text-white'
-                  : 'border-border-soft bg-white text-text-main hover:border-brand-soft'
+                  : 'border-zinc-300 bg-white text-text-main hover:border-brand hover:bg-gray-50'
               }`}
             >
               {formatDayLabel(dayKey)}
@@ -122,15 +157,21 @@ export default function BetsByDay({ roomId, roomStatus, matches }: Props) {
       </div>
 
       <div className="space-y-4">
-        {filteredMatches.map((item) => (
-          <ScorePredictionCard
-            key={item.id}
-            roomId={roomId}
-            roomStatus={roomStatus}
-            livePredictions={item.livePredictions}
-            match={item.match}
-          />
-        ))}
+        {filteredMatches.length > 0 ? (
+          filteredMatches.map((item) => (
+            <ScorePredictionCard
+              key={item.id}
+              roomId={roomId}
+              roomStatus={roomStatus}
+              livePredictions={item.livePredictions}
+              match={item.match}
+            />
+          ))
+        ) : (
+          <p className="border-2 border-dashed border-zinc-300 bg-white/80 px-4 py-5 text-sm text-text-muted">
+            No matches on this day.
+          </p>
+        )}
       </div>
     </div>
   )

@@ -7,9 +7,11 @@ type BetPayload = {
   awayScore?: number
 }
 
+const MAX_PREDICTED_GOALS = 20
+
 function toNonNegativeInt(value: unknown): number | null {
   const parsed = typeof value === 'number' ? value : Number(value)
-  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 99) {
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > MAX_PREDICTED_GOALS) {
     return null
   }
   return parsed

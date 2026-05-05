@@ -29,7 +29,6 @@ export default async function StandingsPage({
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-text-main mb-6">Standings</h2>
       {players.length > 0 ? (
         <StandingsTable players={players} />
       ) : (

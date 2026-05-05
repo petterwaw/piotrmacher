@@ -3,7 +3,7 @@
 import { createRoom } from '@/app/utils/rooms/createRoom'
 import { joinRoom } from '@/app/utils/rooms/joinRoom'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 
 type ModalMode = 'create' | 'join' | null
 
@@ -48,6 +48,7 @@ const modalCopy = {
 
 export default function RoomActions() {
   const router = useRouter()
+  const desktopActionsRef = useRef<HTMLDivElement | null>(null)
   const [mode, setMode] = useState<ModalMode>(null)
   const [value, setValue] = useState('')
   const [eventId, setEventId] = useState('')
@@ -56,6 +57,7 @@ export default function RoomActions() {
   const [events, setEvents] = useState<EventOption[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isDesktopActionsOpen, setIsDesktopActionsOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
@@ -120,7 +122,35 @@ export default function RoomActions() {
     return () => window.removeEventListener('keydown', handleEscape)
   }, [isPending, mode])
 
+  useEffect(() => {
+    if (!isDesktopActionsOpen) {
+      return
+    }
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target
+      if (!(target instanceof Node)) {
+        return
+      }
+
+      if (desktopActionsRef.current?.contains(target)) {
+        return
+      }
+
+      setIsDesktopActionsOpen(false)
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('touchstart', handlePointerDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('touchstart', handlePointerDown)
+    }
+  }, [isDesktopActionsOpen])
+
   const openModal = (nextMode: Exclude<ModalMode, null>) => {
+    setIsDesktopActionsOpen(false)
     setMode(nextMode)
     setValue('')
     setEventId('')
@@ -203,18 +233,69 @@ export default function RoomActions() {
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap gap-4">
-        <button type="button" className="btn-base btn-dark" onClick={() => openModal('create')}>
-          New room
+      {/* Mobile and tablet: full-width top actions */}
+      <div className="mb-4 flex flex-col gap-3 sm:col-span-2 sm:flex-row lg:hidden">
+        <button
+          type="button"
+          className="w-full border border-zinc-300 bg-white px-4 py-3 font-bold uppercase tracking-wide text-text-main transition-colors hover:border-brand hover:bg-gray-50 sm:w-[220px]"
+          onClick={() => openModal('create')}
+        >
+          Create a room
         </button>
-        <button type="button" className="btn-base btn-light" onClick={() => openModal('join')}>
-          Join with a code
+        <button
+          type="button"
+          className="w-full border border-brand bg-brand px-4 py-3 font-bold uppercase tracking-wide text-white transition-colors hover:bg-brand-soft hover:border-brand-soft sm:w-[220px]"
+          onClick={() => openModal('join')}
+        >
+          Join a room
         </button>
+      </div>
+
+      {/* Desktop: Kafelek with plus icon and hover reveal */}
+      <div
+        ref={desktopActionsRef}
+        className="group relative hidden min-h-[228px] border-2 border-zinc-300 bg-white/90 shadow-sm transition-all duration-200 hover:border-brand hover:shadow-md lg:flex lg:flex-col lg:items-center lg:justify-center"
+        onClick={() => setIsDesktopActionsOpen((current) => !current)}
+        onMouseLeave={() => setIsDesktopActionsOpen(false)}
+      >
+        <div className="text-[72px] font-black leading-none text-zinc-300 transition-colors duration-200 group-hover:text-brand">
+          +
+        </div>
+        <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-zinc-500">New Action</p>
+
+        <div
+          className={`absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/92 transition-opacity duration-200 ${
+            isDesktopActionsOpen
+              ? 'pointer-events-auto opacity-100'
+              : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100'
+          }`}
+        >
+          <button
+            type="button"
+            className="inline-flex min-w-[170px] items-center justify-center border border-zinc-300 bg-white px-4 py-2 text-sm font-bold uppercase tracking-wide text-text-main transition-colors hover:border-brand hover:bg-gray-50"
+            onClick={(event) => {
+              event.stopPropagation()
+              openModal('create')
+            }}
+          >
+            Create a room
+          </button>
+          <button
+            type="button"
+            className="inline-flex min-w-[170px] items-center justify-center border border-brand bg-brand px-4 py-2 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-brand-soft hover:border-brand-soft"
+            onClick={(event) => {
+              event.stopPropagation()
+              openModal('join')
+            }}
+          >
+            Join a room
+          </button>
+        </div>
       </div>
 
       {mode && copy ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
-          <div className="w-full max-w-md rounded-2xl border border-border-soft bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-md border-2 border-zinc-300 bg-white/90 p-6 shadow-md">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-text-main">{copy.title}</h2>
@@ -223,7 +304,7 @@ export default function RoomActions() {
               <button
                 type="button"
                 onClick={closeModal}
-                className="rounded-full border border-border-soft px-3 py-1 text-sm text-text-muted transition-colors hover:border-brand-soft hover:text-text-main"
+                className="border-2 border-zinc-300 bg-white px-3 py-1 text-sm text-text-muted transition-colors hover:border-brand hover:text-text-main"
               >
                 Close
               </button>
@@ -239,7 +320,7 @@ export default function RoomActions() {
                 value={value}
                 onChange={(event) => setValue(event.target.value)}
                 placeholder={copy.placeholder}
-                className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-brand"
+                className="w-full border-2 border-zinc-300 bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-[#66BB6A]"
                 disabled={isPending}
                 maxLength={mode === 'create' ? 60 : 32}
                 autoFocus
@@ -254,7 +335,7 @@ export default function RoomActions() {
                     id="room-modal-event"
                     value={eventId}
                     onChange={(event) => setEventId(event.target.value)}
-                    className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-brand"
+                    className="w-full border-2 border-zinc-300 bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-[#66BB6A]"
                     disabled={isPending || eventsLoading || events.length === 0}
                   >
                     {events.length === 0 ? (
@@ -303,7 +384,7 @@ export default function RoomActions() {
                         type="datetime-local"
                         value={roomEndAt}
                         onChange={(event) => setRoomEndAt(event.target.value)}
-                        className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-brand"
+                        className="w-full border-2 border-zinc-300 bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-[#66BB6A]"
                         disabled={isPending}
                       />
                     </>
@@ -312,7 +393,7 @@ export default function RoomActions() {
               ) : null}
             </div>
 
-            {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+            {error ? <p className="mt-3 text-sm text-[#F97316]">{error}</p> : null}
 
             <div className="mt-6 flex justify-end gap-3">
               <button type="button" className="btn-base btn-light" onClick={closeModal} disabled={isPending}>

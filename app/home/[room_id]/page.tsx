@@ -2,6 +2,8 @@ import BetsByDay from '@/app/components/BetsByDay'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 
+const VISIBLE_DAYS_AHEAD = 7
+
 type LivePrediction = {
   username: string
   homeScore: number
@@ -34,7 +36,9 @@ export default async function BetsPage({
   type MatchRow = {
     id: string
     home_team: string
+    home_logo: string | null
     away_team: string
+    away_logo: string | null
     scheduled_start_at: string
     status: string
     home_score_ft: number | null
@@ -44,7 +48,7 @@ export default async function BetsPage({
 
   const initialMatchesResult = await supabase
     .from('matches')
-    .select('id, home_team, away_team, scheduled_start_at, status, home_score_ft, away_score_ft, live_minute')
+    .select('id, home_team, home_logo, away_team, away_logo, scheduled_start_at, status, home_score_ft, away_score_ft, live_minute')
     .eq('event_id', room.event_id)
     .gte('scheduled_start_at', room.created_at)
     .lte('scheduled_start_at', room.room_end_at ?? '9999-12-31T23:59:59.999Z')
@@ -56,7 +60,7 @@ export default async function BetsPage({
   if (initialMatchesResult.error?.message?.toLowerCase().includes('live_minute')) {
     const fallbackMatchesResult = await supabase
       .from('matches')
-      .select('id, home_team, away_team, scheduled_start_at, status, home_score_ft, away_score_ft')
+      .select('id, home_team, home_logo, away_team, away_logo, scheduled_start_at, status, home_score_ft, away_score_ft')
       .eq('event_id', room.event_id)
       .gte('scheduled_start_at', room.created_at)
       .lte('scheduled_start_at', room.room_end_at ?? '9999-12-31T23:59:59.999Z')
@@ -125,8 +129,7 @@ export default async function BetsPage({
   }
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-text-main mb-6">Available Bets</h2>
+    <div className="mx-auto max-w-xl">
 
       {matches.length === 0 ? (
         <p className="text-text-muted">No upcoming matches for this event.</p>
@@ -134,6 +137,7 @@ export default async function BetsPage({
         <BetsByDay
           roomId={room_id}
           roomStatus={status}
+          visibleDaysAhead={VISIBLE_DAYS_AHEAD}
           matches={matches.map((match) => {
             const existingBet = betByMatchId.get(match.id)
             const liveMinute = (match as { live_minute?: number | null }).live_minute ?? null
@@ -146,7 +150,9 @@ export default async function BetsPage({
               match: {
                 id: match.id,
                 homeTeam: match.home_team,
+                homeLogo: match.home_logo,
                 awayTeam: match.away_team,
+                awayLogo: match.away_logo,
                 startTime: match.scheduled_start_at,
                 status: match.status as 'scheduled' | 'delayed' | 'live' | 'finished' | 'cancelled',
                 liveMinute,

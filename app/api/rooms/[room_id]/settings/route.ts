@@ -142,7 +142,13 @@ export async function PATCH(
     }
 
     const eventId = typeof body?.eventId === 'string' ? body.eventId : null
-    const rules = sanitizeRules(body?.rules)
+    const sanitizedRules = sanitizeRules(body?.rules)
+    if (sanitizedRules) {
+      const goalsVal = Math.max(sanitizedRules.correct_home_goals, sanitizedRules.correct_away_goals)
+      sanitizedRules.correct_home_goals = goalsVal
+      sanitizedRules.correct_away_goals = goalsVal
+    }
+    const rules = sanitizedRules
     const roomEndAt = parseOptionalDate(body?.roomEndAt)
     const hasRoomEndInput = body?.roomEndAt !== undefined && body?.roomEndAt !== null && body?.roomEndAt !== ''
 

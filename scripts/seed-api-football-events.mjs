@@ -169,6 +169,7 @@ async function main() {
       season: pickSeasonFromResponse(chosen),
       provider: 'api-football',
       provider_event_id: String(chosen.league.id),
+      logo: typeof chosen.league.logo === 'string' ? chosen.league.logo : null,
       is_active: true,
     })
 

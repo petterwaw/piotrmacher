@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
+import { Pencil, X } from 'lucide-react'
 
 type Profile = {
   id: string
@@ -20,6 +21,8 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
+  const [editingUsername, setEditingUsername] = useState(false)
+  const [editingPassword, setEditingPassword] = useState(false)
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -66,9 +69,7 @@ export default function ProfilePage() {
       try {
         const response = await fetch('/api/profile', {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username }),
         })
 
@@ -83,6 +84,7 @@ export default function ProfilePage() {
 
         setProfile((prev) => (prev ? { ...prev, username: data.username as string } : prev))
         setMessage('Username updated.')
+        setEditingUsername(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not update username.')
       }
@@ -97,14 +99,8 @@ export default function ProfilePage() {
       try {
         const response = await fetch('/api/profile/password', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            currentPassword,
-            newPassword,
-            confirmPassword,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
         })
 
         const data = (await response.json().catch(() => ({}))) as { error?: string }
@@ -117,6 +113,7 @@ export default function ProfilePage() {
         setNewPassword('')
         setConfirmPassword('')
         setMessage('Password updated.')
+        setEditingPassword(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not update password.')
       }
@@ -131,9 +128,7 @@ export default function ProfilePage() {
       try {
         const response = await fetch('/api/profile', {
           method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ confirm: deleteConfirm }),
         })
 
@@ -152,73 +147,129 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className='mx-auto w-full max-w-3xl px-4 py-8'>
+      <div className='mx-auto w-full max-w-xl px-4 py-8 md:px-6'>
         <p className='text-text-muted'>Loading profile...</p>
       </div>
     )
   }
 
   return (
-    <div className='mx-auto w-full max-w-3xl space-y-6 px-4 py-8'>
-      <h2 className='text-2xl font-bold text-text-main'>Profile Settings</h2>
+    <div className='mx-auto w-full max-w-xl space-y-4 px-4 py-8 md:px-6'>
+      {error ? <p className='border-2 border-orange-400 bg-orange-50 p-3 text-sm text-orange-800'>{error}</p> : null}
+      {message ? <p className='border-2 border-green-500 bg-green-50 p-3 text-sm text-green-700'>{message}</p> : null}
 
-      {error ? <p className='rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700'>{error}</p> : null}
-      {message ? <p className='rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700'>{message}</p> : null}
+      {/* Account info card */}
+      <div className='border-2 border-zinc-300 bg-white/90 divide-y divide-zinc-200'>
 
-      <section className='rounded-xl border border-border-soft bg-bg-surface p-5'>
-        <h3 className='mb-3 text-lg font-semibold text-text-main'>Account Info</h3>
-        <p className='text-sm text-text-muted'>Email: <span className='font-semibold text-text-main'>{profile?.email ?? '-'}</span></p>
-        <p className='mt-2 text-sm text-text-muted'>Account created: <span className='font-semibold text-text-main'>{createdAtLabel}</span></p>
-      </section>
-
-      <section className='rounded-xl border border-border-soft bg-bg-surface p-5'>
-        <h3 className='mb-3 text-lg font-semibold text-text-main'>Username</h3>
-        <label htmlFor='username' className='mb-1 block text-sm font-medium text-text-main'>New username</label>
-        <input
-          id='username'
-          name='username'
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className='w-full rounded-md border border-border-soft bg-white px-3 py-2 text-sm text-text-main'
-        />
-        <button type='button' className='btn-base btn-dark mt-3' onClick={updateUsername} disabled={isPending}>
-          {isPending ? 'Saving...' : 'Save username'}
-        </button>
-      </section>
-
-      <section className='rounded-xl border border-border-soft bg-bg-surface p-5'>
-        <h3 className='mb-3 text-lg font-semibold text-text-main'>Change Password</h3>
-        <div className='grid gap-3'>
-          <input
-            type='password'
-            placeholder='Current password'
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            className='w-full rounded-md border border-border-soft bg-white px-3 py-2 text-sm text-text-main'
-          />
-          <input
-            type='password'
-            placeholder='New password'
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className='w-full rounded-md border border-border-soft bg-white px-3 py-2 text-sm text-text-main'
-          />
-          <input
-            type='password'
-            placeholder='Confirm new password'
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className='w-full rounded-md border border-border-soft bg-white px-3 py-2 text-sm text-text-main'
-          />
+        {/* Email row */}
+        <div className='flex items-center justify-between px-4 py-3'>
+          <div>
+            <p className='text-xs font-semibold uppercase tracking-wide text-text-muted'>Email</p>
+            <p className='text-sm font-medium text-text-main'>{profile?.email ?? '-'}</p>
+          </div>
         </div>
-        <button type='button' className='btn-base btn-dark mt-3' onClick={updatePassword} disabled={isPending}>
-          {isPending ? 'Saving...' : 'Change password'}
-        </button>
-      </section>
 
-      <section className='rounded-xl border border-red-200 bg-red-50 p-5'>
-        <h3 className='mb-2 text-lg font-semibold text-red-700'>Delete Account</h3>
-        <p className='mb-3 text-sm text-red-700'>
+        {/* Username row */}
+        <div className='px-4 py-3'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <p className='text-xs font-semibold uppercase tracking-wide text-text-muted'>Username</p>
+              <p className='text-sm font-medium text-text-main'>{profile?.username ?? '-'}</p>
+            </div>
+            <button
+              type='button'
+              onClick={() => { setEditingUsername((v) => !v); setEditingPassword(false) }}
+              className='ml-3 border-2 border-zinc-300 p-1.5 text-text-muted hover:border-brand hover:text-brand transition-colors'
+              aria-label='Edit username'
+            >
+              {editingUsername ? <X size={14} /> : <Pencil size={14} />}
+            </button>
+          </div>
+          {editingUsername && (
+            <div className='mt-3 space-y-2'>
+              <input
+                id='username'
+                name='username'
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className='w-full border-2 border-zinc-300 bg-white px-3 py-2 text-sm text-text-main outline-none focus:border-[#66BB6A]'
+              />
+              <button
+                type='button'
+                className='border border-[#4CAF50] bg-[#4CAF50] px-5 py-2 text-sm font-semibold text-white hover:bg-[#81C784] hover:border-[#81C784] disabled:opacity-60'
+                onClick={updateUsername}
+                disabled={isPending}
+              >
+                {isPending ? 'Saving…' : 'Save username'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Password row */}
+        <div className='px-4 py-3'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <p className='text-xs font-semibold uppercase tracking-wide text-text-muted'>Password</p>
+              <p className='text-sm font-medium text-text-main'>••••••••</p>
+            </div>
+            <button
+              type='button'
+              onClick={() => { setEditingPassword((v) => !v); setEditingUsername(false) }}
+              className='ml-3 border-2 border-zinc-300 p-1.5 text-text-muted hover:border-brand hover:text-brand transition-colors'
+              aria-label='Edit password'
+            >
+              {editingPassword ? <X size={14} /> : <Pencil size={14} />}
+            </button>
+          </div>
+          {editingPassword && (
+            <div className='mt-3 space-y-2'>
+              <input
+                type='password'
+                placeholder='Current password'
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className='w-full border-2 border-zinc-300 bg-white px-3 py-2 text-sm text-text-main outline-none focus:border-[#66BB6A]'
+              />
+              <input
+                type='password'
+                placeholder='New password'
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className='w-full border-2 border-zinc-300 bg-white px-3 py-2 text-sm text-text-main outline-none focus:border-[#66BB6A]'
+              />
+              <input
+                type='password'
+                placeholder='Confirm new password'
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className='w-full border-2 border-zinc-300 bg-white px-3 py-2 text-sm text-text-main outline-none focus:border-[#66BB6A]'
+              />
+              <button
+                type='button'
+                className='border border-[#4CAF50] bg-[#4CAF50] px-5 py-2 text-sm font-semibold text-white hover:bg-[#81C784] hover:border-[#81C784] disabled:opacity-60'
+                onClick={updatePassword}
+                disabled={isPending}
+              >
+                {isPending ? 'Saving…' : 'Change password'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Member since row */}
+        <div className='flex items-center justify-between px-4 py-3'>
+          <div>
+            <p className='text-xs font-semibold uppercase tracking-wide text-text-muted'>Member since</p>
+            <p className='text-sm font-medium text-text-main'>{createdAtLabel}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Delete account */}
+      <section className='border-2 border-orange-400 bg-orange-50 p-5'>
+        <h3 className='mb-2 text-lg font-semibold text-orange-800'>Delete Account</h3>
+        <p className='mb-3 text-sm text-orange-700'>
           If you are host, rooms created by you will be removed. If you are only a participant,
           your room memberships and bets will be removed.
         </p>
@@ -226,15 +277,15 @@ export default function ProfilePage() {
           value={deleteConfirm}
           onChange={(e) => setDeleteConfirm(e.target.value)}
           placeholder='Type DELETE to confirm'
-          className='w-full rounded-md border border-red-200 bg-white px-3 py-2 text-sm text-text-main'
+          className='w-full border-2 border-orange-400 bg-white px-3 py-2 text-sm text-text-main'
         />
         <button
           type='button'
-          className='btn-base mt-3 border-red-600 bg-red-600 text-white hover:bg-red-500 hover:border-red-500'
+          className='mt-3 border border-[#F97316] bg-[#F97316] px-5 py-2 text-sm font-semibold text-white hover:bg-[#EA580C] hover:border-[#EA580C] disabled:opacity-60'
           onClick={deleteAccount}
           disabled={isPending}
         >
-          {isPending ? 'Deleting...' : 'Delete my account'}
+          {isPending ? 'Deleting…' : 'Delete my account'}
         </button>
       </section>
     </div>

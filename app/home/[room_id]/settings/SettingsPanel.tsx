@@ -154,148 +154,141 @@ export default function SettingsPanel({
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-2xl font-bold text-text-main">Settings</h2>
-        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass}`}>
-          {status}
-        </span>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div className="border-2 border-zinc-300 bg-white/90 p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
+        <p className="text-sm font-medium text-text-main">Invite code</p>
+        <div className="mt-2 flex items-center gap-3">
+          <span className="bg-white px-3 py-2 font-mono text-sm text-text-main border-2 border-zinc-300">
+            {inviteCode}
+          </span>
+          <button type="button" className="btn-base btn-light rounded-none" onClick={copyInviteCode}>
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </div>
       </div>
 
-      <div className="rounded-xl border border-border-soft bg-white p-5 shadow-sm space-y-4">
-        <div className="rounded-xl border border-border-soft bg-bg-page p-4">
-          <p className="text-sm font-medium text-text-main">Invite code</p>
-          <div className="mt-2 flex items-center gap-3">
-            <span className="rounded-md bg-white px-3 py-2 font-mono text-sm text-text-main border border-border-soft">
-              {inviteCode}
-            </span>
-            <button type="button" className="btn-base btn-light" onClick={copyInviteCode}>
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-text-main" htmlFor="settings-event">
-            Event
-          </label>
-          <select
-            id="settings-event"
-            value={eventId}
-            onChange={(event) => setEventId(event.target.value)}
-            disabled={!isWaiting || isPending}
-            className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-brand disabled:bg-gray-100"
-          >
-            {events.map((eventOption) => (
-              <option key={eventOption.id} value={eventOption.id}>
-                {eventOption.displayName}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-text-main">Room duration</p>
-          <label className="flex items-center gap-2 text-sm text-text-main">
-            <input
-              type="radio"
-              name="room-duration-settings"
-              value="full_event"
-              checked={endMode === 'full_event'}
-              onChange={() => setEndMode('full_event')}
-              disabled={!isWaiting || isPending}
-            />
-            <span>Full event</span>
-          </label>
-          <label className="flex items-center gap-2 text-sm text-text-main">
-            <input
-              type="radio"
-              name="room-duration-settings"
-              value="set_end_date"
-              checked={endMode === 'set_end_date'}
-              onChange={() => setEndMode('set_end_date')}
-              disabled={!isWaiting || isPending}
-            />
-            <span>Set end date</span>
-          </label>
-
-          {endMode === 'set_end_date' ? (
-            <>
-              <label className="mb-2 mt-2 block text-sm font-medium text-text-main" htmlFor="settings-room-end-at">
-                End date
-              </label>
-              <input
-                id="settings-room-end-at"
-                type="datetime-local"
-                value={roomEndAt}
-                onChange={(event) => setRoomEndAt(event.target.value)}
-                disabled={!isWaiting || isPending}
-                className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-brand disabled:bg-gray-100"
-              />
-            </>
-          ) : null}
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {ruleLabels.map((rule) => (
-            <label key={rule.key} className="text-sm text-text-main">
-              <span className="mb-1 block font-medium">{rule.label}</span>
-              <input
-                type="number"
-                min={0}
-                value={rules[rule.key]}
-                onChange={(event) => handleRuleChange(rule.key, event.target.value)}
-                disabled={!isWaiting || isPending}
-                className="w-full rounded-xl border border-border-soft bg-white px-3 py-2 outline-none transition-colors focus:border-brand disabled:bg-gray-100"
-              />
-            </label>
+      <div className="border-2 border-zinc-300 bg-white/90 p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
+        <label className="mb-2 block text-sm font-medium text-text-main" htmlFor="settings-event">
+          Event
+        </label>
+        <select
+          id="settings-event"
+          value={eventId}
+          onChange={(event) => setEventId(event.target.value)}
+          disabled={!isWaiting || isPending}
+          className="w-full border-2 border-zinc-300 bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-[#66BB6A] disabled:bg-gray-100"
+        >
+          {events.map((eventOption) => (
+            <option key={eventOption.id} value={eventOption.id}>
+              {eventOption.displayName}
+            </option>
           ))}
+        </select>
+      </div>
 
-          <label className="text-sm text-text-main">
-            <span className="mb-1 block font-medium">Correct team goals</span>
+      <div className="border-2 border-zinc-300 bg-white/90 p-5 transition-all duration-200 hover:border-brand hover:shadow-md space-y-2">
+        <p className="text-sm font-medium text-text-main">Room duration</p>
+        <label className="flex items-center gap-2 text-sm text-text-main">
+          <input
+            type="radio"
+            name="room-duration-settings"
+            value="full_event"
+            checked={endMode === 'full_event'}
+            onChange={() => setEndMode('full_event')}
+            disabled={!isWaiting || isPending}
+          />
+          <span>Full event</span>
+        </label>
+        <label className="flex items-center gap-2 text-sm text-text-main">
+          <input
+            type="radio"
+            name="room-duration-settings"
+            value="set_end_date"
+            checked={endMode === 'set_end_date'}
+            onChange={() => setEndMode('set_end_date')}
+            disabled={!isWaiting || isPending}
+          />
+          <span>Set end date</span>
+        </label>
+
+        {endMode === 'set_end_date' ? (
+          <>
+            <label className="mb-2 mt-2 block text-sm font-medium text-text-main" htmlFor="settings-room-end-at">
+              End date
+            </label>
+            <input
+              id="settings-room-end-at"
+              type="datetime-local"
+              value={roomEndAt}
+              onChange={(event) => setRoomEndAt(event.target.value)}
+              disabled={!isWaiting || isPending}
+              className="w-full border-2 border-zinc-300 bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-[#66BB6A] disabled:bg-gray-100"
+            />
+          </>
+        ) : null}
+      </div>
+
+      <div className="border-2 border-zinc-300 bg-white/90 p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {ruleLabels.map((rule) => (
+          <label key={rule.key} className="text-sm text-text-main">
+            <span className="mb-1 block font-medium">{rule.label}</span>
             <input
               type="number"
               min={0}
-              value={teamGoalsPoints}
-              onChange={(event) => {
-                const parsed = Number(event.target.value)
-                setTeamGoalsPoints(Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0)
-              }}
+              value={rules[rule.key]}
+              onChange={(event) => handleRuleChange(rule.key, event.target.value)}
               disabled={!isWaiting || isPending}
-              className="w-full rounded-xl border border-border-soft bg-white px-3 py-2 outline-none transition-colors focus:border-brand disabled:bg-gray-100"
+              className="w-full border-2 border-zinc-300 bg-white px-3 py-2 outline-none transition-colors focus:border-[#66BB6A] disabled:bg-gray-100"
             />
-            <p className="mt-1 text-xs text-text-muted">Applies to both home goals and away goals.</p>
           </label>
-        </div>
+        ))}
 
-        <div className="flex flex-wrap justify-end gap-3">
-          <button
-            type="button"
-            className="btn-base btn-light"
-            onClick={saveSettings}
+        <label className="text-sm text-text-main">
+          <span className="mb-1 block font-medium">Correct team goals</span>
+          <input
+            type="number"
+            min={0}
+            value={teamGoalsPoints}
+            onChange={(event) => {
+              const parsed = Number(event.target.value)
+              setTeamGoalsPoints(Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0)
+            }}
             disabled={!isWaiting || isPending}
-          >
-            Save settings
-          </button>
-          <button
-            type="button"
-            className="btn-base btn-dark"
-            onClick={startRoom}
-            disabled={!isWaiting || isPending}
-          >
-            Start room
-          </button>
-        </div>
-
-        {!isWaiting ? (
-          <p className="text-sm text-text-muted">
-            Room is already started. Event and rules are locked.
-          </p>
-        ) : null}
-
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        {message ? <p className="text-sm text-green-700">{message}</p> : null}
+            className="w-full border-2 border-zinc-300 bg-white px-3 py-2 outline-none transition-colors focus:border-[#66BB6A] disabled:bg-gray-100"
+          />
+          <p className="mt-1 text-xs text-text-muted">Applies to both home goals and away goals.</p>
+        </label>
       </div>
+      </div>
+
+      <div className="flex flex-wrap justify-end gap-3">
+        <button
+          type="button"
+          className="btn-base btn-light rounded-none"
+          onClick={saveSettings}
+          disabled={!isWaiting || isPending}
+        >
+          Save settings
+        </button>
+        <button
+          type="button"
+          className="btn-base btn-dark rounded-none"
+          onClick={startRoom}
+          disabled={!isWaiting || isPending}
+        >
+          Start room
+        </button>
+      </div>
+
+      {!isWaiting ? (
+        <p className="text-sm text-text-muted">
+          Room is already started. Event and rules are locked.
+        </p>
+      ) : null}
+
+      {error ? <p className="text-sm text-[#F97316]">{error}</p> : null}
+      {message ? <p className="text-sm text-green-700">{message}</p> : null}
     </div>
   )
 }

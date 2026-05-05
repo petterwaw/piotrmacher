@@ -20,8 +20,8 @@ type ApiFootballFixture = {
     away: number | null
   }
   teams: {
-    home: { name: string }
-    away: { name: string }
+    home: { name: string; logo?: string | null }
+    away: { name: string; logo?: string | null }
   }
   score: {
     fulltime: { home: number | null; away: number | null }
@@ -295,6 +295,8 @@ async function runSync(request: NextRequest) {
           provider_match_id: String(fixture.fixture.id),
           home_team: fixture.teams.home.name,
           away_team: fixture.teams.away.name,
+          home_logo: fixture.teams.home.logo ?? null,
+          away_logo: fixture.teams.away.logo ?? null,
           scheduled_start_at: fixture.fixture.date,
           status,
           result_mode: resultMode,

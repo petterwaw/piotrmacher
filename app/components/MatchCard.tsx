@@ -11,7 +11,7 @@ export interface Match {
 
 export default function MatchCard({ match }: { match: Match }) {
   return (
-    <div className="bg-white border border-border-soft rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="border-2 border-zinc-300 bg-white/90 p-4 transition-all duration-200 hover:border-brand hover:shadow-md">
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           <div className="text-sm text-text-muted mb-2">

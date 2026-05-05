@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #F5F6F8;
+  --background: #ECEFF1;
   --foreground: #171717;
 }
 
@@ -12,7 +12,9 @@
 }
 
 body {
-  background: var(--background);
+  background:
+    linear-gradient(180deg, rgba(76, 175, 80, 0.12) 0%, rgba(76, 175, 80, 0.045) 10%, rgba(236, 239, 241, 0.97) 26%, rgba(236, 239, 241, 1) 46%),
+    var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -28,15 +30,24 @@ body {
 
   --color-border-soft: #E5E7EB;
 
-  --color-brand: #B34A73;
-  --color-brand-hover: #EAB4C8;
-  --color-brand-soft: #CC6E92;
+  --color-brand: #4CAF50;
+  --color-brand-hover: #81C784;
+  --color-brand-soft: #66BB6A;
 
   --color-success: #16A34A;
   --color-warning: #D97706;
 }
 
 @layer components {
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   .btn-base {
     @apply inline-flex hover:cursor-pointer items-center justify-center rounded-md border px-4 py-2 font-medium transition-colors;
   }

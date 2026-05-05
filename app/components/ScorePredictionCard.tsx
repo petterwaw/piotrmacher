@@ -18,7 +18,9 @@ type LivePrediction = {
 export type BasicMatch = {
   id: string
   homeTeam: string
+  homeLogo?: string | null
   awayTeam: string
+  awayLogo?: string | null
   startTime: string
   status: MatchStatus
   liveMinute?: number | null
@@ -36,13 +38,7 @@ type ScorePredictionCardProps = {
   roomStatus?: 'waiting' | 'active' | 'finished'
 }
 
-function normalizeScore(value: string) {
-  const parsed = Number.parseInt(value, 10)
-  if (Number.isNaN(parsed) || parsed < 0) {
-    return 0
-  }
-  return parsed
-}
+const MAX_PREDICTED_GOALS = 20
 
 function getStatusLabel(status: MatchStatus) {
   if (status === 'scheduled') return 'Scheduled'
@@ -64,6 +60,7 @@ export default function ScorePredictionCard({
   const [savedPrediction, setSavedPrediction] = useState<Prediction | null>(match.prediction)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [showBets, setShowBets] = useState(false)
 
   const isStarted = match.status === 'live' || match.status === 'finished' || match.status === 'cancelled'
   const isRoomActive = roomStatus === 'active'
@@ -77,20 +74,17 @@ export default function ScorePredictionCard({
   }, [match.status])
 
   const decreaseHome = () => setHomeScore((prev) => Math.max(0, prev - 1))
-  const increaseHome = () => setHomeScore((prev) => prev + 1)
+  const increaseHome = () => setHomeScore((prev) => Math.min(MAX_PREDICTED_GOALS, prev + 1))
 
   const decreaseAway = () => setAwayScore((prev) => Math.max(0, prev - 1))
-  const increaseAway = () => setAwayScore((prev) => prev + 1)
+  const increaseAway = () => setAwayScore((prev) => Math.min(MAX_PREDICTED_GOALS, prev + 1))
 
   const startEditing = () => {
-    if (!canEdit) {
-      return
-    }
-
+    if (!canEdit) return
     setError(null)
     setIsEditing(true)
-    setHomeScore(savedPrediction?.home ?? 0)
-    setAwayScore(savedPrediction?.away ?? 0)
+    setHomeScore(0)
+    setAwayScore(0)
   }
 
   const cancelEditing = () => {
@@ -105,14 +99,8 @@ export default function ScorePredictionCard({
       try {
         const response = await fetch(`/api/rooms/${roomId}/bets`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            matchId: match.id,
-            homeScore,
-            awayScore,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ matchId: match.id, homeScore, awayScore }),
         })
 
         const data = (await response.json().catch(() => ({}))) as {
@@ -124,10 +112,7 @@ export default function ScorePredictionCard({
           throw new Error(data.error || 'Could not save bet.')
         }
 
-        setSavedPrediction({
-          home: data.bet.homeScore,
-          away: data.bet.awayScore,
-        })
+        setSavedPrediction({ home: data.bet.homeScore, away: data.bet.awayScore })
         setIsEditing(false)
       } catch (saveError) {
         setError(saveError instanceof Error ? saveError.message : 'Could not save bet.')
@@ -135,139 +120,178 @@ export default function ScorePredictionCard({
     })
   }
 
+  const showOfficialScore =
+    (match.status === 'live' || match.status === 'finished') &&
+    typeof match.liveScore?.home === 'number' &&
+    typeof match.liveScore?.away === 'number'
+
+  const showPlayerPredictionInCenter = !isStarted && !isEditing && savedPrediction
+
   return (
-    <div className="max-w-xl rounded-xl border border-border-soft bg-white p-5 shadow-sm">
-      <div className="mb-5 flex items-start justify-between gap-3">
-        <p className="text-sm text-text-muted">
+    <div className="border-2 border-zinc-300 bg-white/90 p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
+      <div className="mb-2 grid grid-cols-[1fr_auto_1fr] items-start gap-2">
+        <div />
+        <p className="text-center text-sm text-text-muted">
           {new Date(match.startTime).toLocaleString('pl-PL', {
             dateStyle: 'medium',
             timeStyle: 'short',
           })}
         </p>
-        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClassName}`}>
-          {getStatusLabel(match.status)}
-        </span>
+        <div className="flex justify-end">
+          <span className={`px-2.5 py-1 text-xs font-semibold ${statusClassName}`}>
+            {getStatusLabel(match.status)}
+          </span>
+        </div>
       </div>
 
-      <div className="rounded-xl border border-border-soft p-4">
-        {match.status === 'live' ? (
-          <div className="mb-3 flex items-center justify-center gap-2 text-sm font-semibold text-red-600">
-            <span className="inline-block h-2 w-2 rounded-full bg-red-600" />
-            <span>
-              LIVE{typeof match.liveMinute === 'number' ? ` ${match.liveMinute}'` : ''}
-            </span>
-          </div>
-        ) : null}
+      {match.status === 'live' ? (
+        <div className="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-[#4CAF50]">
+          <span className="inline-block h-2 w-2 bg-[#4CAF50]" />
+          <span>LIVE{typeof match.liveMinute === 'number' ? ` ${match.liveMinute}'` : ''}</span>
+        </div>
+      ) : null}
 
-        <div className="mb-4 text-center text-base font-semibold text-text-main sm:text-lg">
-          {match.homeTeam} - {match.awayTeam}
+      <div className="flex flex-nowrap items-center justify-between gap-3 py-1">
+        <div className="w-[38%] min-w-0 flex flex-col items-center text-center">
+          {match.homeLogo ? (
+            <img src={match.homeLogo} alt="" aria-hidden="true" className="mb-2 h-12 w-12 object-contain" />
+          ) : (
+            <div className="mb-2 h-12 w-12" />
+          )}
+          <p className="text-sm font-semibold text-text-main">{match.homeTeam}</p>
         </div>
 
-        {(match.status === 'live' || match.status === 'finished') &&
-        typeof match.liveScore?.home === 'number' &&
-        typeof match.liveScore?.away === 'number' ? (
-          <div className="mb-4 text-center">
-            <span className={`text-3xl font-bold ${match.status === 'live' ? 'text-red-700' : 'text-text-main'}`}>
-              {match.liveScore.home} : {match.liveScore.away}
-            </span>
-          </div>
-        ) : null}
-
-        {!isEditing ? (
-          <div className="flex min-h-14 items-center justify-center">
-            {!isStarted && savedPrediction ? (
-              <span className="text-3xl font-bold text-text-main">
-                {savedPrediction.home} : {savedPrediction.away}
-              </span>
-            ) : null}
-          </div>
-        ) : (
-          <div className="grid grid-cols-[72px_1fr_72px] items-center gap-4">
-            <div className="flex flex-col items-center gap-2">
-              <button type="button" className="btn-base btn-dark min-w-10 justify-center px-3 py-1" onClick={increaseHome}>
-                +
-              </button>
-              <input
-                type="number"
-                min={0}
-                value={homeScore}
-                onChange={(event) => setHomeScore(normalizeScore(event.target.value))}
-                className="w-14 rounded-md border border-border-soft py-1 text-center font-semibold text-text-main"
-              />
-              <button type="button" className="btn-base btn-light min-w-10 justify-center px-3 py-1" onClick={decreaseHome}>
-                -
-              </button>
+        <div className="w-[24%] min-w-[120px] text-center">
+          {!isEditing ? (
+            <div className="font-mono text-3xl font-bold text-text-main">
+              {showOfficialScore ? (
+                <span>
+                  {match.liveScore?.home} : {match.liveScore?.away}
+                </span>
+              ) : showPlayerPredictionInCenter ? (
+                <span>
+                  {savedPrediction.home} : {savedPrediction.away}
+                </span>
+              ) : (
+                <span>-</span>
+              )}
             </div>
+          ) : (
+            <div className="grid grid-cols-[40px_auto_40px] items-center gap-3">
+              <div className="flex flex-col items-center gap-1.5">
+                <button
+                  type="button"
+                  className="h-7 w-7 border-2 border-brand bg-brand text-base font-bold leading-none text-white transition-colors hover:border-brand-soft hover:bg-brand-soft disabled:opacity-60"
+                  onClick={increaseHome}
+                  disabled={isPending || homeScore >= MAX_PREDICTED_GOALS}
+                >
+                  +
+                </button>
+                <span className="w-8 text-center font-mono text-3xl font-bold text-text-main">{homeScore}</span>
+                <button
+                  type="button"
+                  className="h-7 w-7 border-2 border-zinc-300 bg-white text-base font-bold leading-none text-text-main transition-colors hover:border-zinc-400 disabled:opacity-60"
+                  onClick={decreaseHome}
+                  disabled={isPending || homeScore <= 0}
+                >
+                  -
+                </button>
+              </div>
 
-            <div className="text-center text-2xl font-semibold text-text-main">:</div>
+              <div className="text-2xl font-bold text-text-main">:</div>
 
-            <div className="flex flex-col items-center gap-2">
-              <button type="button" className="btn-base btn-dark min-w-10 justify-center px-3 py-1" onClick={increaseAway}>
-                +
-              </button>
-              <input
-                type="number"
-                min={0}
-                value={awayScore}
-                onChange={(event) => setAwayScore(normalizeScore(event.target.value))}
-                className="w-14 rounded-md border border-border-soft py-1 text-center font-semibold text-text-main"
-              />
-              <button type="button" className="btn-base btn-light min-w-10 justify-center px-3 py-1" onClick={decreaseAway}>
-                -
-              </button>
+              <div className="flex flex-col items-center gap-1.5">
+                <button
+                  type="button"
+                  className="h-7 w-7 border-2 border-brand bg-brand text-base font-bold leading-none text-white transition-colors hover:border-brand-soft hover:bg-brand-soft disabled:opacity-60"
+                  onClick={increaseAway}
+                  disabled={isPending || awayScore >= MAX_PREDICTED_GOALS}
+                >
+                  +
+                </button>
+                <span className="w-8 text-center font-mono text-3xl font-bold text-text-main">{awayScore}</span>
+                <button
+                  type="button"
+                  className="h-7 w-7 border-2 border-zinc-300 bg-white text-base font-bold leading-none text-text-main transition-colors hover:border-zinc-400 disabled:opacity-60"
+                  onClick={decreaseAway}
+                  disabled={isPending || awayScore <= 0}
+                >
+                  -
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+
+        <div className="w-[38%] min-w-0 flex flex-col items-center text-center">
+          {match.awayLogo ? (
+            <img src={match.awayLogo} alt="" aria-hidden="true" className="mb-2 h-12 w-12 object-contain" />
+          ) : (
+            <div className="mb-2 h-12 w-12" />
+          )}
+          <p className="text-sm font-semibold text-text-main">{match.awayTeam}</p>
+        </div>
       </div>
 
-      {!isRoomActive ? (
-        <p className="mt-4 text-sm text-text-muted">
-          Betting is disabled until host starts the room.
-        </p>
-      ) : null}
+      {error ? <p className="mt-3 text-sm text-[#F97316]">{error}</p> : null}
 
-      {isStarted ? (
-        <p className="mt-4 text-sm text-text-muted">Match started: editing is locked.</p>
-      ) : null}
-
-      {match.status === 'live' || match.status === 'finished' ? (
-        <div className="mt-4 rounded-lg border border-border-soft bg-bg-page p-3">
-          <p className="text-sm font-semibold text-text-main">Players bets</p>
-          {livePredictions.length === 0 ? (
-            <p className="mt-2 text-sm text-text-muted">No bets submitted yet.</p>
+      {canEdit ? (
+        <div className="mt-4 flex items-center justify-end gap-3">
+          {!isEditing ? (
+            <button
+              type="button"
+              className="border-2 border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:text-brand"
+              onClick={startEditing}
+              disabled={isPending}
+            >
+              Edit
+            </button>
           ) : (
-            <ul className="mt-2 space-y-1">
-              {livePredictions.map((item) => (
-                <li key={`${item.username}-${item.homeScore}-${item.awayScore}`} className="flex items-center justify-between text-sm text-text-main">
-                  <span>{item.username}</span>
-                  <span className="font-semibold">
-                    {item.homeScore} : {item.awayScore}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <button
+                type="button"
+                className="border-2 border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:text-brand"
+                onClick={cancelEditing}
+                disabled={isPending}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="border-2 border-brand bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:border-brand-soft hover:bg-brand-soft"
+                onClick={handleSave}
+                disabled={isPending}
+              >
+                {isPending ? 'Saving...' : 'Save'}
+              </button>
+            </>
           )}
         </div>
       ) : null}
 
-      {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
-
-      <div className="mt-5 flex items-center justify-end gap-3">
-        {!isEditing ? (
-          <button type="button" className="btn-base btn-light" onClick={startEditing} disabled={!canEdit || isPending}>
-            Edit
+      {/* Collapsible other players' bets */}
+      {livePredictions.length > 0 ? (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => setShowBets((prev) => !prev)}
+            className="flex w-full items-center justify-between gap-2 border-t-2 border-zinc-200 pt-3 text-sm font-medium text-text-muted hover:text-text-main"
+          >
+            <span>Players bets ({livePredictions.length})</span>
+            <span className={`text-xs transition-transform duration-200 ${showBets ? 'rotate-180' : ''}`}>▼</span>
           </button>
-        ) : (
-          <>
-            <button type="button" className="btn-base btn-light" onClick={cancelEditing} disabled={isPending}>
-              Cancel
-            </button>
-            <button type="button" className="btn-base btn-dark" onClick={handleSave} disabled={isPending}>
-              {isPending ? 'Saving...' : 'Save'}
-            </button>
-          </>
-        )}
-      </div>
+          {showBets ? (
+            <ul className="mt-2 space-y-1">
+              {livePredictions.map((item) => (
+                <li key={`${item.username}-${item.homeScore}-${item.awayScore}`} className="flex items-center justify-between text-sm text-text-main">
+                  <span>{item.username}</span>
+                  <span className="font-semibold">{item.homeScore} : {item.awayScore}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -5,6 +5,7 @@ type RoomStatus = 'Waiting' | 'Active' | 'Finished'
 export type RoomCardProps = {
     id: string
     eventName: string
+    eventLogo?: string | null
     createdBy: string
     createdAt: string
     playersCount: number
@@ -20,33 +21,61 @@ const statusStyles: Record<RoomStatus, string> = {
 export default function RoomCard({
     id,
     eventName,
+    eventLogo = null,
     createdBy,
-    createdAt,
     playersCount,
     status,
 }: RoomCardProps) {
     return (
-        <Link href={`/home/${id}`} className="block bg-bg-surface hover:bg-bg-hover border border-border-soft rounded-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between gap-2">
-                <h2 className="text-text-main font-semibold text-lg leading-tight">{eventName}</h2>
-                <span className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${statusStyles[status]}`}>
-                    {status}
+        <Link href={`/home/${id}`} className="group block border-2 border-zinc-300 bg-white/90 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand hover:shadow-md">
+            <div className="hidden md:block">
+                <h2 className="text-lg font-black uppercase leading-tight tracking-tight text-text-main">{eventName}</h2>
+                <span className={`mt-1 inline-block px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${statusStyles[status]}`}>
+                    {status.toLowerCase()}
                 </span>
+
+                <div className="flex justify-center py-2">
+                    {eventLogo ? (
+                        <img src={eventLogo} alt="" aria-hidden="true" className="h-24 w-24 object-contain" />
+                    ) : (
+                        <div className="h-24 w-24" />
+                    )}
+                </div>
+
+                <div className="mt-3 flex items-center justify-between text-sm text-text-muted">
+                    <p>
+                        <span className="font-semibold uppercase tracking-wide text-text-main">Host:</span> {createdBy}
+                    </p>
+                    <p>
+                        <span className="font-black text-brand">{playersCount}</span> players
+                    </p>
+                </div>
             </div>
-            <div className="h-px bg-border-soft" />
-            <div className="flex flex-col gap-1.5 text-sm text-text-muted">
-                <p>
-                    <span className="font-medium text-text-main">Host:</span> {createdBy}
-                </p>
-                <p>
-                    <span className="font-medium text-text-main">Created:</span>{' '}
-                    {new Date(createdAt).toLocaleString('pl-PL', { dateStyle: 'medium', timeStyle: 'short' })}
-                </p>
-            </div>
-            <div className="mt-auto pt-1">
-                <span className="text-sm text-text-muted">
-                    <span className="font-semibold text-brand">{playersCount}</span> players
-                </span>
+
+            <div className="md:hidden">
+                <div className="flex items-stretch justify-between gap-4">
+                    <div className="min-w-0 flex-1 text-sm text-text-muted">
+                        <h2 className="text-lg font-black uppercase leading-tight tracking-tight text-text-main">{eventName}</h2>
+                        <span className={`mt-2 inline-block px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${statusStyles[status]}`}>
+                            {status.toLowerCase()}
+                        </span>
+
+                        <p className="mt-3 min-w-0">
+                            <span className="font-semibold uppercase tracking-wide text-text-main">Host:</span> {createdBy}
+                        </p>
+                        <p className="mt-1">
+                            <span className="font-black text-brand">{playersCount}</span> players
+                        </p>
+                    </div>
+
+                    <div className="flex min-w-[96px] items-center justify-center self-stretch">
+                        {eventLogo ? (
+                            <img src={eventLogo} alt="" aria-hidden="true" className="h-full w-auto max-h-[112px] object-contain" />
+                        ) : (
+                            <div className="h-full w-[96px]" />
+                        )}
+                    </div>
+                </div>
             </div>
         </Link>
     )

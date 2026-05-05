@@ -7,25 +7,21 @@ export default function StandingsTable({ players }: { players: Player[] }) {
   const sorted = [...players].sort((a, b) => b.points - a.points)
 
   return (
-    <div className="bg-white border border-border-soft rounded-lg shadow-sm overflow-hidden">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-border-soft bg-bg-page">
-            <th className="px-4 py-3 text-left text-sm font-semibold text-text-main">Rank</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-text-main">Player</th>
-            <th className="px-4 py-3 text-right text-sm font-semibold text-text-main">Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((player, index) => (
-            <tr key={player.username} className="border-b border-border-soft hover:bg-bg-page transition-colors">
-              <td className="px-4 py-3 text-sm font-medium text-text-muted">#{index + 1}</td>
-              <td className="px-4 py-3 text-sm text-text-main font-medium">{player.username}</td>
-              <td className="px-4 py-3 text-sm font-semibold text-right text-brand">{player.points}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-3">
+      {sorted.map((player, index) => (
+        <div
+          key={player.username}
+          className="flex items-center justify-between border-2 border-zinc-300 bg-white/90 p-4 transition-all duration-200 hover:border-brand hover:shadow-md"
+        >
+          <div className="flex items-center gap-4">
+            <span className={`w-10 text-lg font-black ${
+              index === 0 ? 'text-[#F59E0B]' : index === 1 ? 'text-[#9CA3AF]' : index === 2 ? 'text-[#B45309]' : 'text-text-muted'
+            }`}>#{index + 1}</span>
+            <span className="font-semibold text-text-main">{player.username}</span>
+          </div>
+          <span className="text-lg font-black text-brand">{player.points} pts</span>
+        </div>
+      ))}
     </div>
   )
 }

@@ -117,6 +117,8 @@ async function main() {
           provider_match_id: String(fixture.fixture.id),
           home_team: fixture.teams.home.name,
           away_team: fixture.teams.away.name,
+          home_logo: fixture.teams.home?.logo ?? null,
+          away_logo: fixture.teams.away?.logo ?? null,
           scheduled_start_at: fixture.fixture.date,
           status,
           result_mode: resultMode,

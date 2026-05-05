@@ -2,6 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Ticket, Clock, Trophy, BookOpen, Settings } from 'lucide-react'
+
+const tabIcons: Record<string, React.ElementType> = {
+  Bets: Ticket,
+  History: Clock,
+  Standings: Trophy,
+  Rules: BookOpen,
+  Settings: Settings,
+}
 
 export default function RoomNavigation({
   roomId,
@@ -31,20 +40,45 @@ export default function RoomNavigation({
   }
 
   return (
-    <div className="flex gap-0 mb-8 border-b border-border-soft">
-      {tabs.map((tab) => (
-        <Link
-          key={tab.href}
-          href={tab.href}
-          className={`px-4 py-3 font-medium transition-colors border-b-2 ${
-            isActive(tab.href, tab.exact)
-              ? 'border-brand text-brand'
-              : 'border-transparent text-text-muted hover:text-text-main hover:border-brand-soft'
-          }`}
-        >
-          {tab.label}
-        </Link>
-      ))}
-    </div>
+    <>
+      {/* Desktop sidebar nav */}
+      <div className="mb-6 hidden md:block">
+        <div className="flex w-full flex-col gap-1">
+          {tabs.map((tab) => (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className={`px-3 py-2 text-left text-sm font-medium transition-colors ${
+                isActive(tab.href, tab.exact)
+                  ? 'bg-white text-brand'
+                  : 'text-text-muted hover:bg-zinc-100 hover:text-text-main'
+              }`}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Mobile bottom nav */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex border-t-2 border-zinc-300 bg-white md:hidden">
+        {tabs.map((tab) => {
+          const Icon = tabIcons[tab.label]
+          const active = isActive(tab.href, tab.exact)
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold uppercase tracking-wide transition-colors ${
+                active ? 'text-brand' : 'text-zinc-400 hover:text-brand'
+              }`}
+            >
+              <Icon size={20} strokeWidth={active ? 2.5 : 2} />
+              {tab.label}
+            </Link>
+          )
+        })}
+      </nav>
+    </>
   )
 }
