@@ -2,6 +2,9 @@
 
 import { createRoom } from '@/app/utils/rooms/createRoom'
 import { joinRoom } from '@/app/utils/rooms/joinRoom'
+import EventSelect from '@/app/components/EventSelect'
+import DatePicker from '@/app/components/DatePicker'
+import { X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
 
@@ -295,7 +298,7 @@ export default function RoomActions() {
 
       {mode && copy ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
-          <div className="w-full max-w-md border-2 border-zinc-300 bg-white/90 p-6 shadow-md">
+          <div className="w-full max-w-md border-2 border-zinc-300 bg-white p-6 shadow-md">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-text-main">{copy.title}</h2>
@@ -304,9 +307,9 @@ export default function RoomActions() {
               <button
                 type="button"
                 onClick={closeModal}
-                className="border-2 border-zinc-300 bg-white px-3 py-1 text-sm text-text-muted transition-colors hover:border-brand hover:text-text-main"
+                className="inline-flex h-9 w-9 items-center justify-center text-text-muted transition-colors hover:text-brand"
               >
-                Close
+                <X size={20} />
               </button>
             </div>
 
@@ -331,63 +334,52 @@ export default function RoomActions() {
                   <label className="mt-3 block text-sm font-medium text-text-main" htmlFor="room-modal-event">
                     Event
                   </label>
-                  <select
+                  <EventSelect
                     id="room-modal-event"
                     value={eventId}
-                    onChange={(event) => setEventId(event.target.value)}
-                    className="w-full border-2 border-zinc-300 bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-[#66BB6A]"
-                    disabled={isPending || eventsLoading || events.length === 0}
-                  >
-                    {events.length === 0 ? (
-                      <option value="">No events available</option>
-                    ) : null}
-                    {events.map((eventOption) => (
-                      <option key={eventOption.id} value={eventOption.id}>
-                        {eventOption.displayName}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setEventId}
+                    options={events}
+                    disabled={isPending}
+                    loading={eventsLoading}
+                  />
 
-                  <fieldset className="mt-3 space-y-2">
-                    <legend className="block text-sm font-medium text-text-main">Room duration</legend>
-                    <label className="flex items-center gap-2 text-sm text-text-main">
-                      <input
-                        type="radio"
-                        name="room-duration-create"
-                        value="full_event"
-                        checked={endMode === 'full_event'}
-                        onChange={() => setEndMode('full_event')}
+                  <div className="mt-3">
+                    <p className="mb-1.5 block text-sm font-medium text-text-main">Room duration</p>
+                    <div className="flex">
+                      <button
+                        type="button"
+                        onClick={() => setEndMode('full_event')}
                         disabled={isPending}
-                      />
-                      <span>Full event</span>
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-text-main">
-                      <input
-                        type="radio"
-                        name="room-duration-create"
-                        value="set_end_date"
-                        checked={endMode === 'set_end_date'}
-                        onChange={() => setEndMode('set_end_date')}
+                        className={`flex-1 border-2 px-4 py-2 text-sm font-semibold transition-colors ${
+                          endMode === 'full_event'
+                            ? 'border-brand bg-brand text-white'
+                            : 'border-zinc-300 bg-white text-text-muted hover:border-brand hover:text-text-main'
+                        }`}
+                      >
+                        Full event
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEndMode('set_end_date')}
                         disabled={isPending}
-                      />
-                      <span>Set end date</span>
-                    </label>
-                  </fieldset>
+                        className={`flex-1 border-2 border-l-0 px-4 py-2 text-sm font-semibold transition-colors ${
+                          endMode === 'set_end_date'
+                            ? 'border-brand bg-brand text-white'
+                            : 'border-zinc-300 bg-white text-text-muted hover:border-brand hover:text-text-main'
+                        }`}
+                      >
+                        Set end date
+                      </button>
+                    </div>
+                  </div>
 
                   {endMode === 'set_end_date' ? (
-                    <>
-                      <label className="mt-2 block text-sm font-medium text-text-main" htmlFor="room-modal-end-at">
-                        End date
-                      </label>
-                      <input
-                        id="room-modal-end-at"
-                        type="datetime-local"
-                        value={roomEndAt}
-                        onChange={(event) => setRoomEndAt(event.target.value)}
-                        className="w-full border-2 border-zinc-300 bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-[#66BB6A]"
-                        disabled={isPending}
-                      />
-                    </>
+                    <DatePicker
+                      value={roomEndAt}
+                      onChange={setRoomEndAt}
+                      disabled={isPending}
+                      inline
+                    />
                   ) : null}
                 </>
               ) : null}
@@ -396,10 +388,10 @@ export default function RoomActions() {
             {error ? <p className="mt-3 text-sm text-[#F97316]">{error}</p> : null}
 
             <div className="mt-6 flex justify-end gap-3">
-              <button type="button" className="btn-base btn-light" onClick={closeModal} disabled={isPending}>
+              <button type="button" className="btn-base btn-light rounded-none" onClick={closeModal} disabled={isPending}>
                 Cancel
               </button>
-              <button type="button" className="btn-base btn-dark" onClick={handleSubmit} disabled={isPending}>
+              <button type="button" className="btn-base btn-dark rounded-none" onClick={handleSubmit} disabled={isPending}>
                 {isPending ? 'Working...' : copy.action}
               </button>
             </div>

@@ -2,6 +2,9 @@
 
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
+import { X } from 'lucide-react'
+import EventSelect from '@/app/components/EventSelect'
+import DatePicker from '@/app/components/DatePicker'
 
 type Rules = {
   correct_winner: number
@@ -12,9 +15,10 @@ type Rules = {
   exact_draw: number
 }
 
-const ruleLabels: Array<{ key: Exclude<keyof Rules, 'correct_away_goals' | 'correct_home_goals'>; label: string }> = [
+const ruleLabels: Array<{ key: Exclude<keyof Rules, 'correct_away_goals' | 'correct_home_goals'> | 'team_goals'; label: string }> = [
   { key: 'correct_winner', label: 'Correct winner' },
   { key: 'correct_difference', label: 'Correct difference' },
+  { key: 'team_goals', label: 'Correct team goals' },
   { key: 'exact_score', label: 'Exact score' },
   { key: 'exact_draw', label: 'Exact draw' },
 ]
@@ -59,8 +63,26 @@ export default function SettingsPanel({
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [showStartConfirm, setShowStartConfirm] = useState(false)
 
   const isWaiting = status === 'waiting'
+
+  const hasUnsavedChanges = useMemo(() => {
+    const origEndMode: 'full_event' | 'set_end_date' = initialRoomEndAt ? 'set_end_date' : 'full_event'
+    const origEndAt = (() => {
+      if (!initialRoomEndAt) return ''
+      const date = new Date(initialRoomEndAt)
+      if (Number.isNaN(date.getTime())) return ''
+      const offsetMs = date.getTimezoneOffset() * 60 * 1000
+      return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16)
+    })()
+    if (eventId !== initialEventId) return true
+    if (endMode !== origEndMode) return true
+    if (endMode === 'set_end_date' && roomEndAt !== origEndAt) return true
+    if (teamGoalsPoints !== Math.max(initialRules.correct_home_goals, initialRules.correct_away_goals)) return true
+    const ruleKeys = ['correct_winner', 'correct_difference', 'exact_score', 'exact_draw'] as const
+    return ruleKeys.some((key) => rules[key] !== initialRules[key])
+  }, [eventId, initialEventId, endMode, roomEndAt, initialRoomEndAt, rules, initialRules, teamGoalsPoints])
 
   const statusBadgeClass = useMemo(() => {
     if (status === 'active') return 'bg-green-100 text-green-800'
@@ -68,12 +90,21 @@ export default function SettingsPanel({
     return 'bg-yellow-100 text-yellow-800'
   }, [status])
 
-  const handleRuleChange = (key: keyof Rules, value: string) => {
+  const handleRuleChange = (key: typeof ruleLabels[0]['key'], value: string) => {
     const parsed = Number(value)
-    setRules((prev) => ({
-      ...prev,
-      [key]: Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0,
-    }))
+    const numValue = Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0
+    if (key === 'team_goals') {
+      setTeamGoalsPoints(numValue)
+    } else {
+      setRules((prev) => ({
+        ...prev,
+        [key]: numValue,
+      }))
+    }
+  }
+
+  const getRuleValue = (key: typeof ruleLabels[0]['key']) => {
+    return key === 'team_goals' ? teamGoalsPoints : rules[key]
   }
 
   const saveSettings = () => {
@@ -135,10 +166,51 @@ export default function SettingsPanel({
         }
 
         setStatus('active')
-        setMessage('Room started. Betting is now enabled.')
+        router.replace(`/home/${roomId}`)
         router.refresh()
       } catch (startError) {
         setError(startError instanceof Error ? startError.message : 'Could not start room.')
+      }
+    })
+  }
+
+  const saveAndStart = () => {
+    setError(null)
+    setMessage(null)
+
+    const normalizedRules: Rules = {
+      ...rules,
+      correct_home_goals: teamGoalsPoints,
+      correct_away_goals: teamGoalsPoints,
+    }
+
+    startTransition(async () => {
+      try {
+        const saveRes = await fetch(`/api/rooms/${roomId}/settings`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId,
+            rules: normalizedRules,
+            roomEndAt: endMode === 'set_end_date' ? roomEndAt || null : null,
+          }),
+        })
+        const saveData = (await saveRes.json().catch(() => ({}))) as { error?: string }
+        if (!saveRes.ok) throw new Error(saveData.error || 'Could not save settings.')
+
+        const startRes = await fetch(`/api/rooms/${roomId}/settings`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'start' }),
+        })
+        const startData = (await startRes.json().catch(() => ({}))) as { error?: string }
+        if (!startRes.ok) throw new Error(startData.error || 'Could not start room.')
+
+        setStatus('active')
+        router.replace(`/home/${roomId}`)
+        router.refresh()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not start room.')
       }
     })
   }
@@ -155,7 +227,7 @@ export default function SettingsPanel({
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div className="border-2 border-zinc-300 bg-white/90 p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
+      <div className="border-2 border-zinc-300 bg-white p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
         <p className="text-sm font-medium text-text-main">Invite code</p>
         <div className="mt-2 flex items-center gap-3">
           <span className="bg-white px-3 py-2 font-mono text-sm text-text-main border-2 border-zinc-300">
@@ -167,99 +239,91 @@ export default function SettingsPanel({
         </div>
       </div>
 
-      <div className="border-2 border-zinc-300 bg-white/90 p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
+      <div className="border-2 border-zinc-300 bg-white p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
         <label className="mb-2 block text-sm font-medium text-text-main" htmlFor="settings-event">
           Event
         </label>
-        <select
+        <EventSelect
           id="settings-event"
           value={eventId}
-          onChange={(event) => setEventId(event.target.value)}
+          onChange={setEventId}
+          options={events}
           disabled={!isWaiting || isPending}
-          className="w-full border-2 border-zinc-300 bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-[#66BB6A] disabled:bg-gray-100"
-        >
-          {events.map((eventOption) => (
-            <option key={eventOption.id} value={eventOption.id}>
-              {eventOption.displayName}
-            </option>
-          ))}
-        </select>
+        />
       </div>
 
-      <div className="border-2 border-zinc-300 bg-white/90 p-5 transition-all duration-200 hover:border-brand hover:shadow-md space-y-2">
+      <div className="border-2 border-zinc-300 bg-white p-5 transition-all duration-200 hover:border-brand hover:shadow-md space-y-3">
         <p className="text-sm font-medium text-text-main">Room duration</p>
-        <label className="flex items-center gap-2 text-sm text-text-main">
-          <input
-            type="radio"
-            name="room-duration-settings"
-            value="full_event"
-            checked={endMode === 'full_event'}
-            onChange={() => setEndMode('full_event')}
+        <div className="flex">
+          <button
+            type="button"
+            onClick={() => setEndMode('full_event')}
             disabled={!isWaiting || isPending}
-          />
-          <span>Full event</span>
-        </label>
-        <label className="flex items-center gap-2 text-sm text-text-main">
-          <input
-            type="radio"
-            name="room-duration-settings"
-            value="set_end_date"
-            checked={endMode === 'set_end_date'}
-            onChange={() => setEndMode('set_end_date')}
+            className={`flex-1 border-2 px-4 py-2 text-sm font-semibold transition-colors ${
+              endMode === 'full_event'
+                ? 'border-brand bg-brand text-white'
+                : 'border-zinc-300 bg-white text-text-muted hover:border-brand hover:text-text-main'
+            }`}
+          >
+            Full event
+          </button>
+          <button
+            type="button"
+            onClick={() => setEndMode('set_end_date')}
             disabled={!isWaiting || isPending}
-          />
-          <span>Set end date</span>
-        </label>
+            className={`flex-1 border-2 border-l-0 px-4 py-2 text-sm font-semibold transition-colors ${
+              endMode === 'set_end_date'
+                ? 'border-brand bg-brand text-white'
+                : 'border-zinc-300 bg-white text-text-muted hover:border-brand hover:text-text-main'
+            }`}
+          >
+            Set end date
+          </button>
+        </div>
 
         {endMode === 'set_end_date' ? (
-          <>
-            <label className="mb-2 mt-2 block text-sm font-medium text-text-main" htmlFor="settings-room-end-at">
-              End date
-            </label>
-            <input
-              id="settings-room-end-at"
-              type="datetime-local"
-              value={roomEndAt}
-              onChange={(event) => setRoomEndAt(event.target.value)}
-              disabled={!isWaiting || isPending}
-              className="w-full border-2 border-zinc-300 bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-[#66BB6A] disabled:bg-gray-100"
-            />
-          </>
+          <DatePicker
+            value={roomEndAt}
+            onChange={setRoomEndAt}
+            disabled={!isWaiting || isPending}
+            inline
+          />
         ) : null}
       </div>
 
-      <div className="border-2 border-zinc-300 bg-white/90 p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {ruleLabels.map((rule) => (
-          <label key={rule.key} className="text-sm text-text-main">
-            <span className="mb-1 block font-medium">{rule.label}</span>
-            <input
-              type="number"
-              min={0}
-              value={rules[rule.key]}
-              onChange={(event) => handleRuleChange(rule.key, event.target.value)}
-              disabled={!isWaiting || isPending}
-              className="w-full border-2 border-zinc-300 bg-white px-3 py-2 outline-none transition-colors focus:border-[#66BB6A] disabled:bg-gray-100"
-            />
-          </label>
-        ))}
-
-        <label className="text-sm text-text-main">
-          <span className="mb-1 block font-medium">Correct team goals</span>
-          <input
-            type="number"
-            min={0}
-            value={teamGoalsPoints}
-            onChange={(event) => {
-              const parsed = Number(event.target.value)
-              setTeamGoalsPoints(Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0)
-            }}
-            disabled={!isWaiting || isPending}
-            className="w-full border-2 border-zinc-300 bg-white px-3 py-2 outline-none transition-colors focus:border-[#66BB6A] disabled:bg-gray-100"
-          />
-          <p className="mt-1 text-xs text-text-muted">Applies to both home goals and away goals.</p>
-        </label>
-      </div>
+      <div className="border-2 border-zinc-300 bg-white p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
+        <p className="mb-4 text-sm font-medium text-text-main">Scoring rules</p>
+        <div className="space-y-3">
+          {ruleLabels.map((rule) => {
+            const value = getRuleValue(rule.key)
+            const decreaseDisabled = !isWaiting || isPending || value <= 0
+            const increaseDisabled = !isWaiting || isPending
+            return (
+              <div key={rule.key} className="flex items-center justify-between">
+                <p className="text-sm text-text-main">{rule.label}</p>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    className="h-8 w-8 border-2 border-zinc-300 bg-white text-base font-bold leading-none text-text-main transition-colors hover:border-zinc-400 disabled:opacity-60"
+                    onClick={() => handleRuleChange(rule.key, String(Math.max(0, value - 1)))}
+                    disabled={decreaseDisabled}
+                  >
+                    −
+                  </button>
+                  <span className="w-12 text-center font-mono text-lg font-bold text-text-main">{value}</span>
+                  <button
+                    type="button"
+                    className="h-8 w-8 border-2 border-brand bg-brand text-base font-bold leading-none text-white transition-colors hover:border-brand-soft hover:bg-brand-soft disabled:opacity-60"
+                    onClick={() => handleRuleChange(rule.key, String(value + 1))}
+                    disabled={increaseDisabled}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       <div className="flex flex-wrap justify-end gap-3">
@@ -274,7 +338,13 @@ export default function SettingsPanel({
         <button
           type="button"
           className="btn-base btn-dark rounded-none"
-          onClick={startRoom}
+          onClick={() => {
+            if (hasUnsavedChanges) {
+              setShowStartConfirm(true)
+            } else {
+              startRoom()
+            }
+          }}
           disabled={!isWaiting || isPending}
         >
           Start room
@@ -289,6 +359,46 @@ export default function SettingsPanel({
 
       {error ? <p className="text-sm text-[#F97316]">{error}</p> : null}
       {message ? <p className="text-sm text-green-700">{message}</p> : null}
+
+      {showStartConfirm ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
+          <div className="w-full max-w-md border-2 border-zinc-300 bg-white p-6 shadow-md">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-text-main">Unsaved changes</h2>
+                <p className="mt-1 text-sm text-text-muted">
+                  You have unsaved settings. What would you like to do before starting the room?
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowStartConfirm(false)}
+                className="inline-flex h-9 w-9 items-center justify-center text-text-muted transition-colors hover:text-brand"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                className="btn-base btn-light rounded-none"
+                onClick={() => { setShowStartConfirm(false); startRoom() }}
+                disabled={isPending}
+              >
+                Start without saving
+              </button>
+              <button
+                type="button"
+                className="btn-base btn-dark rounded-none"
+                onClick={() => { setShowStartConfirm(false); saveAndStart() }}
+                disabled={isPending}
+              >
+                Save and start
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

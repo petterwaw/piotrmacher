@@ -14,19 +14,29 @@ const tabIcons: Record<string, React.ElementType> = {
 
 export default function RoomNavigation({
   roomId,
+  roomStatus,
   showSettings,
 }: {
   roomId: string
+  roomStatus: 'waiting' | 'active' | 'finished'
   showSettings: boolean
 }) {
   const pathname = usePathname()
 
-  const tabs: Array<{ href: string; label: string; exact?: boolean }> = [
-    { href: `/home/${roomId}`, label: 'Bets', exact: true },
-    { href: `/home/${roomId}/history`, label: 'History' },
+  const tabs: Array<{ href: string; label: string; exact?: boolean }> = []
+
+  if (roomStatus === 'active') {
+    tabs.push({ href: `/home/${roomId}`, label: 'Bets', exact: true })
+  }
+
+  if (roomStatus !== 'waiting') {
+    tabs.push({ href: `/home/${roomId}/history`, label: 'History' })
+  }
+
+  tabs.push(
     { href: `/home/${roomId}/standings`, label: 'Standings' },
-    { href: `/home/${roomId}/rules`, label: 'Rules' },
-  ]
+    { href: `/home/${roomId}/rules`, label: 'Rules' }
+  )
 
   if (showSettings) {
     tabs.push({ href: `/home/${roomId}/settings`, label: 'Settings' })

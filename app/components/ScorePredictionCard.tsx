@@ -240,7 +240,7 @@ export default function ScorePredictionCard({
           {!isEditing ? (
             <button
               type="button"
-              className="border-2 border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:text-brand"
+              className="border-2 border-zinc-300 bg-white px-5 py-2 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:text-brand"
               onClick={startEditing}
               disabled={isPending}
             >

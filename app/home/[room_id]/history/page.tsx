@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import ScorePredictionCard from '@/app/components/ScorePredictionCard'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
@@ -78,6 +79,10 @@ export default async function HistoryPage({
 
   if (!room) {
     return <p className="text-text-muted">Room not found.</p>
+  }
+
+  if (room.status === 'waiting') {
+    redirect(`/home/${room_id}/standings`)
   }
 
   type MatchRow = {

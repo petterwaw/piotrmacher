@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import RoomNavigation from '@/app/components/RoomNavigation'
+import RoomStatusSync from '@/app/components/RoomStatusSync'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 
 export default async function RoomLayout({
@@ -24,10 +25,13 @@ export default async function RoomLayout({
     .maybeSingle()
 
   const isHost = Boolean(user && room && room.host_id === user.id)
-  const showSettings = isHost && room?.status === 'waiting'
+  const roomStatus = (room?.status as 'waiting' | 'active' | 'finished' | undefined) ?? 'waiting'
+  const showSettings = isHost && roomStatus === 'waiting'
 
   return (
     <main className="mx-auto w-full max-w-[1320px] px-4 pt-1 pb-24 md:pt-6 md:px-6 md:pb-8">
+      <RoomStatusSync roomId={room_id} initialStatus={roomStatus} />
+
       <div className="mb-3 md:hidden">
         <Link
           href="/home"
@@ -46,12 +50,12 @@ export default async function RoomLayout({
             <ArrowLeft size={28} />
           </Link>
 
-          <RoomNavigation roomId={room_id} showSettings={showSettings} />
+          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} />
         </aside>
 
         {/* Mobile bottom navigation is rendered by RoomNavigation itself. */}
         <div className="md:hidden">
-          <RoomNavigation roomId={room_id} showSettings={showSettings} />
+          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} />
         </div>
 
         {/* Page Content */}

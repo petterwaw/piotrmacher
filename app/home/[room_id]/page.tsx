@@ -1,4 +1,5 @@
 import BetsByDay from '@/app/components/BetsByDay'
+import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 
@@ -23,7 +24,7 @@ export default async function BetsPage({
 
   const { data: room } = await supabase
     .from('rooms')
-    .select('status, event_id, created_at, room_end_at')
+    .select('status, host_id, event_id, created_at, room_end_at')
     .eq('id', room_id)
     .maybeSingle()
 
@@ -32,6 +33,14 @@ export default async function BetsPage({
   }
 
   const status = (room?.status as 'waiting' | 'active' | 'finished' | undefined) ?? 'waiting'
+
+  if (status === 'waiting') {
+    redirect(user && room.host_id === user.id ? `/home/${room_id}/settings` : `/home/${room_id}/standings`)
+  }
+
+  if (status === 'finished') {
+    redirect(`/home/${room_id}/standings`)
+  }
 
   type MatchRow = {
     id: string

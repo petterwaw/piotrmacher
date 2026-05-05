@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { getActiveEvents } from '@/app/utils/events/getActiveEvents'
+import { redirect } from 'next/navigation'
 import SettingsPanel from './SettingsPanel'
 
 type Rules = {
@@ -35,6 +36,10 @@ export default async function RoomSettingsPage({
 
   if (!user || room.host_id !== user.id) {
     return <p className="text-text-muted">Only host can access settings.</p>
+  }
+
+  if (room.status !== 'waiting') {
+    redirect(`/home/${room_id}`)
   }
 
   const events = await getActiveEvents()
