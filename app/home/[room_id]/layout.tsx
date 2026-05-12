@@ -20,7 +20,7 @@ export default async function RoomLayout({
 
   const { data: room } = await supabase
     .from('rooms')
-    .select('host_id, status')
+    .select('host_id, status, invite_code')
     .eq('id', room_id)
     .maybeSingle()
 
@@ -50,12 +50,12 @@ export default async function RoomLayout({
             <ArrowLeft size={28} />
           </Link>
 
-          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} />
+          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} isHost={isHost} inviteCode={room?.invite_code ?? null} />
         </aside>
 
         {/* Mobile bottom navigation is rendered by RoomNavigation itself. */}
         <div className="md:hidden">
-          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} />
+          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} isHost={isHost} inviteCode={room?.invite_code ?? null} />
         </div>
 
         {/* Page Content */}

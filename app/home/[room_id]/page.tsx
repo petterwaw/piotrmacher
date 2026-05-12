@@ -33,6 +33,7 @@ export default async function BetsPage({
   }
 
   const status = (room?.status as 'waiting' | 'active' | 'finished' | undefined) ?? 'waiting'
+  const isHost = Boolean(user && room.host_id === user.id)
 
   if (status === 'waiting') {
     redirect(user && room.host_id === user.id ? `/home/${room_id}/settings` : `/home/${room_id}/standings`)
@@ -141,7 +142,7 @@ export default async function BetsPage({
     <div className="mx-auto max-w-xl">
 
       {matches.length === 0 ? (
-        <p className="text-text-muted">No upcoming matches for this event.</p>
+        <p className="relative top-8 text-center text-text-muted">No upcoming matches for this event.</p>
       ) : (
         <BetsByDay
           roomId={room_id}

@@ -1,5 +1,5 @@
-import RoomActions from '../components/RoomActions'
-import RoomCard, { type RoomCardProps } from '../components/RoomCard'
+import RoomsGrid from '../components/RoomsGrid'
+import { type RoomCardProps } from '../components/RoomFilters'
 import roomsData from '../data/rooms.mock.json'
 import { createServerSupabaseClient } from '../utils/supabase/server'
 
@@ -71,26 +71,7 @@ export default async function HomePage() {
 
     return (
         <main className="mx-auto w-full max-w-[1320px] px-4 py-8 md:px-6">
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-                <RoomActions />
-
-                {rooms.length > 0 ? rooms.map((room) => (
-                    <RoomCard
-                        key={room.id}
-                        id={room.id}
-                        eventName={room.eventName}
-                        eventLogo={room.eventLogo}
-                        createdBy={room.createdBy}
-                        createdAt={room.createdAt}
-                        playersCount={room.playersCount}
-                        status={room.status}
-                    />
-                )) : (
-                    <div className="border-2 border-dashed border-zinc-300 bg-white/85 px-6 py-10 text-center text-text-muted sm:col-span-1 lg:col-span-3 xl:col-span-4">
-                        No rooms yet. Create one or join using an invite code.
-                    </div>
-                )}
-            </section>
+            <RoomsGrid rooms={rooms} />
         </main>
     )
 }
