@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition, Suspense } from 'react'
 
 type User = {
   id: string
@@ -11,6 +11,16 @@ type User = {
 } | null
 
 type AuthMode = 'signin' | 'signup'
+
+function LoginParamWatcher({ onLoginParam }: { onLoginParam: () => void }) {
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('login') === '1') {
+      onLoginParam()
+    }
+  }, [searchParams, onLoginParam])
+  return null
+}
 
 export default function Header() {
   const router = useRouter()
@@ -45,14 +55,6 @@ export default function Header() {
 
     checkUser()
   }, [])
-
-  const searchParams = useSearchParams()
-  useEffect(() => {
-    if (searchParams.get('login') === '1' && !loading && !user) {
-      setAuthMode('signin')
-      setShowAuthModal(true)
-    }
-  }, [searchParams, loading, user])
 
   const resetAuthForm = () => {
     setEmail('')
@@ -171,6 +173,16 @@ export default function Header() {
 
   return (
     <>
+      <Suspense fallback={null}>
+        <LoginParamWatcher
+          onLoginParam={() => {
+            if (!loading && !user) {
+              setAuthMode('signin')
+              setShowAuthModal(true)
+            }
+          }}
+        />
+      </Suspense>
       <header className="w-full px-4 pt-2 md:px-6 md:pt-4">
         <div className="mx-auto hidden max-w-[1320px] border border-white/40 bg-white/80 shadow-sm backdrop-blur md:block">
           <div className="min-h-[64px] items-center justify-between px-6 md:flex">
