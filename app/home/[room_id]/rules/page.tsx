@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
+import ScoreTester from '@/app/components/ScoreTester'
 
 type Rules = {
   correct_winner: number
@@ -96,6 +97,7 @@ export default async function RulesPage({
             ))}
           </ul>
         </div>
+        <ScoreTester rules={rules} />
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 'use client'
 
-import RoomFilters, { type RoomFiltersState, type RoomCardProps } from './RoomFilters'
+import RoomFilters, { type RoomFiltersState, type RoomCardProps, applyFilters } from './RoomFilters'
 import RoomCard from './RoomCard'
 import RoomActions from './RoomActions'
 import { useState, useEffect } from 'react'
@@ -8,24 +8,35 @@ import { useState, useEffect } from 'react'
 export type { RoomCardProps }
 
 export default function RoomsGrid({ rooms }: { rooms: RoomCardProps[] }) {
+  const [sort, setSort] = useState<RoomFiltersState['sort']>('newest')
+  const [status, setStatus] = useState<RoomFiltersState['status']>('all')
   const [filteredRooms, setFilteredRooms] = useState(rooms)
-  const [filters, setFilters] = useState<RoomFiltersState>({ sort: 'newest', status: 'all' })
 
   useEffect(() => {
-    setFilteredRooms(rooms)
-  }, [rooms])
+    setFilteredRooms(applyFilters(rooms, sort, status))
+  }, [rooms, sort, status])
 
-  const handleFiltersChange = (newFilters: RoomFiltersState, filtered: RoomCardProps[]) => {
-    setFilters(newFilters)
-    setFilteredRooms(filtered)
+  const filterProps = {
+    rooms,
+    onFiltersChange: () => {},
+    sort,
+    status,
+    onSortChange: setSort,
+    onStatusChange: setStatus,
   }
 
   return (
     <>
-      <RoomFilters rooms={rooms} onFiltersChange={handleFiltersChange} />
+      {/* Desktop: filters above grid */}
+      <RoomFilters {...filterProps} className="mb-6 hidden sm:flex justify-end gap-2 sm:gap-3" />
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <RoomActions />
+
+        {/* Mobile: filters below Create/Join buttons */}
+        <div className="col-span-full sm:hidden">
+          <RoomFilters {...filterProps} className="flex justify-end gap-2" />
+        </div>
 
         {filteredRooms.map((room) => (
           <RoomCard

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
 
 type User = {
@@ -45,6 +45,14 @@ export default function Header() {
 
     checkUser()
   }, [])
+
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('login') === '1' && !loading && !user) {
+      setAuthMode('signin')
+      setShowAuthModal(true)
+    }
+  }, [searchParams, loading, user])
 
   const resetAuthForm = () => {
     setEmail('')
@@ -135,6 +143,12 @@ export default function Header() {
         const data = (await response.json().catch(() => ({}))) as { error?: string }
         if (!response.ok) {
           throw new Error(data.error || 'Authentication failed.')
+        }
+
+        if (authMode === 'signup') {
+          setAuthMessage('Account created! Check your email and click the confirmation link before signing in.')
+          resetAuthForm()
+          return
         }
 
         await refreshUser()

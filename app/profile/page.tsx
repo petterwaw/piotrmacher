@@ -34,7 +34,7 @@ export default function ProfilePage() {
         }
 
         if (response.status === 401) {
-          window.location.href = '/signin'
+          window.location.href = '/home'
           return
         }
 
@@ -138,7 +138,7 @@ export default function ProfilePage() {
           throw new Error(data.error || 'Could not delete account.')
         }
 
-        window.location.href = '/signin'
+        window.location.href = '/home'
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not delete account.')
       }

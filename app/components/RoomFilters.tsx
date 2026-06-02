@@ -24,9 +24,14 @@ export type RoomCardProps = {
 interface RoomFiltersProps {
   rooms: RoomCardProps[]
   onFiltersChange: (filters: RoomFiltersState, filtered: RoomCardProps[]) => void
+  sort: SortOption
+  status: StatusFilter
+  onSortChange: (sort: SortOption) => void
+  onStatusChange: (status: StatusFilter) => void
+  className?: string
 }
 
-function applyFilters(rooms: RoomCardProps[], sort: SortOption, status: StatusFilter): RoomCardProps[] {
+export function applyFilters(rooms: RoomCardProps[], sort: SortOption, status: StatusFilter): RoomCardProps[] {
   let result = [...rooms]
 
   // Filter by status
@@ -45,9 +50,7 @@ function applyFilters(rooms: RoomCardProps[], sort: SortOption, status: StatusFi
   return result
 }
 
-export default function RoomFilters({ rooms, onFiltersChange }: RoomFiltersProps) {
-  const [sort, setSort] = useState<SortOption>('newest')
-  const [status, setStatus] = useState<StatusFilter>('all')
+export default function RoomFilters({ rooms, onFiltersChange, sort, status, onSortChange, onStatusChange, className }: RoomFiltersProps) {
   const [sortOpen, setSortOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
 
@@ -64,21 +67,17 @@ export default function RoomFilters({ rooms, onFiltersChange }: RoomFiltersProps
   }
 
   const handleStatusChange = (newStatus: StatusFilter) => {
-    setStatus(newStatus)
     setStatusOpen(false)
-    const filtered = applyFilters(rooms, sort, newStatus)
-    onFiltersChange({ sort, status: newStatus }, filtered)
+    onStatusChange(newStatus)
   }
 
   const handleSortChange = (newSort: SortOption) => {
-    setSort(newSort)
     setSortOpen(false)
-    const filtered = applyFilters(rooms, newSort, status)
-    onFiltersChange({ sort: newSort, status }, filtered)
+    onSortChange(newSort)
   }
 
   return (
-    <div className="mb-6 flex justify-end gap-2 sm:gap-3">
+    <div className={className ?? 'mb-6 flex justify-end gap-2 sm:gap-3'}>
       {/* Status Filter */}
       <div className="relative">
         <button

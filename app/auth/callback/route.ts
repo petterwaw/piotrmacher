@@ -7,9 +7,7 @@ export async function GET(request: NextRequest) {
   const next = request.nextUrl.searchParams.get('next') || '/home'
 
   if (!code) {
-    const signinUrl = new URL('/signin', request.url)
-    signinUrl.searchParams.set('error', 'Missing OAuth code')
-    return NextResponse.redirect(signinUrl)
+    return NextResponse.redirect(new URL('/home', request.url))
   }
 
   try {
@@ -18,9 +16,7 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (error) {
-      const signinUrl = new URL('/signin', request.url)
-      signinUrl.searchParams.set('error', error.message)
-      return NextResponse.redirect(signinUrl)
+      return NextResponse.redirect(new URL('/home', request.url))
     }
 
     // For Google OAuth users, default username = email prefix.
@@ -66,8 +62,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(next, request.url))
   } catch (err) {
     console.error('OAuth callback error:', err)
-    const signinUrl = new URL('/signin', request.url)
-    signinUrl.searchParams.set('error', 'OAuth callback failed')
-    return NextResponse.redirect(signinUrl)
+    return NextResponse.redirect(new URL('/home', request.url))
   }
 }
