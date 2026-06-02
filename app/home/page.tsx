@@ -11,8 +11,28 @@ type DatabaseRoom = {
     host_id: string
     name: string
     status: 'waiting' | 'active' | 'finished'
-    events?: { logo?: string | null } | Array<{ logo?: string | null }> | null
+    events?:
+        | { logo?: string | null; name?: string | null; provider_event_id?: string | null }
+        | Array<{ logo?: string | null; name?: string | null; provider_event_id?: string | null }>
+        | null
     room_players?: Array<{ count: number }> | null
+}
+
+const WORLD_CUP_PROVIDER_EVENT_ID = '1'
+const WORLD_CUP_FALLBACK_LOGO = '/worldcuplogo.svg'
+
+function resolveEventLogo(event: DatabaseRoom['events']) {
+    const row = Array.isArray(event) ? event[0] : event
+    if (!row) return null
+
+    const providerEventId = typeof row.provider_event_id === 'string' ? row.provider_event_id : null
+    const eventName = typeof row.name === 'string' ? row.name : ''
+
+    if (providerEventId === WORLD_CUP_PROVIDER_EVENT_ID || eventName === 'FIFA World Cup') {
+        return WORLD_CUP_FALLBACK_LOGO
+    }
+
+    return row.logo ?? null
 }
 
 function capitalizeStatus(status: DatabaseRoom['status']): RoomCardProps['status'] {
@@ -30,7 +50,7 @@ async function getRooms(): Promise<RoomCardProps[]> {
 
         const { data, error } = await supabase
             .from('rooms')
-            .select('id, created_at, host_id, name, status, events(logo), room_players(count)')
+            .select('id, created_at, host_id, name, status, events(logo,name,provider_event_id), room_players(count)')
             .order('created_at', { ascending: false })
 
         if (error || !data) {
@@ -51,9 +71,7 @@ async function getRooms(): Promise<RoomCardProps[]> {
         const usernameById = new Map((profiles ?? []).map((p) => [p.id, p.username as string]))
 
         return databaseRooms.map((room) => ({
-            eventLogo: Array.isArray(room.events)
-                ? (room.events[0]?.logo ?? null)
-                : (room.events?.logo ?? null),
+            eventLogo: resolveEventLogo(room.events),
             id: room.id,
             eventName: room.name,
             createdBy: usernameById.get(room.host_id) ?? room.host_id.slice(0, 8),

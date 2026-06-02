@@ -17,6 +17,33 @@ const ruleLabels: Array<{ key: keyof Rules; label: string }> = [
   { key: 'exact_draw', label: 'Exact draw' },
 ]
 
+const ruleDescriptions: Record<keyof Rules, { explain: string; example: string }> = {
+  correct_winner: {
+    explain: 'You get points when you predict the same match outcome: home win, draw, or away win.',
+    example: 'Example: your pick 2:1, final score 3:0 -> both are home wins, so winner points are awarded.',
+  },
+  correct_difference: {
+    explain: 'You get points when your goal difference matches the final goal difference.',
+    example: 'Example: your pick 2:0, final score 3:1 -> difference is +2 in both scores.',
+  },
+  correct_home_goals: {
+    explain: 'You get points if you predict the exact number of goals for a team. This rule applies to both teams using the same value.',
+    example: 'Example: your pick 2:1, final score 2:3 -> you get home-team-goals points (home goals are 2).',
+  },
+  correct_away_goals: {
+    explain: 'Away goals use the same value as team goals and are included in the same row in this view.',
+    example: 'Example: your pick 1:2, final score 3:2 -> you get away-team-goals points (away goals are 2).',
+  },
+  exact_score: {
+    explain: 'You get points when both home and away goals are predicted exactly for a non-draw final score.',
+    example: 'Example: your pick 2:1, final score 2:1 -> exact score points are awarded.',
+  },
+  exact_draw: {
+    explain: 'You get points when you predict the exact draw score.',
+    example: 'Example: your pick 1:1, final score 1:1 -> exact draw points are awarded.',
+  },
+}
+
 const defaultRules: Rules = {
   correct_winner: 1,
   correct_difference: 1,
@@ -48,13 +75,23 @@ export default async function RulesPage({
       <div className="border-2 border-zinc-300 bg-white p-6 space-y-4">
         <div>
           <h3 className="font-semibold text-lg text-text-main mb-2">Betting Rules</h3>
+          <div className="mb-4 border border-zinc-200 bg-zinc-50 p-3 text-sm text-text-main">
+            <p className="font-semibold">Cup matches are settled after 90 minutes only.</p>
+            <p className="mt-1 text-text-muted">Extra time and penalties are not supported in room scoring yet.</p>
+          </div>
           <ul className="space-y-2 text-text-muted">
             {ruleLabels.map((rule) => (
-              <li key={rule.key} className="flex items-center justify-between gap-3 border-b border-border-soft py-2">
-                <span>{rule.label}</span>
-                <span className="font-semibold text-text-main">
-                  {rule.key === 'correct_home_goals' ? teamGoalsPoints : rules[rule.key]} pts
-                </span>
+              <li key={rule.key} className="border-b border-border-soft py-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-bold text-text-main">{rule.label}</span>
+                  <span className="font-semibold text-text-main">
+                    {rule.key === 'correct_home_goals' ? teamGoalsPoints : rules[rule.key]} pts
+                  </span>
+                </div>
+                <div className="mt-2 space-y-1 text-xs text-zinc-500">
+                  <p>{ruleDescriptions[rule.key].explain}</p>
+                  <p>{ruleDescriptions[rule.key].example}</p>
+                </div>
               </li>
             ))}
           </ul>

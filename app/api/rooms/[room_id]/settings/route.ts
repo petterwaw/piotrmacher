@@ -75,7 +75,7 @@ export async function PATCH(
 
     const { data: room } = await supabase
       .from('rooms')
-      .select('id, host_id, status, room_end_at')
+      .select('id, host_id, status, room_end_at, event_id')
       .eq('id', room_id)
       .maybeSingle()
 
@@ -93,6 +93,20 @@ export async function PATCH(
     if (action === 'start') {
       if (room.status !== 'waiting') {
         return NextResponse.json({ error: 'Room is already started.' }, { status: 400 })
+      }
+
+      const { data: activeEvent } = await supabase
+        .from('events')
+        .select('id')
+        .eq('id', room.event_id)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (!activeEvent) {
+        return NextResponse.json(
+          { error: 'Selected event is no longer active. Choose another event first.' },
+          { status: 400 }
+        )
       }
 
       if (room.room_end_at && new Date(room.room_end_at).getTime() <= Date.now()) {

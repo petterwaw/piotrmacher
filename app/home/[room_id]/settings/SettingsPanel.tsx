@@ -23,6 +23,29 @@ const ruleLabels: Array<{ key: Exclude<keyof Rules, 'correct_away_goals' | 'corr
   { key: 'exact_draw', label: 'Exact draw' },
 ]
 
+const ruleDescriptions: Record<Exclude<keyof Rules, 'correct_away_goals' | 'correct_home_goals'> | 'team_goals', { explain: string; example: string }> = {
+  correct_winner: {
+    explain: 'Awarded when predicted outcome matches final outcome (home win, draw, away win).',
+    example: 'Example: 2:1 vs 4:2 -> home win in both, so winner points are awarded.',
+  },
+  correct_difference: {
+    explain: 'Awarded when predicted goal difference equals final goal difference.',
+    example: 'Example: 3:1 vs 2:0 -> difference is +2 in both scores.',
+  },
+  team_goals: {
+    explain: 'Awarded for each team where exact goals were predicted. Same points value applies to home and away team goals.',
+    example: 'Example: 2:1 vs 2:3 -> home goals match, away goals do not.',
+  },
+  exact_score: {
+    explain: 'Awarded when both goals are predicted exactly for a non-draw final score.',
+    example: 'Example: 2:1 vs 2:1 -> exact score points are awarded.',
+  },
+  exact_draw: {
+    explain: 'Awarded when exact draw score is predicted.',
+    example: 'Example: 1:1 vs 1:1 -> exact draw points are awarded.',
+  },
+}
+
 type Props = {
   roomId: string
   initialStatus: 'waiting' | 'active' | 'finished'
@@ -293,32 +316,42 @@ export default function SettingsPanel({
 
       <div className="border-2 border-zinc-300 bg-white p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
         <p className="mb-4 text-sm font-medium text-text-main">Scoring rules</p>
+        <div className="mb-4 border border-zinc-200 bg-zinc-50 p-3 text-sm text-text-main">
+          <p className="font-semibold">Cup matches are settled after 90 minutes only.</p>
+          <p className="mt-1 text-text-muted">Extra time and penalties are not supported in room scoring yet.</p>
+        </div>
         <div className="space-y-3">
           {ruleLabels.map((rule) => {
             const value = getRuleValue(rule.key)
             const decreaseDisabled = !isWaiting || isPending || value <= 0
             const increaseDisabled = !isWaiting || isPending
             return (
-              <div key={rule.key} className="flex items-center justify-between">
-                <p className="text-sm text-text-main">{rule.label}</p>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    className="h-8 w-8 border-2 border-zinc-300 bg-white text-base font-bold leading-none text-text-main transition-colors hover:border-zinc-400 disabled:opacity-60"
-                    onClick={() => handleRuleChange(rule.key, String(Math.max(0, value - 1)))}
-                    disabled={decreaseDisabled}
-                  >
-                    −
-                  </button>
-                  <span className="w-12 text-center font-mono text-lg font-bold text-text-main">{value}</span>
-                  <button
-                    type="button"
-                    className="h-8 w-8 border-2 border-brand bg-brand text-base font-bold leading-none text-white transition-colors hover:border-brand-soft hover:bg-brand-soft disabled:opacity-60"
-                    onClick={() => handleRuleChange(rule.key, String(value + 1))}
-                    disabled={increaseDisabled}
-                  >
-                    +
-                  </button>
+              <div key={rule.key} className="border-b border-border-soft pb-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold text-text-main">{rule.label}</p>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      className="h-8 w-8 border-2 border-zinc-300 bg-white text-base font-bold leading-none text-text-main transition-colors hover:border-zinc-400 disabled:opacity-60"
+                      onClick={() => handleRuleChange(rule.key, String(Math.max(0, value - 1)))}
+                      disabled={decreaseDisabled}
+                    >
+                      −
+                    </button>
+                    <span className="w-12 text-center font-mono text-lg font-bold text-text-main">{value}</span>
+                    <button
+                      type="button"
+                      className="h-8 w-8 border-2 border-brand bg-brand text-base font-bold leading-none text-white transition-colors hover:border-brand-soft hover:bg-brand-soft disabled:opacity-60"
+                      onClick={() => handleRuleChange(rule.key, String(value + 1))}
+                      disabled={increaseDisabled}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-2 space-y-1 text-xs text-zinc-500">
+                  <p>{ruleDescriptions[rule.key].explain}</p>
+                  <p>{ruleDescriptions[rule.key].example}</p>
                 </div>
               </div>
             )

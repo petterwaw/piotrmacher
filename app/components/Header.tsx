@@ -162,7 +162,7 @@ export default function Header() {
           <div className="min-h-[64px] items-center justify-between px-6 md:flex">
             <div className="flex items-center gap-8">
               <Link href={logoHref} className="text-[38px] font-black italic tracking-tight text-[#4CAF50]">
-                POORGAMBLERS
+                PIOTRMACHER
               </Link>
             </div>
 
@@ -205,7 +205,7 @@ export default function Header() {
 
         <div className="mx-auto flex max-w-[1320px] min-h-[56px] items-center justify-between px-3 md:hidden">
 <Link href={logoHref} className="text-[30px] font-black italic tracking-tight text-[#4CAF50]">
-            POORGAMBLERS
+            PIOTRMACHER
           </Link>
 
           <div className="relative" ref={mobileMenuRef}>
@@ -258,7 +258,7 @@ export default function Header() {
 
           <div className="fixed bottom-0 left-0 right-0 z-[101] bg-white p-5 shadow-2xl md:static md:w-full md:max-w-md md:p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-[44px] font-black italic leading-none tracking-tight text-[#4CAF50]">POORGAMBLERS</h3>
+              <h3 className="text-[44px] font-black italic leading-none tracking-tight text-[#4CAF50]">PIOTRMACHER</h3>
               <button
                 type="button"
                 onClick={closeAuthModal}

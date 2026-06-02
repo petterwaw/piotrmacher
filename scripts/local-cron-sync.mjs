@@ -41,6 +41,27 @@ async function triggerSync(baseUrl, secret) {
   )
 }
 
+async function triggerEventDeactivation(baseUrl, secret) {
+  const response = await fetch(`${baseUrl}/api/internal/deactivate-finished-events`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${secret}`,
+    },
+  })
+
+  const payload = await response.json().catch(() => ({}))
+  const stamp = new Date().toISOString()
+
+  if (!response.ok) {
+    console.error(`[${stamp}] Event deactivation failed:`, response.status, payload)
+    return
+  }
+
+  console.log(
+    `[${stamp}] Event deactivation ok: checked=${payload.checked ?? 0}, deactivated=${payload.deactivated ?? 0}`
+  )
+}
+
 async function triggerScoring(baseUrl, secret) {
   const response = await fetch(`${baseUrl}/api/internal/score-finished-matches`, {
     method: 'GET',
@@ -78,6 +99,7 @@ async function main() {
 
   const runOnce = process.argv.includes('--once')
 
+  await triggerEventDeactivation(baseUrl, secret)
   await triggerSync(baseUrl, secret)
   await triggerScoring(baseUrl, secret)
 
@@ -89,6 +111,7 @@ async function main() {
 
   setInterval(() => {
     ;(async () => {
+      await triggerEventDeactivation(baseUrl, secret)
       await triggerSync(baseUrl, secret)
       await triggerScoring(baseUrl, secret)
     })().catch((error) => {
