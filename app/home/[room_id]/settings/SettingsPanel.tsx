@@ -8,6 +8,7 @@ import DatePicker from '@/app/components/DatePicker'
 
 type Rules = {
   correct_winner: number
+  correct_draw: number
   correct_difference: number
   correct_away_goals: number
   correct_home_goals: number
@@ -17,6 +18,7 @@ type Rules = {
 
 const ruleLabels: Array<{ key: Exclude<keyof Rules, 'correct_away_goals' | 'correct_home_goals'> | 'team_goals'; label: string }> = [
   { key: 'correct_winner', label: 'Correct winner' },
+  { key: 'correct_draw', label: 'Correct draw' },
   { key: 'correct_difference', label: 'Correct difference' },
   { key: 'team_goals', label: 'Correct team goals' },
   { key: 'exact_score', label: 'Exact score' },
@@ -25,8 +27,12 @@ const ruleLabels: Array<{ key: Exclude<keyof Rules, 'correct_away_goals' | 'corr
 
 const ruleDescriptions: Record<Exclude<keyof Rules, 'correct_away_goals' | 'correct_home_goals'> | 'team_goals', { explain: string; example: string }> = {
   correct_winner: {
-    explain: 'Awarded when predicted outcome matches final outcome (home win, draw, away win).',
+    explain: 'Awarded when predicted non-draw outcome matches final outcome (home win or away win).',
     example: 'Example: 2:1 vs 4:2 -> home win in both, so winner points are awarded.',
+  },
+  correct_draw: {
+    explain: 'Awarded when both predicted and final outcomes are a draw.',
+    example: 'Example: 0:0 vs 2:2 -> both are draws, so draw points are awarded.',
   },
   correct_difference: {
     explain: 'Awarded when predicted goal difference equals final goal difference.',
@@ -103,7 +109,7 @@ export default function SettingsPanel({
     if (endMode !== origEndMode) return true
     if (endMode === 'set_end_date' && roomEndAt !== origEndAt) return true
     if (teamGoalsPoints !== Math.max(initialRules.correct_home_goals, initialRules.correct_away_goals)) return true
-    const ruleKeys = ['correct_winner', 'correct_difference', 'exact_score', 'exact_draw'] as const
+    const ruleKeys = ['correct_winner', 'correct_draw', 'correct_difference', 'exact_score', 'exact_draw'] as const
     return ruleKeys.some((key) => rules[key] !== initialRules[key])
   }, [eventId, initialEventId, endMode, roomEndAt, initialRoomEndAt, rules, initialRules, teamGoalsPoints])
 

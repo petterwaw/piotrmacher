@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useRef, useState, useTransition, Suspense } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useRef, useState, useTransition, Suspense } from 'react'
 
 type User = {
   id: string
@@ -13,12 +13,32 @@ type User = {
 type AuthMode = 'signin' | 'signup'
 
 function LoginParamWatcher({ onLoginParam }: { onLoginParam: () => void }) {
+  const pathname = usePathname()
+  const router = useRouter()
   const searchParams = useSearchParams()
+  const handledRef = useRef(false)
+
   useEffect(() => {
-    if (searchParams.get('login') === '1') {
-      onLoginParam()
+    const shouldOpenLogin = searchParams.get('login') === '1'
+
+    if (!shouldOpenLogin) {
+      handledRef.current = false
+      return
     }
-  }, [searchParams, onLoginParam])
+
+    if (handledRef.current) {
+      return
+    }
+
+    handledRef.current = true
+    onLoginParam()
+
+    const nextParams = new URLSearchParams(searchParams.toString())
+    nextParams.delete('login')
+    const nextQuery = nextParams.toString()
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
+  }, [pathname, router, searchParams, onLoginParam])
+
   return null
 }
 
@@ -171,17 +191,17 @@ export default function Header() {
     </svg>
   )
 
+  const handleOpenLoginFromParam = useCallback(() => {
+    if (!loading && !user) {
+      setAuthMode('signin')
+      setShowAuthModal(true)
+    }
+  }, [loading, user])
+
   return (
     <>
       <Suspense fallback={null}>
-        <LoginParamWatcher
-          onLoginParam={() => {
-            if (!loading && !user) {
-              setAuthMode('signin')
-              setShowAuthModal(true)
-            }
-          }}
-        />
+        <LoginParamWatcher onLoginParam={handleOpenLoginFromParam} />
       </Suspense>
       <header className="w-full px-4 pt-2 md:px-6 md:pt-4">
         <div className="mx-auto hidden max-w-[1320px] border border-white/40 bg-white/80 shadow-sm backdrop-blur md:block">

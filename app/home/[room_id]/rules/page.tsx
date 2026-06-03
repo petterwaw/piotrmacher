@@ -3,6 +3,7 @@ import ScoreTester from '@/app/components/ScoreTester'
 
 type Rules = {
   correct_winner: number
+  correct_draw: number
   correct_difference: number
   correct_away_goals: number
   correct_home_goals: number
@@ -12,6 +13,7 @@ type Rules = {
 
 const ruleLabels: Array<{ key: keyof Rules; label: string }> = [
   { key: 'correct_winner', label: 'Correct winner' },
+  { key: 'correct_draw', label: 'Correct draw' },
   { key: 'correct_difference', label: 'Correct goal difference' },
   { key: 'correct_home_goals', label: 'Correct team goals' },
   { key: 'exact_score', label: 'Exact score' },
@@ -20,8 +22,12 @@ const ruleLabels: Array<{ key: keyof Rules; label: string }> = [
 
 const ruleDescriptions: Record<keyof Rules, { explain: string; example: string }> = {
   correct_winner: {
-    explain: 'You get points when you predict the same match outcome: home win, draw, or away win.',
+    explain: 'You get points when you predict the same non-draw outcome: home win or away win.',
     example: 'Example: your pick 2:1, final score 3:0 -> both are home wins, so winner points are awarded.',
+  },
+  correct_draw: {
+    explain: 'You get points when both your pick and final outcome are a draw.',
+    example: 'Example: your pick 1:1, final score 2:2 -> draw points are awarded.',
   },
   correct_difference: {
     explain: 'You get points when your goal difference matches the final goal difference.',
@@ -47,6 +53,7 @@ const ruleDescriptions: Record<keyof Rules, { explain: string; example: string }
 
 const defaultRules: Rules = {
   correct_winner: 1,
+  correct_draw: 1,
   correct_difference: 1,
   correct_away_goals: 1,
   correct_home_goals: 1,
@@ -68,7 +75,10 @@ export default async function RulesPage({
     .eq('id', room_id)
     .maybeSingle()
 
-  const rules = (room?.rules as Rules | null) ?? defaultRules
+  const rules = {
+    ...defaultRules,
+    ...((room?.rules as Partial<Rules> | null) ?? {}),
+  }
   const teamGoalsPoints = Math.max(rules.correct_home_goals, rules.correct_away_goals)
 
   return (

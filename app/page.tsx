@@ -104,9 +104,9 @@ export default async function Home() {
       <section className="border-y border-zinc-200 bg-white px-4 py-10 md:px-6 md:py-14">
         <div className="mx-auto grid w-full max-w-[1320px] gap-8 md:grid-cols-3 md:gap-0">
           <article className="md:pr-8">
-            <h2 className="text-lg font-black uppercase tracking-wide text-[#111827]">Simple Room Lifecycle</h2>
+            <h2 className="text-lg font-black uppercase tracking-wide text-[#111827]">Pick A Competition. Bet.</h2>
             <p className="mt-2 text-sm leading-relaxed text-[#4B5563]">
-              From room creation to final score review, every stage follows one clean, predictable flow.
+              Create a room, invite your people, and run the whole competition from kickoff to final table without extra setup.
             </p>
           </article>
           <article className="md:border-x md:border-zinc-200 md:px-8">
@@ -116,9 +116,9 @@ export default async function Home() {
             </p>
           </article>
           <article className="md:pl-8">
-            <h2 className="text-lg font-black uppercase tracking-wide text-[#111827]">Responsive Everywhere</h2>
+            <h2 className="text-lg font-black uppercase tracking-wide text-[#111827]">Custom Scoring Rules</h2>
             <p className="mt-2 text-sm leading-relaxed text-[#4B5563]">
-              Designed for quick checks on mobile and focused management on larger desktop screens.
+              Set your own points system and shape the room exactly the way your group wants to play.
             </p>
           </article>
         </div>

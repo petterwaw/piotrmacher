@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 type Rules = {
   correct_winner?: number
+  correct_draw?: number
   correct_difference?: number
   correct_away_goals?: number
   correct_home_goals?: number
@@ -107,7 +108,9 @@ function calculatePoints(
   const predictedOutcome = matchOutcome(predictedHome, predictedAway)
   const actualOutcome = matchOutcome(actualHome, actualAway)
 
-  if (predictedOutcome === actualOutcome) {
+  if (predictedOutcome === 'draw' && actualOutcome === 'draw') {
+    points += toRuleScore(rules, 'correct_draw')
+  } else if (predictedOutcome === actualOutcome) {
     points += toRuleScore(rules, 'correct_winner')
   }
 

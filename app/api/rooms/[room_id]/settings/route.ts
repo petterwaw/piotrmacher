@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 type Rules = {
   correct_winner: number
+  correct_draw: number
   correct_difference: number
   correct_away_goals: number
   correct_home_goals: number
@@ -18,6 +19,7 @@ function sanitizeRules(payload: unknown): Rules | null {
   const source = payload as Record<string, unknown>
   const fields: Array<keyof Rules> = [
     'correct_winner',
+    'correct_draw',
     'correct_difference',
     'correct_away_goals',
     'correct_home_goals',

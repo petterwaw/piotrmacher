@@ -5,11 +5,22 @@ import SettingsPanel from './SettingsPanel'
 
 type Rules = {
   correct_winner: number
+  correct_draw: number
   correct_difference: number
   correct_away_goals: number
   correct_home_goals: number
   exact_score: number
   exact_draw: number
+}
+
+const defaultRules: Rules = {
+  correct_winner: 1,
+  correct_draw: 1,
+  correct_difference: 1,
+  correct_away_goals: 1,
+  correct_home_goals: 1,
+  exact_score: 1,
+  exact_draw: 1,
 }
 
 export default async function RoomSettingsPage({
@@ -44,7 +55,10 @@ export default async function RoomSettingsPage({
 
   const events = await getActiveEvents()
 
-  const rules = room.rules as Rules
+  const rules = {
+    ...defaultRules,
+    ...(room.rules as Partial<Rules> | null),
+  }
 
   return (
     <SettingsPanel

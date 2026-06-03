@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const defaultRules = {
   correct_winner: 1,
+  correct_draw: 1,
   correct_difference: 1,
   correct_away_goals: 1,
   correct_home_goals: 1,
