@@ -11,6 +11,7 @@ export default function RoomsGrid({ rooms }: { rooms: RoomCardProps[] }) {
   const [sort, setSort] = useState<RoomFiltersState['sort']>('newest')
   const [status, setStatus] = useState<RoomFiltersState['status']>('all')
   const [filteredRooms, setFilteredRooms] = useState(rooms)
+  const showFilters = rooms.length >= 5
 
   useEffect(() => {
     setFilteredRooms(applyFilters(rooms, sort, status))
@@ -28,15 +29,17 @@ export default function RoomsGrid({ rooms }: { rooms: RoomCardProps[] }) {
   return (
     <>
       {/* Desktop: filters above grid */}
-      <RoomFilters {...filterProps} className="mb-6 hidden sm:flex justify-end gap-2 sm:gap-3" />
+      {showFilters ? <RoomFilters {...filterProps} className="mb-6 hidden sm:flex justify-end gap-2 sm:gap-3" /> : null}
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <RoomActions />
 
         {/* Mobile: filters below Create/Join buttons */}
-        <div className="col-span-full sm:hidden">
-          <RoomFilters {...filterProps} className="flex justify-end gap-2" />
-        </div>
+        {showFilters ? (
+          <div className="col-span-full sm:hidden">
+            <RoomFilters {...filterProps} className="flex justify-end gap-2" />
+          </div>
+        ) : null}
 
         {filteredRooms.map((room) => (
           <RoomCard

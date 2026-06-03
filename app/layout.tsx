@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import Header from './components/Header'
+import AppFooter from './components/AppFooter'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,19 +36,7 @@ export default function RootLayout({
         <div className="min-h-dvh flex flex-col">
           <Header />
           <main className="flex-1 flex pt-0">{children}</main>
-          <footer className="border-t border-zinc-300 bg-transparent pb-16 md:pb-0">
-            <div className="mx-auto w-full max-w-[1320px] px-4 py-4 text-sm text-text-muted md:px-6">
-              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <p className="font-semibold text-text-main">Piotrmacher</p>
-                <p>
-                  Found a bug? Send details to{' '}
-                  <a className="font-semibold text-brand hover:text-brand-hover" href="mailto:piotrmachersupport@gmail.com">
-                    piotrmachersupport@gmail.com
-                  </a>
-                </p>
-              </div>
-            </div>
-          </footer>
+          <AppFooter />
         </div>
         <Analytics />
       </body>

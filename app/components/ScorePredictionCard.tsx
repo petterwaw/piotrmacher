@@ -13,6 +13,7 @@ type LivePrediction = {
   username: string
   homeScore: number
   awayScore: number
+  points?: number
 }
 
 export type BasicMatch = {
@@ -285,7 +286,12 @@ export default function ScorePredictionCard({
               {livePredictions.map((item) => (
                 <li key={`${item.username}-${item.homeScore}-${item.awayScore}`} className="flex items-center justify-between text-sm text-text-main">
                   <span>{item.username}</span>
-                  <span className="font-semibold">{item.homeScore} : {item.awayScore}</span>
+                  <span className="flex items-center gap-3 font-semibold">
+                    <span>{item.homeScore} : {item.awayScore}</span>
+                    {typeof item.points === 'number' ? (
+                      <span className="font-bold text-brand">{item.points} pts</span>
+                    ) : null}
+                  </span>
                 </li>
               ))}
             </ul>

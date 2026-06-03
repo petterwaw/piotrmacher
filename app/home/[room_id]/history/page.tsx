@@ -49,6 +49,7 @@ type LivePrediction = {
   username: string
   homeScore: number
   awayScore: number
+  points?: number
 }
 
 export default async function HistoryPage({
@@ -150,7 +151,7 @@ export default async function HistoryPage({
 
       const { data: roomBets } = await serviceSupabase
         .from('bets')
-        .select('match_id, user_id, home_score, away_score')
+        .select('match_id, user_id, home_score, away_score, points')
         .eq('room_id', room_id)
         .in('match_id', matchIds)
 
@@ -169,6 +170,7 @@ export default async function HistoryPage({
           username: usernameById.get(bet.user_id) ?? bet.user_id.slice(0, 8),
           homeScore: bet.home_score,
           awayScore: bet.away_score,
+          points: bet.points ?? 0,
         })
         grouped.set(bet.match_id, current)
       }
