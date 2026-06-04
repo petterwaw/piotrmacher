@@ -70,6 +70,28 @@ export function MatchesSkeleton({ cards = 3 }: { cards?: number }) {
   )
 }
 
+export function RoomTabSkeleton() {
+  return (
+    <div className="mx-auto max-w-xl space-y-4">
+      <div className="hide-scrollbar flex gap-2 overflow-x-auto pb-1">
+        {Array.from({ length: 4 }, (_, index) => (
+          <SkeletonBlock key={index} className="h-10 w-24 shrink-0 border-2 border-zinc-300" />
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        {Array.from({ length: 3 }, (_, index) => (
+          <div key={index} className="border-2 border-zinc-300 bg-white/90 p-4">
+            <SkeletonBlock className="mb-3 h-4 w-40 max-w-full" />
+            <SkeletonBlock className="h-4 w-full" />
+            <SkeletonBlock className="mt-2 h-4 w-5/6" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function HistorySkeleton() {
   return (
     <div className="mx-auto max-w-xl space-y-4">
