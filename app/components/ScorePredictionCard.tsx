@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 
 type MatchStatus = 'scheduled' | 'delayed' | 'live' | 'finished' | 'cancelled'
 
@@ -60,8 +60,23 @@ export default function ScorePredictionCard({
   const [awayScore, setAwayScore] = useState(0)
   const [savedPrediction, setSavedPrediction] = useState<Prediction | null>(match.prediction)
   const [error, setError] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [showBets, setShowBets] = useState(false)
+
+  useEffect(() => {
+    if (!saveMessage) {
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      setSaveMessage(null)
+    }, 1500)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [saveMessage])
 
   const isStarted = match.status === 'live' || match.status === 'finished' || match.status === 'cancelled'
   const isRoomActive = roomStatus === 'active'
@@ -83,6 +98,7 @@ export default function ScorePredictionCard({
   const startEditing = () => {
     if (!canEdit) return
     setError(null)
+    setSaveMessage(null)
     setIsEditing(true)
     setHomeScore(0)
     setAwayScore(0)
@@ -90,11 +106,20 @@ export default function ScorePredictionCard({
 
   const cancelEditing = () => {
     setError(null)
+    setSaveMessage(null)
     setIsEditing(false)
   }
 
   const handleSave = () => {
     setError(null)
+    setSaveMessage(null)
+
+    const optimisticPrediction = { home: homeScore, away: awayScore }
+    const previousPrediction = savedPrediction
+
+    // Optimistic update: show the new score immediately in the card.
+    setSavedPrediction(optimisticPrediction)
+    setIsEditing(false)
 
     startTransition(async () => {
       try {
@@ -114,8 +139,12 @@ export default function ScorePredictionCard({
         }
 
         setSavedPrediction({ home: data.bet.homeScore, away: data.bet.awayScore })
-        setIsEditing(false)
+        setSaveMessage('Saved.')
       } catch (saveError) {
+        setSavedPrediction(previousPrediction)
+        setHomeScore(optimisticPrediction.home)
+        setAwayScore(optimisticPrediction.away)
+        setIsEditing(true)
         setError(saveError instanceof Error ? saveError.message : 'Could not save bet.')
       }
     })
@@ -237,36 +266,45 @@ export default function ScorePredictionCard({
       {error ? <p className="mt-3 text-sm text-[#F97316]">{error}</p> : null}
 
       {canEdit ? (
-        <div className="mt-4 flex items-center justify-end gap-3">
-          {!isEditing ? (
-            <button
-              type="button"
-              className="border-2 border-zinc-300 bg-white px-5 py-2 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:text-brand"
-              onClick={startEditing}
-              disabled={isPending}
-            >
-              Edit
-            </button>
-          ) : (
-            <>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <span
+            aria-live="polite"
+            className={`min-w-[56px] text-sm text-green-700 transition-opacity ${saveMessage ? 'opacity-100' : 'opacity-0'}`}
+          >
+            {saveMessage ?? 'Saved.'}
+          </span>
+
+          <div className="flex items-center justify-end gap-3">
+            {!isEditing ? (
               <button
                 type="button"
-                className="border-2 border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:text-brand"
-                onClick={cancelEditing}
+                className="border-2 border-zinc-300 bg-white px-5 py-2 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:text-brand"
+                onClick={startEditing}
                 disabled={isPending}
               >
-                Cancel
+                Edit
               </button>
-              <button
-                type="button"
-                className="border-2 border-brand bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:border-brand-soft hover:bg-brand-soft"
-                onClick={handleSave}
-                disabled={isPending}
-              >
-                {isPending ? 'Saving...' : 'Save'}
-              </button>
-            </>
-          )}
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="border-2 border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:text-brand"
+                  onClick={cancelEditing}
+                  disabled={isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="border-2 border-brand bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:border-brand-soft hover:bg-brand-soft"
+                  onClick={handleSave}
+                  disabled={isPending}
+                >
+                  {isPending ? 'Saving...' : 'Save'}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       ) : null}
 
