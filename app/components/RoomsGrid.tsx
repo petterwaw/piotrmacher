@@ -18,8 +18,6 @@ export default function RoomsGrid({ rooms }: { rooms: RoomCardProps[] }) {
   }, [rooms, sort, status])
 
   const filterProps = {
-    rooms,
-    onFiltersChange: () => {},
     sort,
     status,
     onSortChange: setSort,
@@ -45,6 +43,7 @@ export default function RoomsGrid({ rooms }: { rooms: RoomCardProps[] }) {
           <RoomCard
             key={room.id}
             id={room.id}
+            href={room.href}
             eventName={room.eventName}
             eventLogo={room.eventLogo}
             createdBy={room.createdBy}

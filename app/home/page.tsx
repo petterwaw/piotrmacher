@@ -3,7 +3,18 @@ import { type RoomCardProps } from '../components/RoomFilters'
 import roomsData from '../data/rooms.mock.json'
 import { createServerSupabaseClient } from '../utils/supabase/server'
 
-const typedRoomsData = roomsData as RoomCardProps[]
+const typedRoomsData: RoomCardProps[] = (roomsData as Array<{
+    id: string
+    eventName: string
+    eventLogo?: string | null
+    createdBy: string
+    createdAt: string
+    playersCount: number
+    status: RoomCardProps['status']
+}>).map((room) => ({
+    ...room,
+    href: room.status === 'Active' ? `/home/${room.id}` : `/home/${room.id}/standings`,
+}))
 
 type DatabaseRoom = {
     id: string
@@ -41,6 +52,20 @@ function capitalizeStatus(status: DatabaseRoom['status']): RoomCardProps['status
     return 'Finished'
 }
 
+function resolveRoomHref(room: DatabaseRoom, currentUserId: string | null) {
+    if (room.status === 'active') {
+        return `/home/${room.id}`
+    }
+
+    if (room.status === 'waiting') {
+        return currentUserId && room.host_id === currentUserId
+            ? `/home/${room.id}/settings`
+            : `/home/${room.id}/standings`
+    }
+
+    return `/home/${room.id}/standings`
+}
+
 async function getRooms(): Promise<RoomCardProps[]> {
     try {
         const supabase = await createServerSupabaseClient()
@@ -72,6 +97,7 @@ async function getRooms(): Promise<RoomCardProps[]> {
 
         return databaseRooms.map((room) => ({
             eventLogo: resolveEventLogo(room.events),
+            href: resolveRoomHref(room, user?.id ?? null),
             id: room.id,
             eventName: room.name,
             createdBy: usernameById.get(room.host_id) ?? room.host_id.slice(0, 8),

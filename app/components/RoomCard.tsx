@@ -4,6 +4,7 @@ type RoomStatus = 'Waiting' | 'Active' | 'Finished'
 
 export type RoomCardProps = {
     id: string
+    href: string
     eventName: string
     eventLogo?: string | null
     createdBy: string
@@ -19,7 +20,7 @@ const statusStyles: Record<RoomStatus, string> = {
 }
 
 export default function RoomCard({
-    id,
+    href,
     eventName,
     eventLogo = null,
     createdBy,
@@ -27,7 +28,7 @@ export default function RoomCard({
     status,
 }: RoomCardProps) {
     return (
-        <Link href={`/home/${id}`} className="group block border-2 border-zinc-300 bg-white/90 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand hover:shadow-md">
+        <Link href={href} className="group block border-2 border-zinc-300 bg-white/90 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand hover:shadow-md">
             <div className="hidden md:block">
                 <h2 className="text-lg font-black uppercase leading-tight tracking-tight text-text-main">{eventName}</h2>
                 <span className={`mt-1 inline-block px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${statusStyles[status]}`}>

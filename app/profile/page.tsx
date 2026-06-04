@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { Pencil, X } from 'lucide-react'
+import { ProfileSkeleton } from '@/app/components/LoadingSkeletons'
 
 type Profile = {
   id: string
@@ -146,11 +147,7 @@ export default function ProfilePage() {
   }
 
   if (loading) {
-    return (
-      <div className='mx-auto w-full max-w-xl px-4 py-8 md:px-6'>
-        <p className='text-text-muted'>Loading profile...</p>
-      </div>
-    )
+    return <ProfileSkeleton />
   }
 
   return (

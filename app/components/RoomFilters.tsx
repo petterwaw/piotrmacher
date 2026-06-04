@@ -13,6 +13,7 @@ export type RoomFiltersState = {
 
 export type RoomCardProps = {
   id: string
+  href: string
   eventName: string
   eventLogo?: string | null
   createdBy: string
@@ -22,8 +23,6 @@ export type RoomCardProps = {
 }
 
 interface RoomFiltersProps {
-  rooms: RoomCardProps[]
-  onFiltersChange: (filters: RoomFiltersState, filtered: RoomCardProps[]) => void
   sort: SortOption
   status: StatusFilter
   onSortChange: (sort: SortOption) => void
@@ -50,7 +49,7 @@ export function applyFilters(rooms: RoomCardProps[], sort: SortOption, status: S
   return result
 }
 
-export default function RoomFilters({ rooms, onFiltersChange, sort, status, onSortChange, onStatusChange, className }: RoomFiltersProps) {
+export default function RoomFilters({ sort, status, onSortChange, onStatusChange, className }: RoomFiltersProps) {
   const [sortOpen, setSortOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
 
