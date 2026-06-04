@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/app/utils/supabase/server'
+import { getCachedRoomRules } from '@/app/utils/cache/roomReads'
 import ScoreTester from '@/app/components/ScoreTester'
 
 type Rules = {
@@ -67,17 +67,9 @@ export default async function RulesPage({
   params: Promise<{ room_id: string }>
 }) {
   const { room_id } = await params
-  const supabase = await createServerSupabaseClient()
-
-  const { data: room } = await supabase
-    .from('rooms')
-    .select('rules')
-    .eq('id', room_id)
-    .maybeSingle()
-
   const rules = {
     ...defaultRules,
-    ...((room?.rules as Partial<Rules> | null) ?? {}),
+    ...(await getCachedRoomRules(room_id) ?? {}),
   }
   const teamGoalsPoints = Math.max(rules.correct_home_goals, rules.correct_away_goals)
 

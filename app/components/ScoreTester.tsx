@@ -130,8 +130,8 @@ export default function ScoreTester({ rules }: { rules: Rules }) {
   return (
     <div className="mt-6 border-2 border-zinc-300 bg-zinc-50 p-4">
       <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-text-main">Score tester</h4>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
-        <div className="grid min-w-0 flex-1 gap-4 md:grid-cols-2">
+      <div className="flex flex-col gap-4">
+        <div className="grid min-w-0 gap-4 md:grid-cols-2">
           <div className="min-w-0">
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-500">Your pick</label>
             <ScorePairControl
@@ -157,7 +157,7 @@ export default function ScoreTester({ rules }: { rules: Rules }) {
           </div>
         </div>
 
-        <div className="w-full shrink-0 border-2 border-zinc-300 bg-white p-3 xl:w-[300px]">
+        <div className="w-full border-2 border-zinc-300 bg-white p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Points summary</p>
           <div className="space-y-1">
             {result.breakdown.length === 0 ? (

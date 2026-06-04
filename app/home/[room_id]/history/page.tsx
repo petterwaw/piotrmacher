@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import ScorePredictionCard from '@/app/components/ScorePredictionCard'
+import { getCachedHistoryCount, getCachedHistoryMatches } from '@/app/utils/cache/roomReads'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 
@@ -86,43 +87,23 @@ export default async function HistoryPage({
     redirect(`/home/${room_id}/standings`)
   }
 
-  type MatchRow = {
-    id: string
-    home_team: string
-    home_logo: string | null
-    away_team: string
-    away_logo: string | null
-    scheduled_start_at: string
-    status: string
-    home_score_ft: number | null
-    away_score_ft: number | null
-  }
-
-  const { count: finishedMatchesCount } = await supabase
-    .from('matches')
-    .select('id', { count: 'exact', head: true })
-    .eq('event_id', room.event_id)
-    .gte('scheduled_start_at', room.created_at)
-    .lte('scheduled_start_at', room.room_end_at ?? '9999-12-31T23:59:59.999Z')
-    .eq('status', 'finished')
-
-  const totalMatches = finishedMatchesCount ?? 0
+  const totalMatches = await getCachedHistoryCount(
+    room.event_id,
+    room.created_at,
+    room.room_end_at,
+  )
   const totalPages = Math.max(1, Math.ceil(totalMatches / MATCHES_PER_PAGE))
   const currentPage = Math.min(requestedPage, totalPages)
   const pageStart = (currentPage - 1) * MATCHES_PER_PAGE
   const pageEnd = pageStart + MATCHES_PER_PAGE - 1
 
-  const { data: finishedMatches } = await supabase
-    .from('matches')
-    .select('id, home_team, home_logo, away_team, away_logo, scheduled_start_at, status, home_score_ft, away_score_ft')
-    .eq('event_id', room.event_id)
-    .gte('scheduled_start_at', room.created_at)
-    .lte('scheduled_start_at', room.room_end_at ?? '9999-12-31T23:59:59.999Z')
-    .eq('status', 'finished')
-    .order('scheduled_start_at', { ascending: false })
-    .range(pageStart, pageEnd)
-
-  const matches = (finishedMatches ?? []) as MatchRow[]
+  const matches = await getCachedHistoryMatches(
+    room.event_id,
+    room.created_at,
+    room.room_end_at,
+    pageStart,
+    pageEnd,
+  )
   const matchIds = matches.map((match) => match.id)
 
   const { data: userBets } = user && matchIds.length > 0

@@ -1,5 +1,6 @@
 import BetsByDay from '@/app/components/BetsByDay'
 import { redirect } from 'next/navigation'
+import { getCachedUpcomingMatches } from '@/app/utils/cache/roomReads'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 
@@ -33,7 +34,6 @@ export default async function BetsPage({
   }
 
   const status = (room?.status as 'waiting' | 'active' | 'finished' | undefined) ?? 'waiting'
-  const isHost = Boolean(user && room.host_id === user.id)
 
   if (status === 'waiting') {
     redirect(user && room.host_id === user.id ? `/home/${room_id}/settings` : `/home/${room_id}/standings`)
@@ -43,42 +43,7 @@ export default async function BetsPage({
     redirect(`/home/${room_id}/standings`)
   }
 
-  type MatchRow = {
-    id: string
-    home_team: string
-    home_logo: string | null
-    away_team: string
-    away_logo: string | null
-    scheduled_start_at: string
-    status: string
-    home_score_ft: number | null
-    away_score_ft: number | null
-    live_minute?: number | null
-  }
-
-  const initialMatchesResult = await supabase
-    .from('matches')
-    .select('id, home_team, home_logo, away_team, away_logo, scheduled_start_at, status, home_score_ft, away_score_ft, live_minute')
-    .eq('event_id', room.event_id)
-    .gte('scheduled_start_at', room.created_at)
-    .lte('scheduled_start_at', room.room_end_at ?? '9999-12-31T23:59:59.999Z')
-    .in('status', ['scheduled', 'delayed', 'live'])
-    .order('scheduled_start_at', { ascending: true })
-
-  let matches: MatchRow[] = (initialMatchesResult.data ?? []) as MatchRow[]
-
-  if (initialMatchesResult.error?.message?.toLowerCase().includes('live_minute')) {
-    const fallbackMatchesResult = await supabase
-      .from('matches')
-      .select('id, home_team, home_logo, away_team, away_logo, scheduled_start_at, status, home_score_ft, away_score_ft')
-      .eq('event_id', room.event_id)
-      .gte('scheduled_start_at', room.created_at)
-      .lte('scheduled_start_at', room.room_end_at ?? '9999-12-31T23:59:59.999Z')
-      .in('status', ['scheduled', 'delayed', 'live'])
-      .order('scheduled_start_at', { ascending: true })
-
-    matches = (fallbackMatchesResult.data ?? []) as MatchRow[]
-  }
+  const matches = await getCachedUpcomingMatches(room.event_id, room.created_at, room.room_end_at)
 
   const matchIds = matches.map((match) => match.id)
 
