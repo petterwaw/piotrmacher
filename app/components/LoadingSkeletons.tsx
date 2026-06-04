@@ -73,8 +73,15 @@ export function MatchesSkeleton({ cards = 3 }: { cards?: number }) {
 export function HistorySkeleton() {
   return (
     <div className="mx-auto max-w-xl space-y-4">
-      <MatchesSkeleton cards={3} />
+      <div className="space-y-4">
+        {Array.from({ length: 3 }, (_, index) => (
+          <MatchCardSkeleton key={index} />
+        ))}
+      </div>
+
       <div className="mt-6 flex items-center justify-center gap-2">
+        <SkeletonBlock className="h-10 w-10 border border-border-soft" />
+        <SkeletonBlock className="h-10 w-10 border border-border-soft" />
         <SkeletonBlock className="h-10 w-10 border border-border-soft" />
         <SkeletonBlock className="h-10 w-10 border border-border-soft" />
         <SkeletonBlock className="h-10 w-10 border border-border-soft" />
