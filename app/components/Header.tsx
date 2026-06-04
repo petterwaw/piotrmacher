@@ -345,7 +345,7 @@ export default function Header() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="Username / E-mail"
+              placeholder="E-mail"
               className="mb-3 w-full border-2 border-zinc-300 bg-gray-50 px-4 py-3 outline-none focus:border-[#66BB6A]"
             />
 
