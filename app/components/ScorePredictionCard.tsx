@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 
 type MatchStatus = 'scheduled' | 'delayed' | 'live' | 'finished' | 'cancelled'
 
@@ -55,6 +56,7 @@ export default function ScorePredictionCard({
   livePredictions = [],
   roomStatus = 'waiting',
 }: ScorePredictionCardProps) {
+  const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
   const [homeScore, setHomeScore] = useState(0)
   const [awayScore, setAwayScore] = useState(0)
@@ -140,6 +142,7 @@ export default function ScorePredictionCard({
 
         setSavedPrediction({ home: data.bet.homeScore, away: data.bet.awayScore })
         setSaveMessage('Saved.')
+        router.refresh()
       } catch (saveError) {
         setSavedPrediction(previousPrediction)
         setHomeScore(optimisticPrediction.home)

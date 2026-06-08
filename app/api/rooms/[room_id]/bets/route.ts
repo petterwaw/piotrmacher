@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
+import { revalidatePath } from 'next/cache'
 import { NextRequest, NextResponse } from 'next/server'
 
 type BetPayload = {
@@ -114,6 +115,9 @@ export async function POST(
         return NextResponse.json({ error: 'Could not update bet.' }, { status: 500 })
       }
 
+      revalidatePath(`/home/${room_id}`)
+      revalidatePath(`/home/${room_id}/history`)
+
       return NextResponse.json({
         ok: true,
         bet: { matchId, homeScore, awayScore },
@@ -131,6 +135,9 @@ export async function POST(
     if (insertError) {
       return NextResponse.json({ error: 'Could not save bet.' }, { status: 500 })
     }
+
+    revalidatePath(`/home/${room_id}`)
+    revalidatePath(`/home/${room_id}/history`)
 
     return NextResponse.json({
       ok: true,
