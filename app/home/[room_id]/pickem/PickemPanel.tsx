@@ -19,10 +19,24 @@ type Props = {
   pointsPerCorrectPosition: number
 }
 
+function isThirdPlaceGroupKey(key: string): boolean {
+  return key.includes('3rd') || key.includes('third')
+}
+
+function reconcileThirdPlaceOrder(existingOrder: string[], newPool: string[]): string[] {
+  const poolSet = new Set(newPool)
+  const kept = existingOrder.filter(id => poolSet.has(id))
+  const keptSet = new Set(kept)
+  const added = newPool.filter(id => !keptSet.has(id))
+  return [...kept, ...added]
+}
+
 function buildInitialOrders(groups: PickemGroup[], picks: Record<string, PickemPick>) {
   const orders: Record<string, string[]> = {}
+  const regularGroups = groups.filter(g => !isThirdPlaceGroupKey(g.groupKey))
+  const thirdPlaceGroup = groups.find(g => isThirdPlaceGroupKey(g.groupKey))
 
-  for (const group of groups) {
+  for (const group of regularGroups) {
     const officialTeamIds = group.teams.map((team) => team.teamId)
     const saved = picks[group.groupKey]?.orderedTeamIds ?? []
     const savedSet = new Set(saved)
@@ -31,6 +45,14 @@ function buildInitialOrders(groups: PickemGroup[], picks: Record<string, PickemP
       officialTeamIds.every((teamId) => savedSet.has(teamId))
 
     orders[group.groupKey] = hasValidSavedOrder ? saved : officialTeamIds
+  }
+
+  if (thirdPlaceGroup) {
+    const derivedPool = regularGroups
+      .map(g => orders[g.groupKey]?.[2])
+      .filter((id): id is string => Boolean(id))
+    const savedThirdPlace = picks[thirdPlaceGroup.groupKey]?.orderedTeamIds ?? []
+    orders[thirdPlaceGroup.groupKey] = reconcileThirdPlaceOrder(savedThirdPlace, derivedPool)
   }
 
   return orders
@@ -69,6 +91,26 @@ export default function PickemPanel({
     })
   }, [groups, initialPicks, orders])
 
+  const thirdPlaceGroupKey = useMemo(
+    () => groups.find(g => isThirdPlaceGroupKey(g.groupKey))?.groupKey ?? null,
+    [groups]
+  )
+
+  const regularGroups = useMemo(
+    () => groups.filter(g => !isThirdPlaceGroupKey(g.groupKey)),
+    [groups]
+  )
+
+  const allTeamsById = useMemo(() => {
+    const map = new Map<string, PickemGroup['teams'][number]>()
+    for (const group of groups) {
+      for (const team of group.teams) {
+        if (!map.has(team.teamId)) map.set(team.teamId, team)
+      }
+    }
+    return map
+  }, [groups])
+
   useEffect(() => {
     if (!message) {
       return
@@ -93,7 +135,16 @@ export default function PickemPanel({
       const [item] = next.splice(currentIndex, 1)
       next.splice(targetIndex, 0, item)
 
-      return { ...prev, [groupKey]: next }
+      const updated = { ...prev, [groupKey]: next }
+
+      if (thirdPlaceGroupKey && !isThirdPlaceGroupKey(groupKey)) {
+        const newPool = regularGroups
+          .map(g => (updated[g.groupKey] ?? [])[2])
+          .filter((id): id is string => Boolean(id))
+        updated[thirdPlaceGroupKey] = reconcileThirdPlaceOrder(prev[thirdPlaceGroupKey] ?? [], newPool)
+      }
+
+      return updated
     })
   }
 
@@ -115,7 +166,16 @@ export default function PickemPanel({
       const [item] = next.splice(fromIndex, 1)
       next.splice(toIndex, 0, item)
 
-      return { ...prev, [groupKey]: next }
+      const updated = { ...prev, [groupKey]: next }
+
+      if (thirdPlaceGroupKey && !isThirdPlaceGroupKey(groupKey)) {
+        const newPool = regularGroups
+          .map(g => (updated[g.groupKey] ?? [])[2])
+          .filter((id): id is string => Boolean(id))
+        updated[thirdPlaceGroupKey] = reconcileThirdPlaceOrder(prev[thirdPlaceGroupKey] ?? [], newPool)
+      }
+
+      return updated
     })
 
     setDragged(null)
@@ -173,7 +233,8 @@ export default function PickemPanel({
       </div>
 
       {groups.map((group) => {
-        const teamMap = teamsByGroup.get(group.groupKey) ?? new Map()
+        const isThirdPlace = isThirdPlaceGroupKey(group.groupKey)
+        const teamMap = isThirdPlace ? allTeamsById : (teamsByGroup.get(group.groupKey) ?? new Map())
         const orderedTeams = (orders[group.groupKey] ?? [])
           .map((teamId) => teamMap.get(teamId))
           .filter((team): team is NonNullable<typeof team> => Boolean(team))
