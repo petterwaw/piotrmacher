@@ -83,14 +83,6 @@ export default function PickemPanel({
     ]))
   }, [groups])
 
-  const hasUnsavedChanges = useMemo(() => {
-    return groups.some((group) => {
-      const current = orders[group.groupKey] ?? []
-      const saved = initialPicks[group.groupKey]?.orderedTeamIds ?? group.teams.map((team) => team.teamId)
-      return !sameOrder(current, saved)
-    })
-  }, [groups, initialPicks, orders])
-
   const thirdPlaceGroupKey = useMemo(
     () => groups.find(g => isThirdPlaceGroupKey(g.groupKey))?.groupKey ?? null,
     [groups]
@@ -110,6 +102,26 @@ export default function PickemPanel({
     }
     return map
   }, [groups])
+
+  // Derive the third-place pool live from the current user ordering.
+  // This is a pure computed value — no state update needed, so the section
+  // always reflects changes to regular groups instantly.
+  const liveThirdPlaceOrder = useMemo(() => {
+    if (!thirdPlaceGroupKey) return null
+    const pool = regularGroups
+      .map(g => (orders[g.groupKey] ?? [])[2])
+      .filter((id): id is string => Boolean(id))
+    return reconcileThirdPlaceOrder(orders[thirdPlaceGroupKey] ?? [], pool)
+  }, [thirdPlaceGroupKey, regularGroups, orders])
+
+  const hasUnsavedChanges = useMemo(() => {
+    return groups.some((group) => {
+      const isTP = isThirdPlaceGroupKey(group.groupKey)
+      const current = isTP && liveThirdPlaceOrder ? liveThirdPlaceOrder : (orders[group.groupKey] ?? [])
+      const saved = initialPicks[group.groupKey]?.orderedTeamIds ?? group.teams.map((team) => team.teamId)
+      return !sameOrder(current, saved)
+    })
+  }, [groups, initialPicks, orders, liveThirdPlaceOrder])
 
   useEffect(() => {
     if (!message) {
@@ -135,16 +147,7 @@ export default function PickemPanel({
       const [item] = next.splice(currentIndex, 1)
       next.splice(targetIndex, 0, item)
 
-      const updated = { ...prev, [groupKey]: next }
-
-      if (thirdPlaceGroupKey && !isThirdPlaceGroupKey(groupKey)) {
-        const newPool = regularGroups
-          .map(g => (updated[g.groupKey] ?? [])[2])
-          .filter((id): id is string => Boolean(id))
-        updated[thirdPlaceGroupKey] = reconcileThirdPlaceOrder(prev[thirdPlaceGroupKey] ?? [], newPool)
-      }
-
-      return updated
+      return { ...prev, [groupKey]: next }
     })
   }
 
@@ -166,16 +169,7 @@ export default function PickemPanel({
       const [item] = next.splice(fromIndex, 1)
       next.splice(toIndex, 0, item)
 
-      const updated = { ...prev, [groupKey]: next }
-
-      if (thirdPlaceGroupKey && !isThirdPlaceGroupKey(groupKey)) {
-        const newPool = regularGroups
-          .map(g => (updated[g.groupKey] ?? [])[2])
-          .filter((id): id is string => Boolean(id))
-        updated[thirdPlaceGroupKey] = reconcileThirdPlaceOrder(prev[thirdPlaceGroupKey] ?? [], newPool)
-      }
-
-      return updated
+      return { ...prev, [groupKey]: next }
     })
 
     setDragged(null)
@@ -193,7 +187,10 @@ export default function PickemPanel({
           body: JSON.stringify({
             groups: groups.map((group) => ({
               groupKey: group.groupKey,
-              orderedTeamIds: orders[group.groupKey] ?? [],
+              orderedTeamIds:
+                isThirdPlaceGroupKey(group.groupKey) && liveThirdPlaceOrder
+                  ? liveThirdPlaceOrder
+                  : (orders[group.groupKey] ?? []),
             })),
           }),
         })
@@ -235,7 +232,9 @@ export default function PickemPanel({
       {groups.map((group) => {
         const isThirdPlace = isThirdPlaceGroupKey(group.groupKey)
         const teamMap = isThirdPlace ? allTeamsById : (teamsByGroup.get(group.groupKey) ?? new Map())
-        const orderedTeams = (orders[group.groupKey] ?? [])
+        const effectiveOrder =
+          isThirdPlace && liveThirdPlaceOrder ? liveThirdPlaceOrder : (orders[group.groupKey] ?? [])
+        const orderedTeams = effectiveOrder
           .map((teamId) => teamMap.get(teamId))
           .filter((team): team is NonNullable<typeof team> => Boolean(team))
         const pick = initialPicks[group.groupKey]
