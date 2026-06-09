@@ -66,6 +66,10 @@ function pickOne<T>(value: T | T[] | null): T | null {
   return Array.isArray(value) ? value[0] ?? null : value
 }
 
+function isThirdPlaceGroupKey(key: string): boolean {
+  return key.includes('3rd') || key.includes('third')
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ room_id: string }> }
@@ -140,6 +144,7 @@ export async function POST(
 
     const expectedTeamIdsByGroup = new Map<string, string[]>()
     for (const row of (groupTeams ?? []) as GroupTeamRow[]) {
+      if (isThirdPlaceGroupKey(row.group_key)) continue
       const current = expectedTeamIdsByGroup.get(row.group_key) ?? []
       current.push(row.provider_team_id)
       expectedTeamIdsByGroup.set(row.group_key, current)
