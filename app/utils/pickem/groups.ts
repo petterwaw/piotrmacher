@@ -43,6 +43,17 @@ type ApiFootballStandingRow = {
 
 const PICKEM_GROUP_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000
 
+function isThirdPlaceGroup(groupName: string, groupKey: string): boolean {
+  const name = groupName.toLowerCase()
+  const key = groupKey.toLowerCase()
+  return (
+    name.includes('3rd') ||
+    name.includes('third') ||
+    key.includes('3rd') ||
+    key.includes('third')
+  )
+}
+
 function groupKeyFromName(groupName: string, fallbackIndex: number) {
   const key = groupName
     .toLowerCase()
@@ -62,6 +73,8 @@ function rowsToGroups(rows: PickemGroupTeamRow[]): PickemGroup[] {
   const grouped = new Map<string, { groupName: string; groupOrder: number; teams: PickemTeam[] }>()
 
   for (const row of rows) {
+    if (isThirdPlaceGroup(row.group_name, row.group_key)) continue
+
     const current = grouped.get(row.group_key) ?? {
       groupName: row.group_name,
       groupOrder: row.group_order ?? 0,
@@ -119,6 +132,9 @@ function parseApiFootballStandings(body: unknown, eventId: string) {
 
       const groupName = row.group?.trim() || `Group ${groupIndex + 1}`
       const groupKey = groupKeyFromName(groupName, groupIndex)
+
+      if (isThirdPlaceGroup(groupName, groupKey)) return
+
       const position = parsePosition(row.rank, teamIndex + 1)
 
       rows.push({
