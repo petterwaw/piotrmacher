@@ -81,15 +81,12 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
   )
 
   const dayKeys = useMemo(() => buildDayRange(visibleDaysAhead), [visibleDaysAhead])
-  const matchDayKeys = useMemo(
-    () => new Set(sortedMatches.map((item) => toDayKey(item.match.startTime))),
-    [sortedMatches]
-  )
 
   const todayKey = useMemo(() => toLocalDayKey(new Date()), [])
   const tomorrowKey = useMemo(() => toLocalDayKey(addDays(new Date(), 1)), [])
 
   const [selectedDay, setSelectedDay] = useState(() => dayKeys[0] ?? '')
+  const activeDay = dayKeys.includes(selectedDay) ? selectedDay : dayKeys[0] ?? ''
 
   const updateScrollButtons = useCallback(() => {
     const el = scrollRef.current
@@ -114,21 +111,10 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
   // Scroll active day button into view when selectedDay changes (also on mount)
   useEffect(() => {
     const container = scrollRef.current
-    if (!container || !selectedDay) return
+    if (!container || !activeDay) return
     const activeBtn = container.querySelector<HTMLElement>('[data-day-active="true"]')
     activeBtn?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' })
-  }, [selectedDay])
-
-  useEffect(() => {
-    if (dayKeys.length === 0) {
-      setSelectedDay('')
-      return
-    }
-
-    if (!dayKeys.includes(selectedDay)) {
-      setSelectedDay(dayKeys[0])
-    }
-  }, [dayKeys, matchDayKeys, selectedDay])
+  }, [activeDay])
 
   useEffect(() => {
     if (roomStatus !== 'active') {
@@ -149,12 +135,12 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
   }, [hasLiveMatch, roomStatus, router])
 
   const filteredMatches = useMemo(() => {
-    if (!selectedDay) {
+    if (!activeDay) {
       return sortedMatches
     }
 
-    return sortedMatches.filter((item) => toDayKey(item.match.startTime) === selectedDay)
-  }, [selectedDay, sortedMatches])
+    return sortedMatches.filter((item) => toDayKey(item.match.startTime) === activeDay)
+  }, [activeDay, sortedMatches])
 
   const scrollDays = (delta: number) => {
     scrollRef.current?.scrollBy({ left: delta, behavior: 'smooth' })
@@ -185,7 +171,7 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
           }}
         >
           {dayKeys.map((dayKey) => {
-            const isActive = dayKey === selectedDay
+            const isActive = dayKey === activeDay
 
             return (
               <button

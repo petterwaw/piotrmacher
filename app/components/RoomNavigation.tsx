@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Ticket, Clock, Trophy, BookOpen, Settings, Trash2, LogOut, Share2, Copy, Check } from 'lucide-react'
+import { Ticket, Clock, Trophy, BookOpen, Settings, Trash2, LogOut, Share2, Copy, Check, ListOrdered } from 'lucide-react'
 import { useState, useTransition } from 'react'
 
 const tabIcons: Record<string, React.ElementType> = {
   Bets: Ticket,
   History: Clock,
+  Pickem: ListOrdered,
   Standings: Trophy,
   Rules: BookOpen,
   Settings: Settings,
@@ -52,6 +53,8 @@ export default function RoomNavigation({
   if (roomStatus !== 'waiting') {
     tabs.push({ href: `/home/${roomId}/history`, label: 'History' })
   }
+
+  tabs.push({ href: `/home/${roomId}/pickem`, label: 'Pickem' })
 
   tabs.push(
     { href: `/home/${roomId}/standings`, label: 'Standings' },

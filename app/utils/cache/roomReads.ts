@@ -27,6 +27,7 @@ type CachedRules = {
   correct_home_goals?: number
   exact_score?: number
   exact_draw?: number
+  pickem_correct_position?: number
 } | null
 
 export const getCachedStandingPlayers = unstable_cache(

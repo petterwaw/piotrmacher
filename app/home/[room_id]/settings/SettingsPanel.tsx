@@ -14,6 +14,7 @@ type Rules = {
   correct_home_goals: number
   exact_score: number
   exact_draw: number
+  pickem_correct_position: number
 }
 
 const ruleLabels: Array<{ key: Exclude<keyof Rules, 'correct_away_goals' | 'correct_home_goals'> | 'team_goals'; label: string }> = [
@@ -23,6 +24,7 @@ const ruleLabels: Array<{ key: Exclude<keyof Rules, 'correct_away_goals' | 'corr
   { key: 'team_goals', label: 'Correct team goals' },
   { key: 'exact_score', label: 'Exact score' },
   { key: 'exact_draw', label: 'Exact draw' },
+  { key: 'pickem_correct_position', label: 'Pickem correct position' },
 ]
 
 const ruleDescriptions: Record<Exclude<keyof Rules, 'correct_away_goals' | 'correct_home_goals'> | 'team_goals', { explain: string; example: string }> = {
@@ -49,6 +51,10 @@ const ruleDescriptions: Record<Exclude<keyof Rules, 'correct_away_goals' | 'corr
   exact_draw: {
     explain: 'Awarded when exact draw score is predicted.',
     example: 'Example: 1:1 vs 1:1 -> exact draw points are awarded.',
+  },
+  pickem_correct_position: {
+    explain: 'Awarded for each team placed in the exact final group position in Pickem.',
+    example: 'Example: Brazil predicted #1 and finishes #1 -> Pickem position points are awarded.',
   },
 }
 
@@ -109,15 +115,9 @@ export default function SettingsPanel({
     if (endMode !== origEndMode) return true
     if (endMode === 'set_end_date' && roomEndAt !== origEndAt) return true
     if (teamGoalsPoints !== Math.max(initialRules.correct_home_goals, initialRules.correct_away_goals)) return true
-    const ruleKeys = ['correct_winner', 'correct_draw', 'correct_difference', 'exact_score', 'exact_draw'] as const
+    const ruleKeys = ['correct_winner', 'correct_draw', 'correct_difference', 'exact_score', 'exact_draw', 'pickem_correct_position'] as const
     return ruleKeys.some((key) => rules[key] !== initialRules[key])
   }, [eventId, initialEventId, endMode, roomEndAt, initialRoomEndAt, rules, initialRules, teamGoalsPoints])
-
-  const statusBadgeClass = useMemo(() => {
-    if (status === 'active') return 'bg-green-100 text-green-800'
-    if (status === 'finished') return 'bg-gray-100 text-gray-700'
-    return 'bg-yellow-100 text-yellow-800'
-  }, [status])
 
   const handleRuleChange = (key: typeof ruleLabels[0]['key'], value: string) => {
     const parsed = Number(value)

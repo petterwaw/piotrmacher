@@ -9,6 +9,7 @@ type Rules = {
   correct_home_goals: number
   exact_score: number
   exact_draw: number
+  pickem_correct_position: number
 }
 
 function sanitizeRules(payload: unknown): Rules | null {
@@ -25,6 +26,7 @@ function sanitizeRules(payload: unknown): Rules | null {
     'correct_home_goals',
     'exact_score',
     'exact_draw',
+    'pickem_correct_position',
   ]
 
   const nextRules = {} as Rules

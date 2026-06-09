@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type Dispatch, type SetStateAction } from 'react'
 
 type Rules = {
   correct_winner: number
@@ -59,31 +59,16 @@ function calcPoints(
   return { breakdown, total }
 }
 
-export default function ScoreTester({ rules }: { rules: Rules }) {
-  const [predHome, setPredHome] = useState(0)
-  const [predAway, setPredAway] = useState(0)
-  const [finalHome, setFinalHome] = useState(0)
-  const [finalAway, setFinalAway] = useState(0)
-
-  const result = calcPoints(predHome, predAway, finalHome, finalAway, rules)
-
-  const decrease = (setter: React.Dispatch<React.SetStateAction<number>>) => {
-    setter((prev) => Math.max(0, prev - 1))
-  }
-
-  const increase = (setter: React.Dispatch<React.SetStateAction<number>>) => {
-    setter((prev) => Math.min(MAX_GOALS, prev + 1))
-  }
-
-  const GoalStepper = ({
-    value,
-    onIncrease,
-    onDecrease,
-  }: {
-    value: number
-    onIncrease: () => void
-    onDecrease: () => void
-  }) => (
+function GoalStepper({
+  value,
+  onIncrease,
+  onDecrease,
+}: {
+  value: number
+  onIncrease: () => void
+  onDecrease: () => void
+}) {
+  return (
     <div className="flex flex-col items-center gap-2">
       <button
         type="button"
@@ -102,22 +87,24 @@ export default function ScoreTester({ rules }: { rules: Rules }) {
       </button>
     </div>
   )
+}
 
-  const ScorePairControl = ({
-    home,
-    away,
-    onIncreaseHome,
-    onDecreaseHome,
-    onIncreaseAway,
-    onDecreaseAway,
-  }: {
-    home: number
-    away: number
-    onIncreaseHome: () => void
-    onDecreaseHome: () => void
-    onIncreaseAway: () => void
-    onDecreaseAway: () => void
-  }) => (
+function ScorePairControl({
+  home,
+  away,
+  onIncreaseHome,
+  onDecreaseHome,
+  onIncreaseAway,
+  onDecreaseAway,
+}: {
+  home: number
+  away: number
+  onIncreaseHome: () => void
+  onDecreaseHome: () => void
+  onIncreaseAway: () => void
+  onDecreaseAway: () => void
+}) {
+  return (
     <div className="border-2 border-zinc-300 bg-white px-4 py-3">
       <div className="flex items-center justify-center gap-4">
         <GoalStepper value={home} onIncrease={onIncreaseHome} onDecrease={onDecreaseHome} />
@@ -126,6 +113,23 @@ export default function ScoreTester({ rules }: { rules: Rules }) {
       </div>
     </div>
   )
+}
+
+export default function ScoreTester({ rules }: { rules: Rules }) {
+  const [predHome, setPredHome] = useState(0)
+  const [predAway, setPredAway] = useState(0)
+  const [finalHome, setFinalHome] = useState(0)
+  const [finalAway, setFinalAway] = useState(0)
+
+  const result = calcPoints(predHome, predAway, finalHome, finalAway, rules)
+
+  const decrease = (setter: Dispatch<SetStateAction<number>>) => {
+    setter((prev) => Math.max(0, prev - 1))
+  }
+
+  const increase = (setter: Dispatch<SetStateAction<number>>) => {
+    setter((prev) => Math.min(MAX_GOALS, prev + 1))
+  }
 
   return (
     <div className="mt-6 border-2 border-zinc-300 bg-zinc-50 p-4">

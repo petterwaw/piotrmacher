@@ -9,6 +9,7 @@ const defaultRules = {
   correct_home_goals: 1,
   exact_score: 1,
   exact_draw: 1,
+  pickem_correct_position: 1,
 }
 
 function parseOptionalDate(value: unknown): string | null {

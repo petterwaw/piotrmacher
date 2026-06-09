@@ -82,6 +82,27 @@ async function triggerScoring(baseUrl, secret) {
     `[${stamp}] Scoring ok: jobsPicked=${payload.jobsPicked ?? 0}, betsUpdated=${payload.betsUpdated ?? 0}, roomPlayersUpdated=${payload.roomPlayersUpdated ?? 0}`
   )
 }
+
+async function triggerPickemScoring(baseUrl, secret) {
+  const response = await fetch(`${baseUrl}/api/internal/score-pickem`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${secret}`,
+    },
+  })
+
+  const payload = await response.json().catch(() => ({}))
+  const stamp = new Date().toISOString()
+
+  if (!response.ok) {
+    console.error(`[${stamp}] Pickem scoring failed:`, response.status, payload)
+    return
+  }
+
+  console.log(
+    `[${stamp}] Pickem scoring ok: roomsChecked=${payload.roomsChecked ?? 0}, picksUpdated=${payload.picksUpdated ?? 0}, roomPlayersUpdated=${payload.roomPlayersUpdated ?? 0}`
+  )
+}
 async function main() {
   loadDotEnvLocal()
 
@@ -102,6 +123,7 @@ async function main() {
   await triggerEventDeactivation(baseUrl, secret)
   await triggerSync(baseUrl, secret)
   await triggerScoring(baseUrl, secret)
+  await triggerPickemScoring(baseUrl, secret)
 
   if (runOnce) {
     return
@@ -114,6 +136,7 @@ async function main() {
       await triggerEventDeactivation(baseUrl, secret)
       await triggerSync(baseUrl, secret)
       await triggerScoring(baseUrl, secret)
+      await triggerPickemScoring(baseUrl, secret)
     })().catch((error) => {
       const stamp = new Date().toISOString()
       console.error(`[${stamp}] Unexpected sync error:`, error)

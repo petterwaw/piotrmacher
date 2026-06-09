@@ -7,6 +7,10 @@
     {
       "path": "/api/internal/score-finished-matches",
       "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/internal/score-pickem",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

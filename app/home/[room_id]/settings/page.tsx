@@ -11,6 +11,7 @@ type Rules = {
   correct_home_goals: number
   exact_score: number
   exact_draw: number
+  pickem_correct_position: number
 }
 
 const defaultRules: Rules = {
@@ -21,6 +22,7 @@ const defaultRules: Rules = {
   correct_home_goals: 1,
   exact_score: 1,
   exact_draw: 1,
+  pickem_correct_position: 1,
 }
 
 export default async function RoomSettingsPage({

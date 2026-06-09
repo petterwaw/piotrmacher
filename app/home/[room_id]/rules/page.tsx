@@ -9,6 +9,7 @@ type Rules = {
   correct_home_goals: number
   exact_score: number
   exact_draw: number
+  pickem_correct_position: number
 }
 
 const ruleLabels: Array<{ key: keyof Rules; label: string }> = [
@@ -18,6 +19,7 @@ const ruleLabels: Array<{ key: keyof Rules; label: string }> = [
   { key: 'correct_home_goals', label: 'Correct team goals' },
   { key: 'exact_score', label: 'Exact score' },
   { key: 'exact_draw', label: 'Exact draw' },
+  { key: 'pickem_correct_position', label: 'Pickem correct position' },
 ]
 
 const ruleDescriptions: Record<keyof Rules, { explain: string; example: string }> = {
@@ -49,6 +51,10 @@ const ruleDescriptions: Record<keyof Rules, { explain: string; example: string }
     explain: 'You get points when you predict the exact draw score.',
     example: 'Example: your pick 1:1, final score 1:1 -> exact draw points are awarded.',
   },
+  pickem_correct_position: {
+    explain: 'You get points for each team placed in the exact final group position in Pickem.',
+    example: 'Example: you place a team #2 in its group and it finishes #2 -> Pickem position points are awarded.',
+  },
 }
 
 const defaultRules: Rules = {
@@ -59,6 +65,7 @@ const defaultRules: Rules = {
   correct_home_goals: 1,
   exact_score: 1,
   exact_draw: 1,
+  pickem_correct_position: 1,
 }
 
 export default async function RulesPage({
