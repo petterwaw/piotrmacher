@@ -66,10 +66,6 @@ function pickOne<T>(value: T | T[] | null): T | null {
   return Array.isArray(value) ? value[0] ?? null : value
 }
 
-function isThirdPlaceGroupKey(key: string): boolean {
-  return key.includes('3rd') || key.includes('third')
-}
-
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ room_id: string }> }
@@ -160,17 +156,7 @@ export async function POST(
     for (const group of groups) {
       const groupKey = typeof group.groupKey === 'string' ? group.groupKey.trim() : ''
       const orderedTeamIds = normalizeTeamIds(group.orderedTeamIds)
-
-      let expectedTeamIds: string[] | undefined
-
-      if (isThirdPlaceGroupKey(groupKey)) {
-        expectedTeamIds = groups
-          .filter(g => typeof g.groupKey === 'string' && !isThirdPlaceGroupKey(g.groupKey.trim()))
-          .map(g => normalizeTeamIds(g.orderedTeamIds)?.[2])
-          .filter((id): id is string => Boolean(id))
-      } else {
-        expectedTeamIds = expectedTeamIdsByGroup.get(groupKey)
-      }
+      const expectedTeamIds = expectedTeamIdsByGroup.get(groupKey)
 
       if (!groupKey || !orderedTeamIds || !expectedTeamIds || !sameSet(orderedTeamIds, expectedTeamIds)) {
         return NextResponse.json({ error: 'Invalid team order.' }, { status: 400 })
