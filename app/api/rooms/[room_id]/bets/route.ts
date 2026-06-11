@@ -93,6 +93,10 @@ export async function POST(
       return NextResponse.json({ error: 'Match started. Betting is locked.' }, { status: 400 })
     }
 
+    if (new Date(match.scheduled_start_at).getTime() <= Date.now()) {
+      return NextResponse.json({ error: 'Match started. Betting is locked.' }, { status: 400 })
+    }
+
     const { data: existingBet } = await supabase
       .from('bets')
       .select('id')

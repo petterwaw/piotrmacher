@@ -80,7 +80,7 @@ export default function ScorePredictionCard({
     }
   }, [saveMessage])
 
-  const isStarted = match.status === 'live' || match.status === 'finished' || match.status === 'cancelled'
+  const isStarted = match.status === 'live' || match.status === 'finished' || match.status === 'cancelled' || new Date(match.startTime).getTime() <= Date.now()
   const isRoomActive = roomStatus === 'active'
   const canEdit = isRoomActive && !isStarted
 
