@@ -150,18 +150,19 @@ async function runSync(request: NextRequest) {
   const { data: trackedMatches } = eventIds.length
     ? await supabase
         .from('matches')
-        .select('event_id, status, next_sync_at')
+        .select('event_id, status, next_sync_at, scheduled_start_at')
         .in('event_id', eventIds)
         .in('status', ['scheduled', 'delayed', 'live'])
     : { data: [] }
 
-  const trackedByEvent = new Map<string, Array<{ status: string; next_sync_at: string | null }>>()
+  const trackedByEvent = new Map<string, Array<{ status: string; next_sync_at: string | null; scheduled_start_at: string | null }>>()
 
   for (const match of trackedMatches ?? []) {
     const current = trackedByEvent.get(match.event_id) ?? []
     current.push({
       status: match.status,
       next_sync_at: match.next_sync_at,
+      scheduled_start_at: (match as { scheduled_start_at?: string | null }).scheduled_start_at ?? null,
     })
     trackedByEvent.set(match.event_id, current)
   }
@@ -183,6 +184,12 @@ async function runSync(request: NextRequest) {
       }
 
       if (!match.next_sync_at) {
+        return true
+      }
+
+      // Force sync when the match start time has already passed but status is still scheduled/delayed.
+      // This prevents cron from skipping an event because next_sync_at was set before the match started.
+      if (match.scheduled_start_at && new Date(match.scheduled_start_at).getTime() <= now.getTime()) {
         return true
       }
 
