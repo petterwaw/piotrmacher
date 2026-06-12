@@ -215,7 +215,6 @@ export default function PickemPanel({
             <div className="space-y-2">
               {orderedTeams.map((team, index) => {
                 const officialPosition = team.currentPosition
-                const isCurrentMatch = officialPosition === index + 1
 
                 return (
                   <div
@@ -227,11 +226,7 @@ export default function PickemPanel({
                     }}
                     onDrop={() => dropTeam(group.groupKey, team.teamId)}
                     onDragEnd={() => setDragged(null)}
-                    className={`grid grid-cols-[32px_1fr_auto] items-center gap-3 border-2 p-3 transition-all ${
-                      isCurrentMatch
-                        ? 'border-brand/70 bg-brand/5'
-                        : 'border-zinc-200 bg-white'
-                    } ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                    className={`grid grid-cols-[32px_1fr_auto] items-center gap-3 border-2 border-zinc-200 bg-white p-3 transition-all ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''}`}
                   >
                     <div className="flex items-center gap-2">
                       <GripVertical size={16} className={canEdit ? 'text-zinc-400' : 'text-zinc-200'} />
