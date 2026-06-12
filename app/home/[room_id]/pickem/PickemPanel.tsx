@@ -61,13 +61,29 @@ export default function PickemPanel({
     ]))
   }, [groups])
 
+  // Client-side safety filter:
+  // - always strip third-place groups
+  // - deduplicate by groupKey
+  // - when locked, only show groups the user has picks for
+  const visibleGroups = useMemo(() => {
+    const seen = new Set<string>()
+    return groups.filter((group) => {
+      const key = group.groupKey.toLowerCase()
+      if (key.includes('3rd') || key.includes('third')) return false
+      if (seen.has(group.groupKey)) return false
+      seen.add(group.groupKey)
+      if (!canEdit && !initialPicks[group.groupKey]) return false
+      return true
+    })
+  }, [groups, canEdit, initialPicks])
+
   const hasUnsavedChanges = useMemo(() => {
-    return groups.some((group) => {
+    return visibleGroups.some((group) => {
       const current = orders[group.groupKey] ?? []
       const saved = initialPicks[group.groupKey]?.orderedTeamIds ?? group.teams.map((team) => team.teamId)
       return !sameOrder(current, saved)
     })
-  }, [groups, initialPicks, orders])
+  }, [visibleGroups, initialPicks, orders])
 
   useEffect(() => {
     if (!message) {
@@ -131,7 +147,7 @@ export default function PickemPanel({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            groups: groups.map((group) => ({
+            groups: visibleGroups.map((group) => ({
               groupKey: group.groupKey,
               orderedTeamIds: orders[group.groupKey] ?? [],
             })),
@@ -172,7 +188,7 @@ export default function PickemPanel({
         </div>
       </div>
 
-      {groups.map((group) => {
+      {visibleGroups.map((group) => {
         const teamMap = teamsByGroup.get(group.groupKey) ?? new Map()
         const orderedTeams = (orders[group.groupKey] ?? [])
           .map((teamId) => teamMap.get(teamId))
@@ -269,20 +285,19 @@ export default function PickemPanel({
         <div>
           {error ? <p className="text-sm text-[#F97316]">{error}</p> : null}
           {message ? <p className="text-sm text-green-700">{message}</p> : null}
-          {!canEdit ? (
-            <p className="text-sm text-text-muted">Pickem is locked after the room starts.</p>
-          ) : null}
         </div>
 
-        <button
-          type="button"
-          className="btn-base btn-dark rounded-none gap-2"
-          onClick={savePickem}
-          disabled={!canEdit || isPending || !hasUnsavedChanges}
-        >
-          <Save size={16} />
-          {isPending ? 'Saving...' : 'Save Pickem'}
-        </button>
+        {canEdit ? (
+          <button
+            type="button"
+            className="btn-base btn-dark rounded-none gap-2"
+            onClick={savePickem}
+            disabled={isPending || !hasUnsavedChanges}
+          >
+            <Save size={16} />
+            {isPending ? 'Saving...' : 'Save Pickem'}
+          </button>
+        ) : null}
       </div>
     </div>
   )
