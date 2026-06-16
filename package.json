@@ -10,7 +10,6 @@
     "lint": "eslint",
     "seed:events": "node scripts/seed-api-football-events.mjs",
     "seed:matches": "node scripts/seed-matches.mjs",
-    "backfill:match-logos": "node scripts/backfill-match-logos.mjs",
     "cron:local": "node scripts/local-cron-sync.mjs",
     "cron": "node scripts/local-cron-sync.mjs",
     "score:once": "node scripts/local-cron-sync.mjs --once"
