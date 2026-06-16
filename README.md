@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Piotrmacher
 
-## Getting Started
+**[piotrmacher.fun](https://piotrmacher.fun)**
 
-First, run the development server:
+A score prediction app I built for playing typer with friends during football tournaments. You create a private room, share an invite code, everyone picks scores before each match — points stack up automatically as results come in.
+
+## Features
+
+- create rooms tied to a specific event (World Cup, Nations League, etc.)
+- lock in score predictions before kick-off
+- automatic scoring after each match — correct winner, exact score, goal difference, all configurable
+- pick-em: predict group stage standings before the tournament starts
+- live leaderboard and full bet history per room
+
+## Tech
+
+Next.js 16, Supabase (Postgres + Auth), Tailwind CSS v4, deployed on Vercel with cron jobs for match sync and scoring.
+
+## Run locally
 
 ```bash
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Schema is in [`schema.sql`](./schema.sql) — paste it into the Supabase SQL editor on a fresh project.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Screenshots
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+![Rooms](public/rooms.webp)
 
-## Learn More
+![Create room](public/create.webp)
 
-To learn more about Next.js, take a look at the following resources:
+![Match history](public/history.webp)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+![Standings](public/standings.webp)
