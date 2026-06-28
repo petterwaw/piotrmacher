@@ -85,6 +85,10 @@ export default function PickemPanel({
     })
   }, [visibleGroups, initialPicks, orders])
 
+  const totalPickemPoints = useMemo(() => {
+    return Object.values(initialPicks).reduce((total, pick) => total + pick.points, 0)
+  }, [initialPicks])
+
   useEffect(() => {
     if (!message) {
       return
@@ -171,7 +175,7 @@ export default function PickemPanel({
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <div className="border-2 border-zinc-300 bg-white p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-brand">Pickem</p>
             <h1 className="mt-1 text-2xl font-black text-text-main">Set the group order</h1>
@@ -179,11 +183,17 @@ export default function PickemPanel({
               Drag teams or use arrows. You get {pointsPerCorrectPosition} pts for every team placed in the correct final position.
             </p>
           </div>
-          <div className={`flex shrink-0 items-center gap-2 border-2 px-3 py-2 text-xs font-bold uppercase tracking-wide ${
-            canEdit ? 'border-brand bg-brand text-white' : 'border-zinc-300 bg-zinc-100 text-text-muted'
-          }`}>
-            {canEdit ? <Trophy size={16} /> : <Lock size={16} />}
-            {canEdit ? 'Open' : 'Locked'}
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <div className="border-2 border-zinc-300 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-text-muted">
+              <span className="block text-[10px] leading-none">Total points</span>
+              <span className="mt-1 block text-lg font-black leading-none text-brand">{totalPickemPoints} pts</span>
+            </div>
+            <div className={`flex items-center gap-2 border-2 px-3 py-2 text-xs font-bold uppercase tracking-wide ${
+              canEdit ? 'border-brand bg-brand text-white' : 'border-zinc-300 bg-zinc-100 text-text-muted'
+            }`}>
+              {canEdit ? <Trophy size={16} /> : <Lock size={16} />}
+              {canEdit ? 'Open' : 'Locked'}
+            </div>
           </div>
         </div>
       </div>
