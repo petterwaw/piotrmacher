@@ -43,6 +43,40 @@ type MatchStatusRow = {
   event_id: string
 }
 
+const FIFA_WORLD_CUP_2026_GROUP_MATCHES = 72
+
+function parsePositiveInteger(value: string | undefined) {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
+}
+
+function calculateRoundRobinMatchCount(groupSizes: Iterable<number>) {
+  let requiredMatches = 0
+
+  for (const teamCount of groupSizes) {
+    if (teamCount > 1) {
+      requiredMatches += (teamCount * (teamCount - 1)) / 2
+    }
+  }
+
+  return requiredMatches
+}
+
+function expectedFinishedGroupMatches(event: EventRow | undefined, groupSizes: Iterable<number>) {
+  const override = parsePositiveInteger(process.env.PICKEM_GROUP_STAGE_FINISHED_MATCHES)
+  if (override) return override
+
+  if (
+    event?.provider_event_id === '1' &&
+    event.season === '2026' &&
+    isWorldCupPickemEvent(event)
+  ) {
+    return FIFA_WORLD_CUP_2026_GROUP_MATCHES
+  }
+
+  return calculateRoundRobinMatchCount(groupSizes)
+}
+
 function toRuleScore(rules: Rules | null | undefined) {
   const parsed = Number(rules?.pickem_correct_position)
   return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0
@@ -99,6 +133,7 @@ async function processPickemScoring(request: NextRequest) {
   }
 
   const scoringEventIdSet = new Set(scoringEvents.map((event) => event.id))
+  const scoringEventById = new Map(scoringEvents.map((event) => [event.id, event]))
   const scoringRooms = activeRooms.filter((room) => scoringEventIdSet.has(room.event_id))
 
   if (scoringRooms.length === 0) {
@@ -145,13 +180,10 @@ async function processPickemScoring(request: NextRequest) {
 
   const requiredGroupMatchesByEvent = new Map<string, number>()
   for (const [eventId, byGroup] of teamsPerGroupByEvent.entries()) {
-    let requiredMatches = 0
-    for (const teamCount of byGroup.values()) {
-      if (teamCount > 1) {
-        requiredMatches += (teamCount * (teamCount - 1)) / 2
-      }
-    }
-    requiredGroupMatchesByEvent.set(eventId, requiredMatches)
+    requiredGroupMatchesByEvent.set(
+      eventId,
+      expectedFinishedGroupMatches(scoringEventById.get(eventId), byGroup.values()),
+    )
   }
 
   const { data: finishedMatches, error: finishedMatchesError } = await supabase
@@ -173,10 +205,21 @@ async function processPickemScoring(request: NextRequest) {
   }
 
   const scoringOpenByEvent = new Map<string, boolean>()
+  const scoringStatusByEvent: Record<string, {
+    requiredFinishedGroupMatches: number
+    finishedMatches: number
+    open: boolean
+  }> = {}
   for (const eventId of pickEventIds) {
     const required = requiredGroupMatchesByEvent.get(eventId) ?? 0
     const finished = finishedMatchCountByEvent.get(eventId) ?? 0
-    scoringOpenByEvent.set(eventId, required > 0 && finished >= required)
+    const open = required > 0 && finished >= required
+    scoringOpenByEvent.set(eventId, open)
+    scoringStatusByEvent[eventId] = {
+      requiredFinishedGroupMatches: required,
+      finishedMatches: finished,
+      open,
+    }
   }
 
   const positionsByEventGroup = new Map<string, Map<string, number>>()
@@ -280,6 +323,7 @@ async function processPickemScoring(request: NextRequest) {
     roomsChecked: scoringRooms.length,
     picksUpdated: pickUpdates.length,
     roomPlayersUpdated: deltaEntries.length,
+    scoringStatusByEvent,
   })
 }
 
