@@ -20,12 +20,14 @@ export default function RoomNavigation({
   roomId,
   roomStatus,
   showSettings,
+  showPickem,
   isHost,
   inviteCode,
 }: {
   roomId: string
   roomStatus: 'waiting' | 'active' | 'finished'
   showSettings: boolean
+  showPickem: boolean
   isHost: boolean
   inviteCode: string | null
 }) {
@@ -54,7 +56,9 @@ export default function RoomNavigation({
     tabs.push({ href: `/home/${roomId}/history`, label: 'History' })
   }
 
-  tabs.push({ href: `/home/${roomId}/pickem`, label: 'Pickem' })
+  if (showPickem) {
+    tabs.push({ href: `/home/${roomId}/pickem`, label: 'Pickem' })
+  }
 
   tabs.push(
     { href: `/home/${roomId}/standings`, label: 'Standings' },

@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
+import { notFound } from 'next/navigation'
 import { isWorldCupPickemEvent } from '@/app/utils/pickem/eligibility'
 import { syncPickemGroupsForEvent, type PickemEvent } from '@/app/utils/pickem/groups'
 import PickemPanel from './PickemPanel'
@@ -68,7 +69,7 @@ export default async function PickemPage({
     .maybeSingle()
 
   if (!room) {
-    return <p className="text-text-muted">Room not found.</p>
+    notFound()
   }
 
   if (!user) {

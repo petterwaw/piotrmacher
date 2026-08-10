@@ -45,3 +45,12 @@ yarn-error.log*
 # Supabase CLI local state
 supabase/.temp/
 next-env.d.ts
+
+# MCP server config (may contain project refs or tokens)
+.mcp.json
+.mcp.json.local
+
+# AI agent tooling (local dev aid, not part of the shipped app)
+.agents/
+skills-lock.json
+.claude/

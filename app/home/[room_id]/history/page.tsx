@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import ScorePredictionCard from '@/app/components/ScorePredictionCard'
 import { getCachedHistoryCount, getCachedHistoryMatches } from '@/app/utils/cache/roomReads'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
@@ -80,7 +80,7 @@ export default async function HistoryPage({
     .maybeSingle()
 
   if (!room) {
-    return <p className="text-text-muted">Room not found.</p>
+    notFound()
   }
 
   if (room.status === 'waiting') {

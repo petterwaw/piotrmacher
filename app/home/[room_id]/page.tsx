@@ -1,5 +1,5 @@
 import BetsByDay from '@/app/components/BetsByDay'
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { getCachedUpcomingMatches } from '@/app/utils/cache/roomReads'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
@@ -30,7 +30,7 @@ export default async function BetsPage({
     .maybeSingle()
 
   if (!room) {
-    return <p className="text-text-muted">Room not found.</p>
+    notFound()
   }
 
   const status = (room?.status as 'waiting' | 'active' | 'finished' | undefined) ?? 'waiting'

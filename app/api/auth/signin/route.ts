@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (error) {
-      console.log('Sign in error:', { error: error.message, email })
+      console.log('Sign in error:', error.message)
 
       if (wantsJson || contentType.includes('application/json')) {
         return NextResponse.json({ error: error.message }, { status: 400 })
@@ -59,8 +59,6 @@ export async function POST(request: NextRequest) {
         new URL('/signin?error=' + encodeURIComponent('No session created'), request.url)
       )
     }
-
-    console.log('Sign in successful:', { user: data.user })
 
     if (wantsJson || contentType.includes('application/json')) {
       return NextResponse.json({ ok: true })

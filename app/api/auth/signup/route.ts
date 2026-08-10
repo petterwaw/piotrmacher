@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServerSupabaseClient()
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (error) {
-      console.log('Sign up error:', { error: error.message, email, username: normalizedUsername })
+      console.log('Sign up error:', error.message)
 
       if (wantsJson || contentType.includes('application/json')) {
         return NextResponse.json({ error: error.message }, { status: 400 })
@@ -115,8 +115,6 @@ export async function POST(request: NextRequest) {
         new URL('/signup?error=' + encodeURIComponent(error.message), request.url)
       )
     }
-
-    console.log('Sign up successful:', { user: data.user })
 
     if (wantsJson || contentType.includes('application/json')) {
       return NextResponse.json({ ok: true })

@@ -3,6 +3,12 @@ import { ArrowLeft } from 'lucide-react'
 import RoomNavigation from '@/app/components/RoomNavigation'
 import RoomStatusSync from '@/app/components/RoomStatusSync'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
+import { isWorldCupPickemEvent } from '@/app/utils/pickem/eligibility'
+
+type EventRelation =
+  | { name: string | null; provider_event_id: string | null }
+  | Array<{ name: string | null; provider_event_id: string | null }>
+  | null
 
 export default async function RoomLayout({
   children,
@@ -20,13 +26,17 @@ export default async function RoomLayout({
 
   const { data: room } = await supabase
     .from('rooms')
-    .select('host_id, status, invite_code')
+    .select('host_id, status, invite_code, events(name, provider_event_id)')
     .eq('id', room_id)
     .maybeSingle()
 
   const isHost = Boolean(user && room && room.host_id === user.id)
   const roomStatus = (room?.status as 'waiting' | 'active' | 'finished' | undefined) ?? 'waiting'
   const showSettings = isHost && roomStatus === 'waiting'
+
+  const eventRelation = room?.events as EventRelation | undefined
+  const eventRow = Array.isArray(eventRelation) ? eventRelation[0] : eventRelation
+  const showPickem = isWorldCupPickemEvent(eventRow)
 
   return (
     <main className="mx-auto w-full max-w-[1320px] px-4 pt-1 pb-24 md:pt-6 md:px-6 md:pb-8">
@@ -50,12 +60,12 @@ export default async function RoomLayout({
             <ArrowLeft size={28} />
           </Link>
 
-          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} isHost={isHost} inviteCode={room?.invite_code ?? null} />
+          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} showPickem={showPickem} isHost={isHost} inviteCode={room?.invite_code ?? null} />
         </aside>
 
         {/* Mobile bottom navigation is rendered by RoomNavigation itself. */}
         <div className="md:hidden">
-          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} isHost={isHost} inviteCode={room?.invite_code ?? null} />
+          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} showPickem={showPickem} isHost={isHost} inviteCode={room?.invite_code ?? null} />
         </div>
 
         {/* Page Content */}

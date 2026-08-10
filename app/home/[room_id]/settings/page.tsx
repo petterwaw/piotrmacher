@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { getActiveEvents } from '@/app/utils/events/getActiveEvents'
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import SettingsPanel from './SettingsPanel'
 
 type Rules = {
@@ -44,7 +44,7 @@ export default async function RoomSettingsPage({
     .maybeSingle()
 
   if (!room) {
-    return <p className="text-text-muted">Room not found.</p>
+    notFound()
   }
 
   if (!user || room.host_id !== user.id) {

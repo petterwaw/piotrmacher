@@ -10,10 +10,6 @@ function isProtectedPath(pathname: string) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (!isProtectedPath(pathname)) {
-    return NextResponse.next()
-  }
-
   const response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -42,7 +38,18 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
+  // Refresh + persist the session cookie on every navigable page (not just
+  // /home) so a rotated refresh token is never left stale in the browser.
+  // Without this, hitting `/` directly with an expired access token can
+  // trigger a silent refresh in a Server Component (which can't persist
+  // cookies), consuming the rotated refresh token without saving the new
+  // one — the very next /home request then fails to refresh and bounces
+  // the user back to the login screen even though they never logged out.
+  if (user && pathname === '/') {
+    return NextResponse.redirect(new URL('/home', request.url))
+  }
+
+  if (isProtectedPath(pathname) && !user) {
     const loginUrl = new URL('/', request.url)
     loginUrl.searchParams.set('login', '1')
     return NextResponse.redirect(loginUrl)
@@ -52,5 +59,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/home/:path*'],
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+  ],
 }
