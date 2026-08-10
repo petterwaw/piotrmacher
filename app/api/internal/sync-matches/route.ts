@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { processPendingScoringJobs } from '@/app/utils/scoring/processPendingScoringJobs'
 import { NextRequest, NextResponse } from 'next/server'
 
 type SyncEventTarget = {
@@ -391,6 +392,17 @@ async function runSync(request: NextRequest) {
     if (jobRows.length > 0) {
       await supabase.from('scoring_jobs').upsert(jobRows, { onConflict: 'match_id' })
       console.log(`[sync-matches] Enqueued ${jobRows.length} finished matches for scoring`)
+
+      // Score right away instead of waiting for the score-finished-matches
+      // cron (up to 2 more minutes) to notice the new jobs. That cron still
+      // runs independently as a safety net for retries/backfill.
+      const scoringResult = await processPendingScoringJobs(supabase, jobRows.length)
+
+      if (!scoringResult.ok) {
+        console.error('[sync-matches] Immediate scoring failed, will retry via score-finished-matches cron:', scoringResult.error)
+      } else {
+        console.log(`[sync-matches] Immediately scored ${scoringResult.betsUpdated} bets across ${scoringResult.jobsPicked} jobs`)
+      }
     }
   }
 
