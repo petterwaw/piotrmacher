@@ -20,7 +20,7 @@ const DAY = 24 * HOUR
 
 // Bump when a cached return shape changes: unstable_cache entries survive
 // deploys (on Vercel they live in the Data Cache).
-const CACHE_VERSION = 'v2'
+const CACHE_VERSION = 'v3'
 
 const MATCH_COLUMNS =
   'id, home_team, home_logo, away_team, away_logo, scheduled_start_at, status, home_score_ft, away_score_ft, live_minute'
@@ -41,6 +41,9 @@ export type CachedMatchRow = {
 export type CachedStandingPlayer = {
   username: string
   points: number
+  // Scored predictions where the outcome (home win / draw / away win) was right.
+  outcomeHits: number
+  outcomeTotal: number
 }
 
 export type CachedPrediction = {
@@ -151,11 +154,34 @@ export function getRoomStandings(roomId: string) {
 
       if (error) fail('room-standings', error)
 
+      // Only scored bets count: points are set once a match inside the room
+      // window has finished, so the percentage matches what earned points.
+      const { data: scored, error: betsError } = await supabase
+        .from('bets')
+        .select('user_id, home_score, away_score, matches!inner(home_score_ft, away_score_ft)')
+        .eq('room_id', roomId)
+        .not('points', 'is', null)
+
+      if (betsError) fail('room-standings', betsError)
+
+      const outcome = (home: number, away: number) => Math.sign(home - away)
+      const accuracy = new Map<string, { hits: number; total: number }>()
+      for (const bet of scored ?? []) {
+        const match = Array.isArray(bet.matches) ? bet.matches[0] : bet.matches
+        if (!match || match.home_score_ft === null || match.away_score_ft === null) continue
+        const entry = accuracy.get(bet.user_id) ?? { hits: 0, total: 0 }
+        entry.total += 1
+        if (outcome(bet.home_score, bet.away_score) === outcome(match.home_score_ft, match.away_score_ft)) entry.hits += 1
+        accuracy.set(bet.user_id, entry)
+      }
+
       const usernameById = await loadUsernames((members ?? []).map((member) => member.user_id))
 
       return (members ?? []).map((member) => ({
         username: usernameById.get(member.user_id) ?? 'Player',
         points: member.points,
+        outcomeHits: accuracy.get(member.user_id)?.hits ?? 0,
+        outcomeTotal: accuracy.get(member.user_id)?.total ?? 0,
       }))
     },
   )

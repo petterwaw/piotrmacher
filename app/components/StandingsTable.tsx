@@ -1,6 +1,8 @@
 export interface Player {
   username: string
   points: number
+  outcomeHits: number
+  outcomeTotal: number
 }
 
 // Podium ranks get a filled badge (gold / silver / bronze) with AA-contrast text.
@@ -32,7 +34,21 @@ export default function StandingsTable({ players }: { players: Player[] }) {
               <span aria-hidden="true">#</span>
               {index + 1}
             </span>
-            <span className="min-w-0 truncate font-semibold text-text-main">{player.username}</span>
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate font-semibold text-text-main">{player.username}</span>
+              <span className="text-xs tabular-nums text-zinc-600">
+                {player.outcomeTotal > 0 ? (
+                  <>
+                    <span className="font-semibold text-text-main">
+                      {Math.round((player.outcomeHits / player.outcomeTotal) * 100)}%
+                    </span>{' '}
+                    results right ({player.outcomeHits}/{player.outcomeTotal})
+                  </>
+                ) : (
+                  'No results yet'
+                )}
+              </span>
+            </span>
           </div>
           <span className="shrink-0 text-right">
             <span className="text-lg font-black tabular-nums text-brand">{player.points}</span>
