@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Check, ChevronDown, Minus, Pencil, Plus } from 'lucide-react'
 
 type MatchStatus = 'scheduled' | 'delayed' | 'live' | 'finished' | 'cancelled'
 
@@ -41,6 +42,14 @@ type ScorePredictionCardProps = {
 }
 
 const MAX_PREDICTED_GOALS = 20
+
+// Score steppers: 40px visual, 44px+ hit area via .touch-target.
+const STEP_BASE =
+  'touch-target inline-flex h-10 w-10 items-center justify-center border-2 transition-colors disabled:opacity-40'
+const STEP_UP = `${STEP_BASE} border-brand bg-brand text-white hover:border-brand-hover hover:bg-brand-hover active:bg-brand-hover disabled:hover:border-brand disabled:hover:bg-brand`
+const STEP_DOWN = `${STEP_BASE} border-zinc-300 bg-white text-text-main hover:border-zinc-500 active:bg-zinc-100 disabled:hover:border-zinc-300`
+const SECONDARY_ACTION =
+  'inline-flex min-h-11 items-center justify-center gap-2 border-2 border-zinc-300 bg-white px-5 py-2 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:text-brand active:bg-brand-tint disabled:opacity-60'
 
 function getStatusLabel(status: MatchStatus) {
   if (status === 'scheduled') return 'Scheduled'
@@ -85,10 +94,10 @@ export default function ScorePredictionCard({
   const canEdit = isRoomActive && !isStarted
 
   const statusClassName = useMemo(() => {
-    if (match.status === 'live') return 'bg-green-100 text-green-800'
-    if (match.status === 'finished') return 'bg-gray-100 text-gray-700'
-    if (match.status === 'delayed') return 'bg-orange-100 text-orange-800'
-    return 'bg-blue-100 text-blue-800'
+    if (match.status === 'live') return 'bg-green-100 text-green-900'
+    if (match.status === 'finished') return 'bg-zinc-200/70 text-zinc-700'
+    if (match.status === 'delayed') return 'bg-orange-100 text-orange-900'
+    return 'bg-blue-100 text-blue-900'
   }, [match.status])
 
   const decreaseHome = () => setHomeScore((prev) => Math.max(0, prev - 1))
@@ -161,137 +170,157 @@ export default function ScorePredictionCard({
   const showPlayerPredictionInCenter = !isStarted && !isEditing && savedPrediction
 
   return (
-    <div className="border-2 border-zinc-300 bg-white/90 p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
-      <div className="mb-2 grid grid-cols-[1fr_auto_1fr] items-start gap-2">
+    <div className="border-2 border-zinc-300 bg-white/90 p-4 sm:p-5">
+      <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
         <div />
-        <p className="text-center text-sm text-text-muted">
+        <p className="text-center text-sm tabular-nums text-zinc-600">
           {new Date(match.startTime).toLocaleString('pl-PL', {
             dateStyle: 'medium',
             timeStyle: 'short',
           })}
         </p>
         <div className="flex justify-end">
-          <span className={`px-2.5 py-1 text-xs font-semibold ${statusClassName}`}>
+          <span className={`status-chip ${statusClassName}`}>
             {getStatusLabel(match.status)}
           </span>
         </div>
       </div>
 
       {match.status === 'live' ? (
-        <div className="mb-4 flex items-center justify-center gap-2 text-sm font-semibold text-[#4CAF50]">
-          <span className="inline-block h-2 w-2 bg-[#4CAF50]" />
+        <div className="mb-3 flex items-center justify-center gap-2 text-sm font-bold tabular-nums text-brand">
+          <span aria-hidden="true" className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-brand-bright opacity-75 motion-safe:animate-ping" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-brand" />
+          </span>
           <span>LIVE{typeof match.liveMinute === 'number' ? ` ${match.liveMinute}'` : ''}</span>
         </div>
       ) : null}
 
-      <div className="flex flex-nowrap items-center justify-between gap-3 py-1">
-        <div className="w-[38%] min-w-0 flex flex-col items-center text-center">
+      <div className="flex flex-nowrap items-center justify-between gap-2 py-1 sm:gap-3">
+        <div className="flex w-[38%] min-w-0 flex-col items-center text-center">
           {match.homeLogo ? (
-            <img src={match.homeLogo} alt="" aria-hidden="true" className="mb-2 h-12 w-12 object-contain" />
+            <img src={match.homeLogo} alt="" aria-hidden="true" loading="lazy" decoding="async" className="mb-2 h-12 w-12 object-contain" />
           ) : (
-            <div className="mb-2 h-12 w-12" />
+            <div aria-hidden="true" className="mb-2 h-12 w-12 rounded-full bg-zinc-100" />
           )}
-          <p className="text-sm font-semibold text-text-main">{match.homeTeam}</p>
+          <p className="text-sm font-bold leading-snug text-text-main">{match.homeTeam}</p>
         </div>
 
-        <div className="w-[24%] min-w-[120px] text-center">
+        <div className="w-[24%] min-w-[112px] text-center">
           {!isEditing ? (
-            <div className="font-mono text-3xl font-bold text-text-main">
-              {showOfficialScore ? (
-                <span>
-                  {match.liveScore?.home} : {match.liveScore?.away}
-                </span>
-              ) : showPlayerPredictionInCenter ? (
-                <span>
-                  {savedPrediction.home} : {savedPrediction.away}
-                </span>
-              ) : (
-                <span>-</span>
-              )}
+            <div className="flex flex-col items-center">
+              <div className="text-4xl font-black leading-none tracking-tight tabular-nums text-text-main">
+                {showOfficialScore ? (
+                  <span>
+                    {match.liveScore?.home}
+                    <span className="mx-1.5 text-zinc-400">:</span>
+                    {match.liveScore?.away}
+                  </span>
+                ) : showPlayerPredictionInCenter ? (
+                  <span>
+                    {savedPrediction.home}
+                    <span className="mx-1.5 text-zinc-400">:</span>
+                    {savedPrediction.away}
+                  </span>
+                ) : (
+                  <span className="text-zinc-300" aria-label="No score yet">
+                    –<span className="mx-1.5">:</span>–
+                  </span>
+                )}
+              </div>
+              {!showOfficialScore && showPlayerPredictionInCenter ? (
+                <span className="mt-1.5 text-[11px] font-bold uppercase tracking-wide text-zinc-600">Your pick</span>
+              ) : null}
             </div>
           ) : (
-            <div className="grid grid-cols-[40px_auto_40px] items-center gap-3">
+            <div className="grid grid-cols-[40px_auto_40px] items-center justify-center gap-2">
               <div className="flex flex-col items-center gap-1.5">
                 <button
                   type="button"
-                  className="h-7 w-7 border-2 border-brand bg-brand text-base font-bold leading-none text-white transition-colors hover:border-brand-soft hover:bg-brand-soft disabled:opacity-60"
+                  aria-label={`Increase ${match.homeTeam} score`}
+                  className={STEP_UP}
                   onClick={increaseHome}
                   disabled={isPending || homeScore >= MAX_PREDICTED_GOALS}
                 >
-                  +
+                  <Plus size={18} strokeWidth={3} aria-hidden="true" />
                 </button>
-                <span className="w-8 text-center font-mono text-3xl font-bold text-text-main">{homeScore}</span>
+                <span aria-live="polite" className="w-10 text-center text-3xl font-black leading-none tabular-nums text-text-main">{homeScore}</span>
                 <button
                   type="button"
-                  className="h-7 w-7 border-2 border-zinc-300 bg-white text-base font-bold leading-none text-text-main transition-colors hover:border-zinc-400 disabled:opacity-60"
+                  aria-label={`Decrease ${match.homeTeam} score`}
+                  className={STEP_DOWN}
                   onClick={decreaseHome}
                   disabled={isPending || homeScore <= 0}
                 >
-                  -
+                  <Minus size={18} strokeWidth={3} aria-hidden="true" />
                 </button>
               </div>
 
-              <div className="text-2xl font-bold text-text-main">:</div>
+              <div aria-hidden="true" className="text-2xl font-black text-zinc-400">:</div>
 
               <div className="flex flex-col items-center gap-1.5">
                 <button
                   type="button"
-                  className="h-7 w-7 border-2 border-brand bg-brand text-base font-bold leading-none text-white transition-colors hover:border-brand-soft hover:bg-brand-soft disabled:opacity-60"
+                  aria-label={`Increase ${match.awayTeam} score`}
+                  className={STEP_UP}
                   onClick={increaseAway}
                   disabled={isPending || awayScore >= MAX_PREDICTED_GOALS}
                 >
-                  +
+                  <Plus size={18} strokeWidth={3} aria-hidden="true" />
                 </button>
-                <span className="w-8 text-center font-mono text-3xl font-bold text-text-main">{awayScore}</span>
+                <span aria-live="polite" className="w-10 text-center text-3xl font-black leading-none tabular-nums text-text-main">{awayScore}</span>
                 <button
                   type="button"
-                  className="h-7 w-7 border-2 border-zinc-300 bg-white text-base font-bold leading-none text-text-main transition-colors hover:border-zinc-400 disabled:opacity-60"
+                  aria-label={`Decrease ${match.awayTeam} score`}
+                  className={STEP_DOWN}
                   onClick={decreaseAway}
                   disabled={isPending || awayScore <= 0}
                 >
-                  -
+                  <Minus size={18} strokeWidth={3} aria-hidden="true" />
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        <div className="w-[38%] min-w-0 flex flex-col items-center text-center">
+        <div className="flex w-[38%] min-w-0 flex-col items-center text-center">
           {match.awayLogo ? (
-            <img src={match.awayLogo} alt="" aria-hidden="true" className="mb-2 h-12 w-12 object-contain" />
+            <img src={match.awayLogo} alt="" aria-hidden="true" loading="lazy" decoding="async" className="mb-2 h-12 w-12 object-contain" />
           ) : (
-            <div className="mb-2 h-12 w-12" />
+            <div aria-hidden="true" className="mb-2 h-12 w-12 rounded-full bg-zinc-100" />
           )}
-          <p className="text-sm font-semibold text-text-main">{match.awayTeam}</p>
+          <p className="text-sm font-bold leading-snug text-text-main">{match.awayTeam}</p>
         </div>
       </div>
 
-      {error ? <p className="mt-3 text-sm text-[#F97316]">{error}</p> : null}
+      {error ? <p role="alert" className="mt-3 text-center text-sm font-medium text-danger">{error}</p> : null}
 
       {canEdit ? (
-        <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-zinc-200 pt-4">
           <span
             aria-live="polite"
-            className={`min-w-[56px] text-sm text-green-700 transition-opacity ${saveMessage ? 'opacity-100' : 'opacity-0'}`}
+            className={`inline-flex min-w-[56px] items-center gap-1 text-sm font-semibold text-brand transition-opacity duration-300 ${saveMessage ? 'opacity-100' : 'opacity-0'}`}
           >
+            <Check size={16} strokeWidth={3} aria-hidden="true" />
             {saveMessage ?? 'Saved.'}
           </span>
 
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-end gap-2 sm:gap-3">
             {!isEditing ? (
               <button
                 type="button"
-                className="border-2 border-zinc-300 bg-white px-5 py-2 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:text-brand"
+                className={SECONDARY_ACTION}
                 onClick={startEditing}
                 disabled={isPending}
               >
+                <Pencil size={14} aria-hidden="true" />
                 Edit
               </button>
             ) : (
               <>
                 <button
                   type="button"
-                  className="border-2 border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:text-brand"
+                  className={SECONDARY_ACTION}
                   onClick={cancelEditing}
                   disabled={isPending}
                 >
@@ -299,11 +328,11 @@ export default function ScorePredictionCard({
                 </button>
                 <button
                   type="button"
-                  className="border-2 border-brand bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:border-brand-soft hover:bg-brand-soft"
+                  className="inline-flex min-h-11 items-center justify-center border-2 border-brand bg-brand px-5 py-2 text-sm font-semibold text-white transition-colors hover:border-brand-hover hover:bg-brand-hover active:bg-brand-hover disabled:opacity-60"
                   onClick={handleSave}
                   disabled={isPending}
                 >
-                  {isPending ? 'Saving...' : 'Save'}
+                  {isPending ? 'Saving…' : 'Save'}
                 </button>
               </>
             )}
@@ -313,24 +342,31 @@ export default function ScorePredictionCard({
 
       {/* Collapsible other players' bets */}
       {livePredictions.length > 0 ? (
-        <div className="mt-4">
+        <div className="mt-4 border-t-2 border-zinc-200">
           <button
             type="button"
             onClick={() => setShowBets((prev) => !prev)}
-            className="flex w-full items-center justify-between gap-2 border-t-2 border-zinc-200 pt-3 text-sm font-medium text-text-muted hover:text-text-main"
+            aria-expanded={showBets}
+            className="flex min-h-11 w-full items-center justify-between gap-2 pt-1 text-sm font-semibold text-zinc-700 transition-colors hover:text-text-main"
           >
-            <span>Players bets ({livePredictions.length})</span>
-            <span className={`text-xs transition-transform duration-200 ${showBets ? 'rotate-180' : ''}`}>▼</span>
+            <span>
+              Players bets <span className="tabular-nums text-zinc-500">({livePredictions.length})</span>
+            </span>
+            <ChevronDown
+              size={18}
+              aria-hidden="true"
+              className={`text-zinc-500 transition-transform duration-200 ${showBets ? 'rotate-180' : ''}`}
+            />
           </button>
           {showBets ? (
-            <ul className="mt-2 space-y-1">
+            <ul className="animate-pop-in divide-y divide-zinc-100">
               {livePredictions.map((item) => (
-                <li key={`${item.username}-${item.homeScore}-${item.awayScore}`} className="flex items-center justify-between text-sm text-text-main">
-                  <span>{item.username}</span>
-                  <span className="flex items-center gap-3 font-semibold">
-                    <span>{item.homeScore} : {item.awayScore}</span>
+                <li key={`${item.username}-${item.homeScore}-${item.awayScore}`} className="flex items-center justify-between gap-3 py-2 text-sm text-text-main">
+                  <span className="min-w-0 truncate">{item.username}</span>
+                  <span className="flex shrink-0 items-center gap-2 font-semibold tabular-nums">
+                    <span className="w-12 text-center">{item.homeScore} : {item.awayScore}</span>
                     {typeof item.points === 'number' ? (
-                      <span className="font-bold text-brand">{item.points} pts</span>
+                      <span className={`w-14 text-right font-bold ${item.points > 0 ? 'text-brand' : 'text-zinc-500'}`}>{item.points} pts</span>
                     ) : null}
                   </span>
                 </li>

@@ -1,4 +1,6 @@
 import BetsByDay from '@/app/components/BetsByDay'
+import EmptyState from '@/app/components/EmptyState'
+import { CalendarX2 } from 'lucide-react'
 import { notFound, redirect } from 'next/navigation'
 import { getCachedUpcomingMatches } from '@/app/utils/cache/roomReads'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
@@ -107,7 +109,7 @@ export default async function BetsPage({
     <div className="mx-auto max-w-xl">
 
       {matches.length === 0 ? (
-        <p className="relative top-8 text-center text-text-muted">No upcoming matches for this event.</p>
+        <EmptyState icon={CalendarX2} title="No upcoming matches for this event." />
       ) : (
         <BetsByDay
           roomId={room_id}

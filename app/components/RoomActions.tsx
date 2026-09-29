@@ -4,7 +4,7 @@ import { createRoom } from '@/app/utils/rooms/createRoom'
 import { joinRoom } from '@/app/utils/rooms/joinRoom'
 import EventSelect from '@/app/components/EventSelect'
 import DatePicker from '@/app/components/DatePicker'
-import { X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
 
@@ -240,14 +240,14 @@ export default function RoomActions() {
       <div className="mb-4 flex flex-col gap-3 sm:col-span-2 sm:flex-row lg:hidden">
         <button
           type="button"
-          className="w-full border border-zinc-300 bg-white px-4 py-3 font-bold uppercase tracking-wide text-text-main transition-colors hover:border-brand hover:bg-gray-50 sm:w-[220px]"
+          className="min-h-12 w-full border-2 border-zinc-300 bg-white px-4 py-3 font-bold uppercase tracking-wide text-text-main transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand active:bg-brand-tint sm:w-[220px]"
           onClick={() => openModal('create')}
         >
           Create a room
         </button>
         <button
           type="button"
-          className="w-full border border-brand bg-brand px-4 py-3 font-bold uppercase tracking-wide text-white transition-colors hover:bg-brand-soft hover:border-brand-soft sm:w-[220px]"
+          className="min-h-12 w-full border-2 border-brand bg-brand px-4 py-3 font-bold uppercase tracking-wide text-white transition-colors hover:bg-brand-hover hover:border-brand-hover active:bg-brand-hover sm:w-[220px]"
           onClick={() => openModal('join')}
         >
           Join a room
@@ -257,25 +257,23 @@ export default function RoomActions() {
       {/* Desktop: Kafelek with plus icon and hover reveal */}
       <div
         ref={desktopActionsRef}
-        className="group relative hidden min-h-[228px] border-2 border-zinc-300 bg-white/90 shadow-sm transition-all duration-200 hover:border-brand hover:shadow-md lg:flex lg:flex-col lg:items-center lg:justify-center"
+        className="group relative hidden min-h-[228px] border-2 border-dashed border-zinc-300 bg-white/60 transition-[border-color,background-color] duration-200 hover:border-solid hover:border-brand hover:bg-white/90 focus-within:border-solid focus-within:border-brand lg:flex lg:flex-col lg:items-center lg:justify-center"
         onClick={() => setIsDesktopActionsOpen((current) => !current)}
         onMouseLeave={() => setIsDesktopActionsOpen(false)}
       >
-        <div className="text-[72px] font-black leading-none text-zinc-300 transition-colors duration-200 group-hover:text-brand">
-          +
-        </div>
-        <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-zinc-500">New Action</p>
+        <Plus size={56} strokeWidth={2.5} aria-hidden="true" className="text-zinc-300 transition-colors duration-200 group-hover:text-brand" />
+        <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-zinc-600">New Action</p>
 
         <div
           className={`absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/92 transition-opacity duration-200 ${
             isDesktopActionsOpen
               ? 'pointer-events-auto opacity-100'
-              : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100'
+              : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
           }`}
         >
           <button
             type="button"
-            className="inline-flex min-w-[170px] items-center justify-center border border-zinc-300 bg-white px-4 py-2 text-sm font-bold uppercase tracking-wide text-text-main transition-colors hover:border-brand hover:bg-gray-50"
+            className="inline-flex min-h-11 min-w-[170px] items-center justify-center border-2 border-zinc-300 bg-white px-4 py-2 text-sm font-bold uppercase tracking-wide text-text-main transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand"
             onClick={(event) => {
               event.stopPropagation()
               openModal('create')
@@ -285,7 +283,7 @@ export default function RoomActions() {
           </button>
           <button
             type="button"
-            className="inline-flex min-w-[170px] items-center justify-center border border-brand bg-brand px-4 py-2 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-brand-soft hover:border-brand-soft"
+            className="inline-flex min-h-11 min-w-[170px] items-center justify-center border-2 border-brand bg-brand px-4 py-2 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-brand-hover hover:border-brand-hover"
             onClick={(event) => {
               event.stopPropagation()
               openModal('join')
@@ -297,24 +295,30 @@ export default function RoomActions() {
       </div>
 
       {mode && copy ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
-          <div className="w-full max-w-md border-2 border-zinc-300 bg-white p-6 shadow-md">
+        <div className="animate-overlay-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="room-modal-title"
+            className="animate-dialog-in max-h-full w-full max-w-md overflow-y-auto border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 sm:p-6"
+          >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-text-main">{copy.title}</h2>
+                <h2 id="room-modal-title" className="text-2xl font-black tracking-tight text-text-main">{copy.title}</h2>
                 <p className="mt-1 text-sm text-text-muted">{copy.description}</p>
               </div>
               <button
                 type="button"
                 onClick={closeModal}
-                className="inline-flex h-9 w-9 items-center justify-center text-text-muted transition-colors hover:text-brand"
+                aria-label="Close"
+                className="-mr-2 -mt-2 inline-flex h-11 w-11 shrink-0 items-center justify-center text-text-muted transition-colors hover:text-brand"
               >
-                <X size={20} />
+                <X size={20} aria-hidden="true" />
               </button>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-text-main" htmlFor="room-modal-input">
+              <label className="block text-sm font-semibold text-text-main" htmlFor="room-modal-input">
                 {copy.label}
               </label>
               <input
@@ -323,7 +327,7 @@ export default function RoomActions() {
                 value={value}
                 onChange={(event) => setValue(event.target.value)}
                 placeholder={copy.placeholder}
-                className="w-full border-2 border-zinc-300 bg-white px-4 py-3 text-text-main outline-none transition-colors focus:border-[#66BB6A]"
+                className="min-h-12 w-full border-2 border-zinc-300 bg-white px-4 py-3 text-base text-text-main outline-none transition-colors placeholder:text-zinc-500 focus:border-brand disabled:bg-zinc-100"
                 disabled={isPending}
                 maxLength={mode === 'create' ? 60 : 32}
                 autoFocus
@@ -331,7 +335,7 @@ export default function RoomActions() {
 
               {mode === 'create' ? (
                 <>
-                  <label className="mt-3 block text-sm font-medium text-text-main" htmlFor="room-modal-event">
+                  <label className="block pt-3 text-sm font-semibold text-text-main" htmlFor="room-modal-event">
                     Event
                   </label>
                   <EventSelect
@@ -343,14 +347,15 @@ export default function RoomActions() {
                     loading={eventsLoading}
                   />
 
-                  <div className="mt-3">
-                    <p className="mb-1.5 block text-sm font-medium text-text-main">Room duration</p>
-                    <div className="flex">
+                  <div className="pt-3">
+                    <p className="mb-2 block text-sm font-semibold text-text-main">Room duration</p>
+                    <div className="flex" role="group" aria-label="Room duration">
                       <button
                         type="button"
                         onClick={() => setEndMode('full_event')}
                         disabled={isPending}
-                        className={`flex-1 border-2 px-4 py-2 text-sm font-semibold transition-colors ${
+                        aria-pressed={endMode === 'full_event'}
+                        className={`min-h-11 flex-1 border-2 px-4 py-2 text-sm font-semibold transition-colors ${
                           endMode === 'full_event'
                             ? 'border-brand bg-brand text-white'
                             : 'border-zinc-300 bg-white text-text-muted hover:border-brand hover:text-text-main'
@@ -362,7 +367,8 @@ export default function RoomActions() {
                         type="button"
                         onClick={() => setEndMode('set_end_date')}
                         disabled={isPending}
-                        className={`flex-1 border-2 border-l-0 px-4 py-2 text-sm font-semibold transition-colors ${
+                        aria-pressed={endMode === 'set_end_date'}
+                        className={`min-h-11 flex-1 border-2 border-l-0 px-4 py-2 text-sm font-semibold transition-colors ${
                           endMode === 'set_end_date'
                             ? 'border-brand bg-brand text-white'
                             : 'border-zinc-300 bg-white text-text-muted hover:border-brand hover:text-text-main'
@@ -385,14 +391,14 @@ export default function RoomActions() {
               ) : null}
             </div>
 
-            {error ? <p className="mt-3 text-sm text-[#F97316]">{error}</p> : null}
+            {error ? <p role="alert" className="mt-3 text-sm font-medium text-danger">{error}</p> : null}
 
             <div className="mt-6 flex justify-end gap-3">
               <button type="button" className="btn-base btn-light rounded-none" onClick={closeModal} disabled={isPending}>
                 Cancel
               </button>
               <button type="button" className="btn-base btn-dark rounded-none" onClick={handleSubmit} disabled={isPending}>
-                {isPending ? 'Working...' : copy.action}
+                {isPending ? 'Working…' : copy.action}
               </button>
             </div>
           </div>

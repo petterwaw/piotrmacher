@@ -174,24 +174,24 @@ export default function PickemPanel({
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
-      <div className="border-2 border-zinc-300 bg-white p-5 transition-all duration-200 hover:border-brand hover:shadow-md">
+      <div className="border-2 border-zinc-300 bg-white p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-brand">Pickem</p>
-            <h1 className="mt-1 text-2xl font-black text-text-main">Set the group order</h1>
-            <p className="mt-2 text-sm text-text-muted">
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-text-main">Set the group order</h1>
+            <p className="mt-2 max-w-[52ch] text-sm leading-relaxed text-zinc-700">
               Drag teams or use arrows. You get {pointsPerCorrectPosition} pts for every team placed in the correct final position.
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
-            <div className="border-2 border-zinc-300 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-text-muted">
-              <span className="block text-[10px] leading-none">Total points</span>
-              <span className="mt-1 block text-lg font-black leading-none text-brand">{totalPickemPoints} pts</span>
+            <div className="border-2 border-zinc-300 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-zinc-600">
+              <span className="block text-[11px] leading-none">Total points</span>
+              <span className="mt-1.5 block text-lg font-black leading-none tabular-nums text-brand">{totalPickemPoints} pts</span>
             </div>
             <div className={`flex items-center gap-2 border-2 px-3 py-2 text-xs font-bold uppercase tracking-wide ${
               canEdit ? 'border-brand bg-brand text-white' : 'border-zinc-300 bg-zinc-100 text-text-muted'
             }`}>
-              {canEdit ? <Trophy size={16} /> : <Lock size={16} />}
+              {canEdit ? <Trophy size={16} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}
               {canEdit ? 'Open' : 'Locked'}
             </div>
           </div>
@@ -208,15 +208,15 @@ export default function PickemPanel({
         return (
           <section
             key={group.groupKey}
-            className="border-2 border-zinc-300 bg-white/90 p-4 transition-all duration-200 hover:border-brand hover:shadow-md"
+            className="border-2 border-zinc-300 bg-white/90 p-3 sm:p-4"
           >
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black text-text-main">{group.groupName}</h2>
-                <p className="text-xs text-text-muted">Your predicted final table</p>
+                <h2 className="text-lg font-black tracking-tight text-text-main">{group.groupName}</h2>
+                <p className="text-xs text-zinc-600">Your predicted final table</p>
               </div>
               {pick ? (
-                <span className="border-2 border-zinc-300 bg-white px-3 py-1 text-sm font-black text-brand">
+                <span className="shrink-0 border-2 border-zinc-300 bg-white px-3 py-1 text-sm font-black tabular-nums text-brand">
                   {pick.points} pts
                 </span>
               ) : null}
@@ -236,46 +236,48 @@ export default function PickemPanel({
                     }}
                     onDrop={() => dropTeam(group.groupKey, team.teamId)}
                     onDragEnd={() => setDragged(null)}
-                    className={`grid grid-cols-[32px_1fr_auto] items-center gap-3 border-2 border-zinc-200 bg-white p-3 transition-all ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                    className={`grid grid-cols-[1fr_auto] items-center gap-2 border-2 bg-white px-2 py-2 transition-[border-color,opacity] duration-150 sm:grid-cols-[20px_1fr_auto] sm:gap-3 sm:px-3 ${
+                      dragged?.teamId === team.teamId ? 'border-dashed border-brand opacity-50' : 'border-zinc-200'
+                    } ${canEdit ? 'cursor-grab hover:border-zinc-300 active:cursor-grabbing' : ''}`}
                   >
-                    <div className="flex items-center gap-2">
-                      <GripVertical size={16} className={canEdit ? 'text-zinc-400' : 'text-zinc-200'} />
+                    <div className="hidden items-center justify-center sm:flex">
+                      <GripVertical size={16} aria-hidden="true" className={canEdit ? 'text-zinc-400' : 'text-zinc-200'} />
                     </div>
 
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="w-7 shrink-0 font-mono text-lg font-black text-brand">#{index + 1}</span>
+                    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                      <span className="w-7 shrink-0 text-lg font-black tabular-nums text-brand">#{index + 1}</span>
                       {team.logo ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={team.logo} alt="" aria-hidden="true" className="h-8 w-8 shrink-0 object-contain" />
                       ) : (
-                        <div className="h-8 w-8 shrink-0 bg-zinc-100" />
+                        <div aria-hidden="true" className="h-8 w-8 shrink-0 rounded-full bg-zinc-100" />
                       )}
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-text-main">{team.name}</p>
-                        <p className="text-xs text-text-muted">
+                        <p className="text-xs tabular-nums text-zinc-600">
                           Current position: {officialPosition ? `#${officialPosition}` : 'unknown'}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => moveTeam(group.groupKey, team.teamId, -1)}
                         disabled={!canEdit || isPending || index === 0}
-                        className="inline-flex h-8 w-8 items-center justify-center border-2 border-zinc-300 bg-white text-text-main transition-colors hover:border-brand hover:text-brand disabled:opacity-40"
+                        className="touch-target inline-flex h-10 w-10 items-center justify-center border-2 border-zinc-300 bg-white text-text-main transition-colors hover:border-brand hover:text-brand active:bg-brand-tint disabled:opacity-30 disabled:hover:border-zinc-300 disabled:hover:text-text-main"
                         aria-label={`Move ${team.name} up`}
                       >
-                        <ChevronUp size={16} />
+                        <ChevronUp size={18} aria-hidden="true" />
                       </button>
                       <button
                         type="button"
                         onClick={() => moveTeam(group.groupKey, team.teamId, 1)}
                         disabled={!canEdit || isPending || index === orderedTeams.length - 1}
-                        className="inline-flex h-8 w-8 items-center justify-center border-2 border-zinc-300 bg-white text-text-main transition-colors hover:border-brand hover:text-brand disabled:opacity-40"
+                        className="touch-target inline-flex h-10 w-10 items-center justify-center border-2 border-zinc-300 bg-white text-text-main transition-colors hover:border-brand hover:text-brand active:bg-brand-tint disabled:opacity-30 disabled:hover:border-zinc-300 disabled:hover:text-text-main"
                         aria-label={`Move ${team.name} down`}
                       >
-                        <ChevronDown size={16} />
+                        <ChevronDown size={18} aria-hidden="true" />
                       </button>
                     </div>
                   </div>
@@ -288,8 +290,8 @@ export default function PickemPanel({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          {error ? <p className="text-sm text-[#F97316]">{error}</p> : null}
-          {message ? <p className="text-sm text-green-700">{message}</p> : null}
+          {error ? <p role="alert" className="text-sm font-medium text-danger">{error}</p> : null}
+          {message ? <p role="status" className="text-sm font-medium text-brand">{message}</p> : null}
         </div>
 
         {canEdit ? (
@@ -299,8 +301,8 @@ export default function PickemPanel({
             onClick={savePickem}
             disabled={isPending || !hasUnsavedChanges}
           >
-            <Save size={16} />
-            {isPending ? 'Saving...' : 'Save Pickem'}
+            <Save size={16} aria-hidden="true" />
+            {isPending ? 'Saving…' : 'Save Pickem'}
           </button>
         ) : null}
       </div>

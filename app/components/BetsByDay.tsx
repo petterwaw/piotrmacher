@@ -1,7 +1,8 @@
 'use client'
 
 import ScorePredictionCard, { type BasicMatch } from '@/app/components/ScorePredictionCard'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarX2, ChevronLeft, ChevronRight } from 'lucide-react'
+import EmptyState from '@/app/components/EmptyState'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -142,6 +143,12 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
     return sortedMatches.filter((item) => toDayKey(item.match.startTime) === activeDay)
   }, [activeDay, sortedMatches])
 
+  // Fade the edge of the day strip that has more days hidden behind it.
+  const edgeMask =
+    canScrollLeft || canScrollRight
+      ? `linear-gradient(to right, ${canScrollLeft ? 'transparent 0, #000 24px' : '#000 0'}, ${canScrollRight ? '#000 calc(100% - 24px), transparent 100%' : '#000 100%'})`
+      : undefined
+
   const scrollDays = (delta: number) => {
     scrollRef.current?.scrollBy({ left: delta, behavior: 'smooth' })
   }
@@ -153,14 +160,18 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
           type="button"
           onClick={() => scrollDays(-120)}
           aria-label="Scroll left"
-          className={`hidden shrink-0 p-1 text-text-muted transition-colors hover:text-text-main md:flex ${canScrollLeft ? '' : 'pointer-events-none opacity-0'}`}
+          tabIndex={canScrollLeft ? undefined : -1}
+          className={`hidden h-10 w-8 shrink-0 items-center justify-center text-zinc-600 transition-[color,opacity] hover:text-brand md:flex ${canScrollLeft ? '' : 'pointer-events-none opacity-0'}`}
         >
-          <ChevronLeft size={18} />
+          <ChevronLeft size={20} aria-hidden="true" />
         </button>
 
         <div
           ref={scrollRef}
-          className="hide-scrollbar flex gap-2 overflow-x-auto pb-1"
+          role="group"
+          aria-label="Match day"
+          style={{ maskImage: edgeMask, WebkitMaskImage: edgeMask }}
+          className="hide-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto py-1"
           onWheel={(event) => {
             if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
               return
@@ -178,11 +189,12 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
                 key={dayKey}
                 type="button"
                 data-day-active={isActive ? 'true' : undefined}
+                aria-pressed={isActive}
                 onClick={() => setSelectedDay(dayKey)}
-                className={`whitespace-nowrap border-2 px-3 py-1.5 text-sm font-semibold uppercase tracking-wide transition-colors ${
+                className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap border-2 px-3.5 text-sm font-bold uppercase tracking-wide tabular-nums transition-colors ${
                   isActive
                     ? 'border-brand bg-brand text-white'
-                    : 'border-zinc-300 bg-white text-text-main hover:border-brand hover:bg-gray-50'
+                    : 'border-zinc-300 bg-white text-text-main hover:border-brand hover:text-brand active:bg-brand-tint'
                 }`}
               >
                 {formatDayLabel(dayKey, todayKey, tomorrowKey)}
@@ -195,9 +207,10 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
           type="button"
           onClick={() => scrollDays(120)}
           aria-label="Scroll right"
-          className={`hidden shrink-0 p-1 text-text-muted transition-colors hover:text-text-main md:flex ${canScrollRight ? '' : 'pointer-events-none opacity-0'}`}
+          tabIndex={canScrollRight ? undefined : -1}
+          className={`hidden h-10 w-8 shrink-0 items-center justify-center text-zinc-600 transition-[color,opacity] hover:text-brand md:flex ${canScrollRight ? '' : 'pointer-events-none opacity-0'}`}
         >
-          <ChevronRight size={18} />
+          <ChevronRight size={20} aria-hidden="true" />
         </button>
       </div>
 
@@ -213,9 +226,7 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
             />
           ))
         ) : (
-          <p className="py-10 text-center text-base text-text-muted">
-            No matches on this day.
-          </p>
+          <EmptyState icon={CalendarX2} title="No matches on this day." hint="Pick another day above." />
         )}
       </div>
     </div>

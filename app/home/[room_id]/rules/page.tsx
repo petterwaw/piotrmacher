@@ -84,25 +84,25 @@ export default async function RulesPage({
 
   return (
     <div>
-      <div className="border-2 border-zinc-300 bg-white p-6 space-y-4">
+      <div className="space-y-4 border-2 border-zinc-300 bg-white p-4 sm:p-6">
         <div>
-          <h3 className="font-semibold text-lg text-text-main mb-2">Betting Rules</h3>
+          <h3 className="mb-3 text-lg font-black tracking-tight text-text-main">Betting Rules</h3>
           <div className="mb-4 border border-zinc-200 bg-zinc-50 p-3 text-sm text-text-main">
             <p className="font-semibold">Cup matches are settled after 90 minutes only.</p>
             <p className="mt-1 text-text-muted">Extra time and penalties are not supported in room scoring yet.</p>
           </div>
-          <ul className="space-y-2 text-text-muted">
+          <ul className="text-text-muted">
             {ruleLabels.map((rule) => (
-              <li key={rule.key} className="border-b border-border-soft py-2">
+              <li key={rule.key} className="border-b border-border-soft py-3 last:border-b-0">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm font-bold text-text-main">{rule.label}</span>
-                  <span className="font-semibold text-text-main">
+                  <span className="shrink-0 whitespace-nowrap font-bold tabular-nums text-brand">
                     {rule.key === 'correct_home_goals' ? teamGoalsPoints : rules[rule.key]} pts
                   </span>
                 </div>
-                <div className="mt-2 space-y-1 text-xs text-zinc-500">
+                <div className="mt-1.5 space-y-1 text-sm leading-snug text-zinc-600">
                   <p>{ruleDescriptions[rule.key].explain}</p>
-                  <p>{ruleDescriptions[rule.key].example}</p>
+                  <p className="text-xs text-zinc-600">{ruleDescriptions[rule.key].example}</p>
                 </div>
               </li>
             ))}

@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import Image from 'next/image'
+import { Check } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -51,48 +52,52 @@ export default async function Home() {
       <section className="relative px-4 pb-14 pt-6 md:px-6 md:pb-20 md:pt-10">
         <div className="relative mx-auto grid w-full max-w-[1320px] gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-center">
           <div>
-            <div className="mb-5 inline-flex items-center border border-[#4CAF50]/30 bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#2E7D32]">
+            <div className="mb-5 inline-flex items-center border border-brand/25 bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-brand">
               Multiplayer football predictions
             </div>
 
-            <h1 className="max-w-[18ch] text-4xl font-black leading-[0.92] tracking-tight text-[#111827] sm:text-5xl md:text-6xl">
+            <h1 className="max-w-[18ch] text-4xl font-black leading-[0.92] tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
               Turn every matchday into a shared competition.
             </h1>
 
-            <p className="mt-5 max-w-[56ch] text-base leading-relaxed text-[#374151] md:text-lg">
+            <p className="mt-5 max-w-[56ch] text-base leading-relaxed text-gray-700 md:text-lg">
               Piotrmacher helps friends run private betting rooms, score predictions automatically, and follow a transparent leaderboard from kickoff to final whistle.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
                 href="/?login=1"
-                className="inline-flex min-h-12 items-center justify-center border border-[#4CAF50] bg-[#4CAF50] px-6 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:border-[#81C784] hover:bg-[#81C784]"
+                className="inline-flex min-h-12 items-center justify-center border border-brand bg-brand px-6 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:border-brand-hover hover:bg-brand-hover active:bg-brand-hover"
               >
                 Create your room
               </Link>
               <Link
                 href="/?login=1"
-                className="inline-flex min-h-12 items-center justify-center border border-gray-300 bg-white px-6 text-sm font-bold uppercase tracking-wide text-[#111827] transition-colors hover:border-[#4CAF50] hover:text-[#2E7D32]"
+                className="inline-flex min-h-12 items-center justify-center border border-gray-300 bg-white px-6 text-sm font-bold uppercase tracking-wide text-gray-900 transition-colors hover:border-brand hover:text-brand"
               >
                 Sign in to continue
               </Link>
             </div>
 
-            <div className="mt-8 flex flex-wrap gap-5 text-sm text-[#4B5563]">
-              <p className="font-semibold">Private rooms</p>
-              <p className="font-semibold">Automated scoring</p>
-              <p className="font-semibold">Clear standings</p>
-            </div>
+            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-gray-700">
+              {['Private rooms', 'Automated scoring', 'Clear standings'].map((feature) => (
+                <li key={feature} className="inline-flex items-center gap-2">
+                  <Check size={16} strokeWidth={3} aria-hidden="true" className="text-brand" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
           </div>
 
           <div className="relative">
-            <div className="absolute -left-6 -top-6 hidden h-20 w-20 border-4 border-[#4CAF50]/35 md:block" />
-            <div className="absolute -bottom-6 -right-6 hidden h-28 w-28 border-4 border-[#111827]/15 md:block" />
+            <div className="absolute -left-6 -top-6 hidden h-20 w-20 border-4 border-brand-bright/35 md:block" />
+            <div className="absolute -bottom-6 -right-6 hidden h-28 w-28 border-4 border-gray-900/15 md:block" />
             <div className="relative aspect-[16/10.3] overflow-hidden">
               <Image
                 src="/rooms.webp"
                 alt="Piotrmacher rooms view showing active leagues"
                 fill
+                sizes="(max-width: 1023px) 100vw, 46vw"
                 className="object-contain"
                 priority
               />
@@ -104,20 +109,20 @@ export default async function Home() {
       <section className="border-y border-zinc-200 bg-white px-4 py-10 md:px-6 md:py-14">
         <div className="mx-auto grid w-full max-w-[1320px] gap-8 md:grid-cols-3 md:gap-0">
           <article className="md:pr-8">
-            <h2 className="text-lg font-black uppercase tracking-wide text-[#111827]">Pick A Competition. Bet.</h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#4B5563]">
+            <h2 className="text-lg font-black uppercase tracking-wide text-gray-900">Pick A Competition. Bet.</h2>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
               Create a room, invite your people, and run the whole competition from kickoff to final table without extra setup.
             </p>
           </article>
           <article className="md:border-x md:border-zinc-200 md:px-8">
-            <h2 className="text-lg font-black uppercase tracking-wide text-[#111827]">Built For Fair Play</h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#4B5563]">
+            <h2 className="text-lg font-black uppercase tracking-wide text-gray-900">Built For Fair Play</h2>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
               Shared history and transparent points make the outcome understandable for every participant.
             </p>
           </article>
           <article className="md:pl-8">
-            <h2 className="text-lg font-black uppercase tracking-wide text-[#111827]">Custom Scoring Rules</h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#4B5563]">
+            <h2 className="text-lg font-black uppercase tracking-wide text-gray-900">Custom Scoring Rules</h2>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
               Set your own points system and shape the room exactly the way your group wants to play.
             </p>
           </article>
@@ -127,8 +132,8 @@ export default async function Home() {
       <section className="px-4 py-12 md:px-6 md:py-16">
         <div className="mx-auto w-full max-w-[1320px]">
           <div className="mb-9 md:mb-12">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#2E7D32]">How it flows</p>
-            <h2 className="mt-3 max-w-[24ch] text-3xl font-black tracking-tight text-[#111827] md:text-4xl">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand">How it flows</p>
+            <h2 className="mt-3 max-w-[24ch] text-3xl font-black tracking-tight text-gray-900 md:text-4xl">
               One clear journey from room creation to final leaderboard.
             </h2>
           </div>
@@ -140,9 +145,9 @@ export default async function Home() {
                 className="grid items-center gap-5 border-t border-zinc-200 pt-8 first:border-t-0 first:pt-0 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] md:gap-10"
               >
                 <div className={index % 2 === 1 ? 'md:order-2' : ''}>
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#2E7D32]">{screen.stepLabel}</p>
-                  <h3 className="mt-2 text-2xl font-black leading-tight tracking-tight text-[#111827] md:text-3xl">{screen.title}</h3>
-                  <p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-[#4B5563] md:text-base">{screen.description}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand">{screen.stepLabel}</p>
+                  <h3 className="mt-2 text-2xl font-black leading-tight tracking-tight text-gray-900 md:text-3xl">{screen.title}</h3>
+                  <p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-gray-600 md:text-base">{screen.description}</p>
                 </div>
 
                 <div className={index % 2 === 1 ? 'md:order-1' : ''}>
@@ -166,18 +171,18 @@ export default async function Home() {
         <div className="mx-auto max-w-[1320px] border-t border-zinc-200 pt-8 md:pt-12">
           <div className="mx-auto flex max-w-[760px] flex-col items-center gap-5 text-center">
             <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#2E7D32]">Ready for kickoff?</p>
-            <h2 className="mt-3 text-3xl font-black leading-tight tracking-tight text-[#111827] md:text-4xl">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand">Ready for kickoff?</p>
+            <h2 className="mt-3 text-3xl font-black leading-tight tracking-tight text-gray-900 md:text-4xl">
               Start your first room and let the table decide the winner.
             </h2>
-            <p className="mt-4 text-sm leading-relaxed text-[#4B5563] md:text-base">
+            <p className="mt-4 text-sm leading-relaxed text-gray-600 md:text-base">
               Invite players, lock predictions, and keep every result transparent from day one.
             </p>
             </div>
             <div>
               <Link
                 href="/?login=1"
-                className="inline-flex min-h-12 items-center justify-center border border-[#4CAF50] bg-[#4CAF50] px-7 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:border-[#81C784] hover:bg-[#81C784]"
+                className="inline-flex min-h-12 items-center justify-center border border-brand bg-brand px-7 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:border-brand-hover hover:bg-brand-hover active:bg-brand-hover"
               >
                 Get started
               </Link>

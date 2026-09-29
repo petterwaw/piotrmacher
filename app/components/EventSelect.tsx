@@ -58,7 +58,7 @@ export default function EventSelect({ id, value, onChange, options, disabled = f
         disabled={isDisabled}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={`flex w-full items-center justify-between border-2 px-4 py-3 text-left text-sm outline-none transition-colors ${
+        className={`flex min-h-12 w-full items-center justify-between gap-3 border-2 px-4 py-3 text-left text-sm outline-none transition-colors focus-visible:border-brand ${
           isDisabled
             ? 'cursor-not-allowed border-zinc-300 bg-gray-100 text-text-muted'
             : open
@@ -66,12 +66,13 @@ export default function EventSelect({ id, value, onChange, options, disabled = f
               : 'cursor-pointer border-zinc-300 bg-white text-text-main hover:border-brand'
         }`}
       >
-        <span className={selectedOption ? 'text-text-main' : 'text-text-muted'}>
-          {loading ? 'Loading events...' : (selectedOption?.displayName ?? 'Select event')}
+        <span className={`truncate ${selectedOption ? 'font-medium text-text-main' : 'text-zinc-600'}`}>
+          {loading ? 'Loading events…' : (selectedOption?.displayName ?? 'Select event')}
         </span>
         <ChevronDown
           size={16}
-          className={`shrink-0 text-text-muted transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+          className={`shrink-0 text-zinc-600 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -79,7 +80,7 @@ export default function EventSelect({ id, value, onChange, options, disabled = f
         <ul
           ref={listRef}
           role="listbox"
-          className="absolute left-0 right-0 z-50 mt-0.5 max-h-56 overflow-y-auto border-2 border-brand bg-white shadow-lg"
+          className="animate-pop-in absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto border-2 border-brand bg-white shadow-lg shadow-black/10"
         >
           {options.length === 0 ? (
             <li className="px-4 py-3 text-sm text-text-muted">No events available</li>
@@ -93,14 +94,14 @@ export default function EventSelect({ id, value, onChange, options, disabled = f
                   aria-selected={isSelected}
                   data-selected={isSelected ? 'true' : undefined}
                   onClick={() => { onChange(opt.id); setOpen(false) }}
-                  className={`flex cursor-pointer items-center justify-between px-4 py-2.5 text-sm transition-colors ${
+                  className={`flex min-h-11 cursor-pointer items-center justify-between gap-3 px-4 py-2.5 text-sm transition-colors ${
                     isSelected
-                      ? 'bg-brand/5 font-medium text-brand'
+                      ? 'bg-brand-tint font-semibold text-brand'
                       : 'text-text-main hover:bg-zinc-100'
                   }`}
                 >
                   {opt.displayName}
-                  {isSelected ? <Check size={14} className="shrink-0 text-brand" /> : null}
+                  {isSelected ? <Check size={16} aria-hidden="true" className="shrink-0 text-brand" /> : null}
                 </li>
               )
             })

@@ -81,22 +81,26 @@ export default function RoomFilters({ sort, status, onSortChange, onStatusChange
       <div className="relative">
         <button
           onClick={() => setStatusOpen(!statusOpen)}
-          className="flex items-center border-2 border-zinc-300 bg-white/80 px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-text-main transition-all hover:bg-zinc-100"
+          aria-expanded={statusOpen}
+          aria-haspopup="listbox"
+          className="flex min-h-10 items-center border-2 border-zinc-300 bg-white/80 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-text-main transition-colors hover:border-brand hover:bg-white aria-expanded:border-brand aria-expanded:bg-white"
         >
           {statusMap[status]}
-          <ChevronDown size={14} className={`ml-1.5 transition-transform ${statusOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown size={14} aria-hidden="true" className={`ml-1.5 transition-transform duration-200 ${statusOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {statusOpen && (
-          <div className="absolute left-0 top-full z-30 mt-1 min-w-max border-2 border-zinc-300 bg-white">
+          <div role="listbox" className="animate-pop-in absolute right-0 top-full z-30 mt-1 min-w-max border-2 border-zinc-300 bg-white shadow-lg shadow-black/10">
             {(Object.keys(statusMap) as StatusFilter[]).map((key) => (
               <button
                 key={key}
                 onClick={() => handleStatusChange(key)}
-                className={`block w-full px-4 py-2 text-left text-sm font-semibold uppercase tracking-wide transition-colors ${
+                role="option"
+                aria-selected={status === key}
+                className={`flex min-h-11 w-full items-center px-4 py-2 text-left text-sm font-semibold uppercase tracking-wide transition-colors ${
                   status === key
                     ? 'bg-brand text-white'
-                    : 'text-text-muted hover:bg-zinc-100'
+                    : 'text-text-main hover:bg-brand-tint hover:text-brand'
                 }`}
               >
                 {statusMap[key]}
@@ -110,22 +114,26 @@ export default function RoomFilters({ sort, status, onSortChange, onStatusChange
       <div className="relative">
         <button
           onClick={() => setSortOpen(!sortOpen)}
-          className="flex items-center border-2 border-zinc-300 bg-white/80 px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-text-main transition-all hover:bg-zinc-100"
+          aria-expanded={sortOpen}
+          aria-haspopup="listbox"
+          className="flex min-h-10 items-center border-2 border-zinc-300 bg-white/80 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-text-main transition-colors hover:border-brand hover:bg-white aria-expanded:border-brand aria-expanded:bg-white"
         >
           {sortMap[sort]}
-          <ChevronDown size={14} className={`ml-1.5 transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown size={14} aria-hidden="true" className={`ml-1.5 transition-transform duration-200 ${sortOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {sortOpen && (
-          <div className="absolute left-0 top-full z-30 mt-1 min-w-max border-2 border-zinc-300 bg-white">
+          <div role="listbox" className="animate-pop-in absolute right-0 top-full z-30 mt-1 min-w-max border-2 border-zinc-300 bg-white shadow-lg shadow-black/10">
             {(Object.keys(sortMap) as SortOption[]).map((key) => (
               <button
                 key={key}
                 onClick={() => handleSortChange(key)}
-                className={`block w-full px-4 py-2 text-left text-sm font-semibold uppercase tracking-wide transition-colors ${
+                role="option"
+                aria-selected={sort === key}
+                className={`flex min-h-11 w-full items-center px-4 py-2 text-left text-sm font-semibold uppercase tracking-wide transition-colors ${
                   sort === key
                     ? 'bg-brand text-white'
-                    : 'text-text-muted hover:bg-zinc-100'
+                    : 'text-text-main hover:bg-brand-tint hover:text-brand'
                 }`}
               >
                 {sortMap[key]}

@@ -1,14 +1,24 @@
 function SkeletonBlock({ className }: { className: string }) {
-  return <div aria-hidden="true" className={`animate-pulse bg-zinc-200/80 ${className}`} />
+  return <div aria-hidden="true" className={`bg-zinc-200/80 motion-safe:animate-pulse ${className}`} />
+}
+
+// Announced once per skeleton so screen-reader users know the page is loading.
+function LoadingLabel() {
+  return (
+    <span role="status" className="sr-only">
+      Loading…
+    </span>
+  )
 }
 
 export function StandingsSkeleton({ rows = 6 }: { rows?: number }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 sm:space-y-3">
+      <LoadingLabel />
       {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="flex items-center justify-between border-2 border-zinc-300 bg-white/90 p-4">
-          <div className="flex items-center gap-4">
-            <SkeletonBlock className="h-7 w-10" />
+        <div key={index} className="flex items-center justify-between gap-3 border-2 border-zinc-300 bg-white/90 px-3 py-3 sm:px-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <SkeletonBlock className="h-9 w-11" />
             <SkeletonBlock className="h-5 w-32 md:w-40" />
           </div>
           <SkeletonBlock className="h-6 w-16" />
@@ -20,23 +30,23 @@ export function StandingsSkeleton({ rows = 6 }: { rows?: number }) {
 
 export function MatchCardSkeleton() {
   return (
-    <div className="border-2 border-zinc-300 bg-white/90 p-5">
-      <div className="mb-4 grid grid-cols-[1fr_auto_1fr] items-start gap-2">
+    <div className="border-2 border-zinc-300 bg-white/90 p-4 sm:p-5">
+      <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
         <div />
         <SkeletonBlock className="mx-auto h-4 w-32" />
         <div className="flex justify-end">
-          <SkeletonBlock className="h-7 w-16" />
+          <SkeletonBlock className="h-5 w-16" />
         </div>
       </div>
 
-      <div className="flex flex-nowrap items-center justify-between gap-3 py-1">
+      <div className="flex flex-nowrap items-center justify-between gap-2 py-1 sm:gap-3">
         <div className="flex w-[38%] min-w-0 flex-col items-center text-center">
           <SkeletonBlock className="mb-2 h-12 w-12" />
           <SkeletonBlock className="h-4 w-24" />
         </div>
 
-        <div className="w-[24%] min-w-[120px] text-center">
-          <SkeletonBlock className="mx-auto h-9 w-20" />
+        <div className="w-[24%] min-w-[112px] text-center">
+          <SkeletonBlock className="mx-auto h-10 w-24" />
         </div>
 
         <div className="flex w-[38%] min-w-0 flex-col items-center text-center">
@@ -45,8 +55,8 @@ export function MatchCardSkeleton() {
         </div>
       </div>
 
-      <div className="mt-4 flex justify-end gap-3">
-        <SkeletonBlock className="h-10 w-24" />
+      <div className="mt-4 flex justify-end gap-3 border-t border-zinc-200 pt-4">
+        <SkeletonBlock className="h-11 w-24" />
       </div>
     </div>
   )
@@ -55,9 +65,10 @@ export function MatchCardSkeleton() {
 export function MatchesSkeleton({ cards = 3 }: { cards?: number }) {
   return (
     <div className="space-y-4">
-      <div className="hide-scrollbar flex gap-2 overflow-x-auto pb-1">
+      <LoadingLabel />
+      <div className="hide-scrollbar flex gap-2 overflow-x-auto py-1">
         {Array.from({ length: 5 }, (_, index) => (
-          <SkeletonBlock key={index} className="h-10 w-24 shrink-0 border-2 border-zinc-300" />
+          <SkeletonBlock key={index} className="h-11 w-24 shrink-0" />
         ))}
       </div>
 
@@ -73,6 +84,7 @@ export function MatchesSkeleton({ cards = 3 }: { cards?: number }) {
 export function HistorySkeleton() {
   return (
     <div className="mx-auto max-w-xl space-y-4">
+      <LoadingLabel />
       <div className="space-y-4">
         {Array.from({ length: 3 }, (_, index) => (
           <MatchCardSkeleton key={index} />
@@ -80,11 +92,9 @@ export function HistorySkeleton() {
       </div>
 
       <div className="mt-6 flex items-center justify-center gap-2">
-        <SkeletonBlock className="h-10 w-10 border border-border-soft" />
-        <SkeletonBlock className="h-10 w-10 border border-border-soft" />
-        <SkeletonBlock className="h-10 w-10 border border-border-soft" />
-        <SkeletonBlock className="h-10 w-10 border border-border-soft" />
-        <SkeletonBlock className="h-10 w-10 border border-border-soft" />
+        {Array.from({ length: 5 }, (_, index) => (
+          <SkeletonBlock key={index} className="h-11 w-11" />
+        ))}
       </div>
     </div>
   )
@@ -93,7 +103,8 @@ export function HistorySkeleton() {
 export function RulesSkeleton() {
   return (
     <div>
-      <div className="space-y-4 border-2 border-zinc-300 bg-white p-6">
+      <LoadingLabel />
+      <div className="space-y-4 border-2 border-zinc-300 bg-white p-4 sm:p-6">
         <div>
           <SkeletonBlock className="mb-2 h-7 w-40" />
           <div className="mb-4 border border-zinc-200 bg-zinc-50 p-3">
@@ -164,7 +175,8 @@ export function RulesSkeleton() {
 export function SettingsSkeleton() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div className="border-2 border-zinc-300 bg-white p-5">
+      <LoadingLabel />
+      <div className="border-2 border-zinc-300 bg-white p-4 sm:p-5">
         <SkeletonBlock className="mb-3 h-4 w-24" />
         <div className="flex items-center justify-between gap-3">
           <SkeletonBlock className="h-10 flex-1" />
@@ -222,6 +234,7 @@ export function SettingsSkeleton() {
 export function ProfileSkeleton() {
   return (
     <div className="mx-auto w-full max-w-xl space-y-4 px-4 py-8 md:px-6">
+      <LoadingLabel />
       <div className="border-2 border-zinc-300 bg-white/90 divide-y divide-zinc-200">
         <div className="px-4 py-3">
           <SkeletonBlock className="mb-2 h-3 w-14" />
@@ -234,7 +247,7 @@ export function ProfileSkeleton() {
               <SkeletonBlock className="mb-2 h-3 w-20" />
               <SkeletonBlock className="h-4 w-32 max-w-full" />
             </div>
-            <SkeletonBlock className="h-8 w-8 shrink-0 border-2 border-zinc-300" />
+            <SkeletonBlock className="h-10 w-10 shrink-0" />
           </div>
         </div>
 
@@ -244,7 +257,7 @@ export function ProfileSkeleton() {
               <SkeletonBlock className="mb-2 h-3 w-20" />
               <SkeletonBlock className="h-4 w-24 max-w-full" />
             </div>
-            <SkeletonBlock className="h-8 w-8 shrink-0 border-2 border-zinc-300" />
+            <SkeletonBlock className="h-10 w-10 shrink-0" />
           </div>
         </div>
 
@@ -254,7 +267,7 @@ export function ProfileSkeleton() {
         </div>
       </div>
 
-      <section className="border-2 border-orange-400 bg-orange-50 p-5">
+      <section className="border-2 border-orange-400 bg-orange-50 p-4 sm:p-5">
         <SkeletonBlock className="mb-3 h-6 w-36" />
         <SkeletonBlock className="h-4 w-full" />
         <SkeletonBlock className="mt-2 h-4 w-5/6" />
