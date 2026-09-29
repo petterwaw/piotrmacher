@@ -3,9 +3,8 @@ import { ChevronLeft, ChevronRight, History } from 'lucide-react'
 import EmptyState from '@/app/components/EmptyState'
 import { notFound, redirect } from 'next/navigation'
 import ScorePredictionCard from '@/app/components/ScorePredictionCard'
-import { getCachedHistoryCount, getCachedHistoryMatches } from '@/app/utils/cache/roomReads'
+import { filterToRoomWindow, getEventResults, getRoomPredictions } from '@/app/utils/cache/sharedReads'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
-import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 
 const MATCHES_PER_PAGE = 5
 
@@ -92,23 +91,14 @@ export default async function HistoryPage({
     redirect(`/home/${room_id}/standings`)
   }
 
-  const totalMatches = await getCachedHistoryCount(
-    room.event_id,
-    room.created_at,
-    room.room_end_at,
-  )
+  // The RLS-scoped room query above is the access check for the shared reads below.
+  const finishedMatches = filterToRoomWindow(await getEventResults(room.event_id), room.created_at, room.room_end_at)
+  const totalMatches = finishedMatches.length
   const totalPages = Math.max(1, Math.ceil(totalMatches / MATCHES_PER_PAGE))
   const currentPage = Math.min(requestedPage, totalPages)
   const pageStart = (currentPage - 1) * MATCHES_PER_PAGE
-  const pageEnd = pageStart + MATCHES_PER_PAGE - 1
 
-  const matches = await getCachedHistoryMatches(
-    room.event_id,
-    room.created_at,
-    room.room_end_at,
-    pageStart,
-    pageEnd,
-  )
+  const matches = finishedMatches.slice(pageStart, pageStart + MATCHES_PER_PAGE)
   const matchIds = matches.map((match) => match.id)
 
   const { data: userBets } = user && matchIds.length > 0
@@ -133,32 +123,18 @@ export default async function HistoryPage({
       .maybeSingle()
 
     if (membership) {
-      const serviceSupabase = createServiceRoleSupabaseClient()
-
-      const { data: roomBets } = await serviceSupabase
-        .from('bets')
-        .select('match_id, user_id, home_score, away_score, points')
-        .eq('room_id', room_id)
-        .in('match_id', matchIds)
-
-      const userIds = [...new Set((roomBets ?? []).map((bet) => bet.user_id))]
-
-      const { data: profiles } = userIds.length
-        ? await serviceSupabase.from('profiles').select('id, username').in('id', userIds)
-        : { data: [] }
-
-      const usernameById = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]))
+      const roomBets = await getRoomPredictions(room_id, matchIds)
       const grouped = new Map<string, LivePrediction[]>()
 
-      for (const bet of roomBets ?? []) {
-        const current = grouped.get(bet.match_id) ?? []
+      for (const bet of roomBets) {
+        const current = grouped.get(bet.matchId) ?? []
         current.push({
-          username: usernameById.get(bet.user_id) ?? 'Player',
-          homeScore: bet.home_score,
-          awayScore: bet.away_score,
+          username: bet.username,
+          homeScore: bet.homeScore,
+          awayScore: bet.awayScore,
           points: bet.points ?? 0,
         })
-        grouped.set(bet.match_id, current)
+        grouped.set(bet.matchId, current)
       }
 
       predictionsByMatchId = grouped

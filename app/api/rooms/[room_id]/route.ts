@@ -1,3 +1,4 @@
+import { cacheTags, invalidateCacheTags } from '@/app/utils/cache/tags'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -43,6 +44,8 @@ export async function DELETE(
     if (deleteError) {
       return NextResponse.json({ error: 'Could not delete room.' }, { status: 500 })
     }
+
+    invalidateCacheTags([cacheTags.roomStandings(room_id), cacheTags.roomBets(room_id)])
 
     return NextResponse.json({ success: true })
   } catch {

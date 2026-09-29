@@ -1,7 +1,7 @@
 import StandingsTable, { type Player } from '@/app/components/StandingsTable'
 import EmptyState from '@/app/components/EmptyState'
 import { Users } from 'lucide-react'
-import { getCachedStandingPlayers } from '@/app/utils/cache/roomReads'
+import { getRoomStandings } from '@/app/utils/cache/sharedReads'
 import { requireRoomAccess } from '@/app/utils/rooms/requireRoomAccess'
 
 export default async function StandingsPage({
@@ -11,7 +11,7 @@ export default async function StandingsPage({
 }) {
   const { room_id } = await params
   await requireRoomAccess(room_id)
-  const players: Player[] = await getCachedStandingPlayers(room_id)
+  const players: Player[] = await getRoomStandings(room_id)
 
   return (
     <div>

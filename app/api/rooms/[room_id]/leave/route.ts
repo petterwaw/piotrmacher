@@ -1,3 +1,4 @@
+import { cacheTags, invalidateCacheTags } from '@/app/utils/cache/tags'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -41,6 +42,9 @@ export async function POST(
     if (leaveError) {
       return NextResponse.json({ error: 'Could not leave room.' }, { status: 500 })
     }
+
+    // Membership and this user's bets are gone from the shared room views.
+    invalidateCacheTags([cacheTags.roomStandings(room_id), cacheTags.roomBets(room_id)])
 
     return NextResponse.json({ success: true })
   } catch {

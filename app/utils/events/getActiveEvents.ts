@@ -1,29 +1,10 @@
-import { createServerSupabaseClient } from '@/app/utils/supabase/server'
+import 'server-only'
+import { getActiveEventsCached, type CachedActiveEvent } from '@/app/utils/cache/sharedReads'
 
-export type ActiveEventOption = {
-  id: string
-  name: string
-  season: string
-  displayName: string
-}
+export type ActiveEventOption = CachedActiveEvent
 
+// Shared cached list (tag `events:active`). Events are readable by any
+// authenticated user; callers must have an authenticated user before calling.
 export async function getActiveEvents(): Promise<ActiveEventOption[]> {
-  const supabase = await createServerSupabaseClient()
-
-  const { data, error } = await supabase
-    .from('events')
-    .select('id, name, season')
-    .eq('is_active', true)
-    .order('name', { ascending: true })
-
-  if (error || !data) {
-    return []
-  }
-
-  return data.map((event) => ({
-    id: event.id,
-    name: event.name,
-    season: event.season,
-    displayName: `${event.name} (${event.season})`,
-  }))
+  return getActiveEventsCached()
 }

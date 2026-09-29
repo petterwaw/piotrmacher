@@ -1,7 +1,6 @@
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 import { isWorldCupPickemEvent } from '@/app/utils/pickem/eligibility'
-import { revalidatePath } from 'next/cache'
 import { NextRequest, NextResponse } from 'next/server'
 
 type PickemPayload = {
@@ -191,8 +190,6 @@ export async function POST(
     if (saveError) {
       return NextResponse.json({ error: 'Could not save Pickem.' }, { status: 500 })
     }
-
-    revalidatePath(`/home/${room_id}/pickem`)
 
     return NextResponse.json({ ok: true })
   } catch {

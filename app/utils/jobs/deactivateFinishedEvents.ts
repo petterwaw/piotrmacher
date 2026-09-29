@@ -1,4 +1,5 @@
 import 'server-only'
+import { cacheTags, invalidateCacheTags } from '@/app/utils/cache/tags'
 import type { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 import { ESPN_PROVIDER, fetchEspnLastMatchDay } from '@/app/utils/providers/espn'
 
@@ -46,6 +47,8 @@ export async function deactivateFinishedEvents(supabase: ServiceSupabaseClient) 
     if (updateError) {
       return { ok: false as const, error: 'Could not deactivate finished events.' }
     }
+
+    invalidateCacheTags([cacheTags.activeEvents])
   }
 
   return { ok: true as const, checked: (events ?? []).length, deactivated: toDeactivate.length, skipped }
