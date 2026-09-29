@@ -343,7 +343,8 @@ body {
 
 /* Cards and single blocks arriving. */
 @utility animate-enter {
-  animation: rise-in var(--dur-enter) var(--ease-out-expo) both;
+  /* backwards: see .stagger, no permanent stacking context once it has run. */
+  animation: rise-in var(--dur-enter) var(--ease-out-expo) backwards;
 }
 
 /* Small inline messages (errors, "saved"). */
@@ -375,10 +376,18 @@ body {
  * Light stagger for lists that arrive as a list: every direct child rises in,
  * --stagger (40ms) apart, capped at the 8th item (total delay <= 280ms).
  * Overlays rendered inside a staggered container opt out with .no-stagger.
+ *
+ * Fill mode is `backwards`, not `both`: a transform/opacity animation that
+ * keeps filling after it ends leaves every item as its own stacking context
+ * (and containing block) forever, so a dropdown opened inside one item is
+ * painted underneath the later items. Once the rise-in ends the end state
+ * equals the natural style, so nothing needs to persist. A child that hosts
+ * a popover should still sit above its siblings (relative z-10) to stay on
+ * top during the entrance itself.
  */
 @utility stagger {
   & > :not(.no-stagger) {
-    animation: rise-in var(--dur-enter) var(--ease-out-expo) both;
+    animation: rise-in var(--dur-enter) var(--ease-out-expo) backwards;
     animation-delay: calc(var(--stagger-i, 7) * var(--stagger));
   }
   & > :nth-child(1) { --stagger-i: 0; }

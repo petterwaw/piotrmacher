@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { usePresence } from '@/app/components/motion/usePresence'
 
@@ -53,6 +53,8 @@ export function applyFilters(rooms: RoomCardProps[], sort: SortOption, status: S
 export default function RoomFilters({ sort, status, onSortChange, onStatusChange, className }: RoomFiltersProps) {
   const [sortOpen, setSortOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
+  const statusRef = useRef<HTMLDivElement>(null)
+  const sortRef = useRef<HTMLDivElement>(null)
   // Menus stay mounted for their exit animation.
   const sortMenu = usePresence(sortOpen)
   const statusMenu = usePresence(statusOpen)
@@ -69,6 +71,32 @@ export default function RoomFilters({ sort, status, onSortChange, onStatusChange
     oldest: 'Oldest',
   }
 
+  // Close on a press outside the open filter or on Escape (focus returns to its toggle).
+  useEffect(() => {
+    if (!statusOpen && !sortOpen) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node
+      if (statusOpen && !statusRef.current?.contains(target)) setStatusOpen(false)
+      if (sortOpen && !sortRef.current?.contains(target)) setSortOpen(false)
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      const openRef = statusOpen ? statusRef : sortRef
+      setStatusOpen(false)
+      setSortOpen(false)
+      openRef.current?.querySelector<HTMLButtonElement>('button[aria-haspopup]')?.focus()
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [statusOpen, sortOpen])
+
   const handleStatusChange = (newStatus: StatusFilter) => {
     setStatusOpen(false)
     onStatusChange(newStatus)
@@ -82,7 +110,7 @@ export default function RoomFilters({ sort, status, onSortChange, onStatusChange
   return (
     <div className={className ?? 'mb-6 flex justify-end gap-2 sm:gap-3'}>
       {/* Status Filter */}
-      <div className="relative">
+      <div ref={statusRef} className="relative">
         <button
           onClick={() => setStatusOpen(!statusOpen)}
           aria-expanded={statusOpen}
@@ -115,7 +143,7 @@ export default function RoomFilters({ sort, status, onSortChange, onStatusChange
       </div>
 
       {/* Sort Filter */}
-      <div className="relative">
+      <div ref={sortRef} className="relative">
         <button
           onClick={() => setSortOpen(!sortOpen)}
           aria-expanded={sortOpen}

@@ -32,9 +32,10 @@ export default function RoomsGrid({ rooms }: { rooms: RoomCardProps[] }) {
       <section className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <RoomActions />
 
-        {/* Mobile: filters below Create/Join buttons */}
+        {/* Mobile: filters below Create/Join buttons. z-10 keeps the open
+            listbox above the room cards that follow it in the grid. */}
         {showFilters ? (
-          <div className="col-span-full sm:hidden">
+          <div className="relative z-10 col-span-full sm:hidden">
             <RoomFilters {...filterProps} className="flex justify-end gap-2" />
           </div>
         ) : null}
