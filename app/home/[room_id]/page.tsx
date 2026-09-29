@@ -92,7 +92,7 @@ export default async function BetsPage({
       for (const bet of liveBets ?? []) {
         const current = grouped.get(bet.match_id) ?? []
         current.push({
-          username: usernameById.get(bet.user_id) ?? bet.user_id.slice(0, 8),
+          username: usernameById.get(bet.user_id) ?? 'Player',
           homeScore: bet.home_score,
           awayScore: bet.away_score,
         })

@@ -1,3 +1,4 @@
+import 'server-only'
 import { unstable_cache } from 'next/cache'
 import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 
@@ -48,7 +49,7 @@ export const getCachedStandingPlayers = unstable_cache(
     const usernameById = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]))
 
     return (members ?? []).map((member) => ({
-      username: usernameById.get(member.user_id) ?? member.user_id.slice(0, 8),
+      username: usernameById.get(member.user_id) ?? 'Player',
       points: member.points,
     }))
   },

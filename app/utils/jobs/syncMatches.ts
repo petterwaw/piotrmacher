@@ -1,3 +1,4 @@
+import 'server-only'
 import type { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 import { ESPN_PROVIDER, fetchEspnFixtures, type MatchStatus, type ProviderFixture } from '@/app/utils/providers/espn'
 

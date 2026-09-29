@@ -100,7 +100,7 @@ async function getRooms(): Promise<RoomCardProps[]> {
             href: resolveRoomHref(room, user?.id ?? null),
             id: room.id,
             eventName: room.name,
-            createdBy: usernameById.get(room.host_id) ?? room.host_id.slice(0, 8),
+            createdBy: usernameById.get(room.host_id) ?? 'Player',
             createdAt: room.created_at,
             playersCount: room.room_players?.[0]?.count ?? 0,
             status: capitalizeStatus(room.status),

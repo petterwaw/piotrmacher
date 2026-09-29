@@ -1,3 +1,4 @@
+import 'server-only'
 import type { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 import { isWorldCupPickemEvent } from '@/app/utils/pickem/eligibility'
 import { syncPickemGroupsForEvent, type PickemEvent } from '@/app/utils/pickem/groups'

@@ -9,7 +9,8 @@ export function safeRedirectPath(next: string | null, fallback = '/home') {
   const base = 'https://same-origin.invalid'
   try {
     const resolved = new URL(next, base)
-    if (resolved.origin !== base) return fallback
+    // Dot segments can collapse "/.//evil.tld" into the protocol-relative "//evil.tld".
+    if (resolved.origin !== base || resolved.pathname.startsWith('//')) return fallback
     return `${resolved.pathname}${resolved.search}${resolved.hash}`
   } catch {
     return fallback
