@@ -29,7 +29,7 @@ function GoalStepper({
       >
         <Plus size={18} strokeWidth={3} aria-hidden="true" />
       </button>
-      <output aria-label={label} className="w-11 text-center text-3xl font-black leading-10 tabular-nums text-text-main">
+      <output aria-label={label} aria-live="off" className="w-11 text-center text-3xl font-black leading-10 tabular-nums text-text-main">
         {value}
       </output>
       <button
@@ -89,9 +89,11 @@ export default function ScoreTester({ rules }: { rules: MatchRules }) {
         <ScorePair title="Your pick" label="your pick" home={predHome} away={predAway} setHome={setPredHome} setAway={setPredAway} />
         <ScorePair title="After 90 min" label="final score" home={finalHome} away={finalAway} setHome={setFinalHome} setAway={setFinalAway} />
       </div>
-      <div aria-live="polite">
-        <Breakdown lines={result.lines} total={result.total} />
-      </div>
+      {/* One short announcement per change instead of re-reading the whole breakdown. */}
+      <p aria-live="polite" className="sr-only">
+        {`Your pick ${predHome}:${predAway}, final score ${finalHome}:${finalAway}: ${result.total} ${result.total === 1 ? 'point' : 'points'}.`}
+      </p>
+      <Breakdown lines={result.lines} total={result.total} />
     </div>
   )
 }

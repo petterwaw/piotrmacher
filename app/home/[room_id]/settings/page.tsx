@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { getActiveEvents } from '@/app/utils/events/getActiveEvents'
 import { notFound, redirect } from 'next/navigation'
@@ -24,6 +25,8 @@ const defaultRules: Rules = {
   exact_draw: 1,
   pickem_correct_position: 1,
 }
+
+export const metadata: Metadata = { title: 'Room settings' }
 
 export default async function RoomSettingsPage({
   params,

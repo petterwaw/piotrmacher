@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { notFound } from 'next/navigation'
 import { isWorldCupPickemEvent } from '@/app/utils/pickem/eligibility'
@@ -49,6 +50,8 @@ function toRuleScore(value: unknown) {
   const parsed = Number(value)
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 1
 }
+
+export const metadata: Metadata = { title: "Pick'em" }
 
 export default async function PickemPage({
   params,

@@ -1,3 +1,4 @@
+import { cacheTags, invalidateCacheTags } from '@/app/utils/cache/tags'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
@@ -79,6 +80,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Could not update profile username.' }, { status: 500 })
     }
 
+    // Usernames are embedded in cached leaderboards / predictions of every
+    // room this user is in.
+    invalidateCacheTags([cacheTags.users])
+
     const { error: metadataUpdateError } = await supabase.auth.updateUser({
       data: {
         ...user.user_metadata,
@@ -130,6 +135,9 @@ export async function DELETE(request: NextRequest) {
     await serviceSupabase.from('bets').delete().eq('user_id', user.id)
     await serviceSupabase.from('room_players').delete().eq('user_id', user.id)
     await serviceSupabase.from('profiles').delete().eq('id', user.id)
+
+    // The user's memberships and bets were removed across rooms.
+    invalidateCacheTags([cacheTags.users])
 
     const { error: deleteError } = await serviceSupabase.auth.admin.deleteUser(user.id)
 

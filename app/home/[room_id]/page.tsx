@@ -1,10 +1,10 @@
+import type { Metadata } from 'next'
 import BetsByDay from '@/app/components/BetsByDay'
 import EmptyState from '@/app/components/EmptyState'
 import { CalendarX2 } from 'lucide-react'
 import { notFound, redirect } from 'next/navigation'
-import { getCachedUpcomingMatches } from '@/app/utils/cache/roomReads'
+import { filterToRoomWindow, getEventFixtures, getRoomPredictions } from '@/app/utils/cache/sharedReads'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
-import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 
 const VISIBLE_DAYS_AHEAD = 7
 
@@ -13,6 +13,8 @@ type LivePrediction = {
   homeScore: number
   awayScore: number
 }
+
+export const metadata: Metadata = { title: 'Bets' }
 
 export default async function BetsPage({
   params,
@@ -45,7 +47,8 @@ export default async function BetsPage({
     redirect(`/home/${room_id}/standings`)
   }
 
-  const matches = await getCachedUpcomingMatches(room.event_id, room.created_at, room.room_end_at)
+  // The RLS-scoped room query above is the access check for the shared reads below.
+  const matches = filterToRoomWindow(await getEventFixtures(room.event_id), room.created_at, room.room_end_at)
 
   const matchIds = matches.map((match) => match.id)
 
@@ -72,33 +75,17 @@ export default async function BetsPage({
       .maybeSingle()
 
     if (membership) {
-      const serviceSupabase = createServiceRoleSupabaseClient()
-      const liveMatchIds = liveMatches.map((match) => match.id)
-
-      const { data: liveBets } = await serviceSupabase
-        .from('bets')
-        .select('match_id, user_id, home_score, away_score')
-        .eq('room_id', room_id)
-        .in('match_id', liveMatchIds)
-
-      const userIds = [...new Set((liveBets ?? []).map((bet) => bet.user_id))]
-
-      const { data: profiles } = userIds.length
-        ? await serviceSupabase.from('profiles').select('id, username').in('id', userIds)
-        : { data: [] }
-
-      const usernameById = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]))
-
+      const liveBets = await getRoomPredictions(room_id, liveMatches.map((match) => match.id))
       const grouped = new Map<string, LivePrediction[]>()
 
-      for (const bet of liveBets ?? []) {
-        const current = grouped.get(bet.match_id) ?? []
+      for (const bet of liveBets) {
+        const current = grouped.get(bet.matchId) ?? []
         current.push({
-          username: usernameById.get(bet.user_id) ?? 'Player',
-          homeScore: bet.home_score,
-          awayScore: bet.away_score,
+          username: bet.username,
+          homeScore: bet.homeScore,
+          awayScore: bet.awayScore,
         })
-        grouped.set(bet.match_id, current)
+        grouped.set(bet.matchId, current)
       }
 
       livePredictionsByMatchId = grouped
@@ -107,6 +94,7 @@ export default async function BetsPage({
 
   return (
     <div className="mx-auto max-w-xl">
+      <h1 className="sr-only">Bets</h1>
 
       {matches.length === 0 ? (
         <EmptyState icon={CalendarX2} title="No upcoming matches for this event." />
@@ -117,9 +105,9 @@ export default async function BetsPage({
           visibleDaysAhead={VISIBLE_DAYS_AHEAD}
           matches={matches.map((match) => {
             const existingBet = betByMatchId.get(match.id)
-            const liveMinute = (match as { live_minute?: number | null }).live_minute ?? null
-            const liveHomeScore = (match as { home_score_ft?: number | null }).home_score_ft ?? null
-            const liveAwayScore = (match as { away_score_ft?: number | null }).away_score_ft ?? null
+            const liveMinute = match.live_minute ?? null
+            const liveHomeScore = match.home_score_ft ?? null
+            const liveAwayScore = match.away_score_ft ?? null
 
             return {
               id: match.id,

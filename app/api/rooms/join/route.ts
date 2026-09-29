@@ -1,3 +1,4 @@
+import { cacheTags, invalidateCacheTags } from '@/app/utils/cache/tags'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -26,6 +27,9 @@ export async function POST(request: NextRequest) {
     if (joinError || !roomId) {
       return NextResponse.json({ error: 'Room not found for this invite code.' }, { status: 404 })
     }
+
+    // New member row: the room leaderboard changed.
+    invalidateCacheTags([cacheTags.roomStandings(String(roomId))])
 
     return NextResponse.json({ roomId: roomId })
   } catch {

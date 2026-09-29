@@ -1,4 +1,5 @@
 import 'server-only'
+import { cacheTags, invalidateCacheTags } from '@/app/utils/cache/tags'
 import type { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 
 type ServiceSupabaseClient = ReturnType<typeof createServiceRoleSupabaseClient>
@@ -106,9 +107,12 @@ const MAX_ATTEMPTS = 5
 
 // Room totals are always recomputed from bets + pickem picks in SQL, so a
 // re-run can never double count and nothing depends on stored deltas.
+// Every caller changed points in these rooms, so their cached leaderboards
+// are invalidated here.
 export async function recomputeRoomPoints(supabase: ServiceSupabaseClient, roomIds: string[]) {
   if (roomIds.length === 0) return null
   const { error } = await supabase.rpc('recompute_room_player_points', { p_room_ids: roomIds })
+  if (!error) invalidateCacheTags(roomIds.map(cacheTags.roomStandings))
   return error
 }
 
@@ -204,7 +208,7 @@ export async function processPendingScoringJobs(supabase: ServiceSupabaseClient,
     return { ok: false, error: 'Could not load bets for scoring.' }
   }
 
-  const betUpdates: Array<{ id: string; points: number }> = []
+  const betUpdates: Array<{ id: string; roomId: string; points: number }> = []
   const affectedRoomIds = new Set<string>()
 
   for (const raw of (betsRows ?? []) as BetWithRelations[]) {
@@ -222,10 +226,16 @@ export async function processPendingScoringJobs(supabase: ServiceSupabaseClient,
     const newPoints = calculatePoints(raw.home_score, raw.away_score, actualHome, actualAway, room.rules ?? {})
 
     if (raw.points !== newPoints) {
-      betUpdates.push({ id: raw.id, points: newPoints })
+      betUpdates.push({ id: raw.id, roomId: raw.room_id, points: newPoints })
       affectedRoomIds.add(raw.room_id)
     }
   }
+
+  // Bet points are shown next to each prediction in room history. Invalidate
+  // after the writes (also after a partial failure: a retry skips bets whose
+  // points are already correct, so it would never invalidate those rooms).
+  const roomsWithUpdatedBets = new Set<string>()
+  const invalidateRoomBets = () => invalidateCacheTags([...roomsWithUpdatedBets].map(cacheTags.roomBets))
 
   for (const update of betUpdates) {
     const { error: betUpdateError } = await supabase
@@ -234,10 +244,15 @@ export async function processPendingScoringJobs(supabase: ServiceSupabaseClient,
       .eq('id', update.id)
 
     if (betUpdateError) {
+      invalidateRoomBets()
       await failJobs(`Could not update bet points: ${betUpdateError.message}`)
       return { ok: false, error: 'Could not update bet points.', details: betUpdateError.message }
     }
+
+    roomsWithUpdatedBets.add(update.roomId)
   }
+
+  invalidateRoomBets()
 
   const recomputeError = await recomputeRoomPoints(supabase, [...affectedRoomIds])
   if (recomputeError) {

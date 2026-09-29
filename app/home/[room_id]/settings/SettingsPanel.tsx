@@ -2,10 +2,12 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState, useTransition } from 'react'
-import { Check, Copy, Minus, Plus, X } from 'lucide-react'
+import { useMemo, useRef, useState, useTransition } from 'react'
+import { Minus, Plus, X } from 'lucide-react'
 import EventSelect from '@/app/components/EventSelect'
 import DatePicker from '@/app/components/DatePicker'
+import InviteShare from '@/app/components/InviteShare'
+import { useDialogFocus } from '@/app/components/a11y/useDialogFocus'
 
 type Rules = {
   correct_winner: number
@@ -74,9 +76,10 @@ export default function SettingsPanel({
   )
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [showStartConfirm, setShowStartConfirm] = useState(false)
+  const startDialogRef = useRef<HTMLDivElement>(null)
+  useDialogFocus(startDialogRef, showStartConfirm, () => setShowStartConfirm(false))
 
   const isWaiting = status === 'waiting'
 
@@ -222,16 +225,6 @@ export default function SettingsPanel({
     })
   }
 
-  const copyInviteCode = async () => {
-    try {
-      await navigator.clipboard.writeText(inviteCode)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1200)
-    } catch {
-      setError('Could not copy invite code.')
-    }
-  }
-
   const perfectPick =
     rules.correct_winner + rules.correct_difference + 2 * teamGoalsPoints + rules.exact_score
   const perfectDraw =
@@ -239,19 +232,12 @@ export default function SettingsPanel({
 
   return (
     <div className="mx-auto max-w-2xl">
+      <h1 className="sr-only">Room settings</h1>
       <div className="divide-y-2 divide-zinc-200 border-2 border-zinc-300 bg-white">
         <section className={SECTION} aria-labelledby="settings-invite">
-          <h2 id="settings-invite" className={H2}>Invite code</h2>
-          <p className={HINT}>Friends join the room with this code.</p>
-          <div className="mt-3 flex items-stretch gap-2">
-            <span className="inline-flex min-h-11 min-w-0 select-all items-center border-2 border-zinc-300 bg-zinc-50 px-3 font-mono text-lg font-bold tracking-[0.15em] text-text-main">
-              {inviteCode}
-            </span>
-            <button type="button" aria-live="polite" className="btn-base btn-light gap-2 rounded-none" onClick={copyInviteCode}>
-              {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-          </div>
+          <h2 id="settings-invite" className={H2}>Invite friends</h2>
+          <p className={`${HINT} mb-3`}>Send the link. Friends sign in and land straight in this room.</p>
+          <InviteShare code={inviteCode} eventName={events.find((event) => event.id === eventId)?.name ?? null} />
         </section>
 
         <section className={SECTION} aria-labelledby="settings-event-title">
@@ -328,10 +314,15 @@ export default function SettingsPanel({
               return (
                 <li key={rule.key} className="flex items-center justify-between gap-3 py-2.5">
                   <div className="min-w-0">
-                    <p className="text-[15px] font-bold text-text-main">{rule.label}</p>
-                    <p className="text-sm leading-snug text-zinc-600">{rule.hint}</p>
+                    <p id={`rule-${rule.key}`} className="text-[15px] font-bold text-text-main">{rule.label}</p>
+                    <p id={`rule-${rule.key}-hint`} className="text-sm leading-snug text-zinc-600">{rule.hint}</p>
                   </div>
-                  <div className="flex shrink-0 items-center">
+                  <div
+                    role="group"
+                    aria-labelledby={`rule-${rule.key}`}
+                    aria-describedby={`rule-${rule.key}-hint`}
+                    className="flex shrink-0 items-center"
+                  >
                     <button
                       type="button"
                       aria-label={`Decrease ${rule.label} points`}
@@ -341,7 +332,10 @@ export default function SettingsPanel({
                     >
                       <Minus size={16} strokeWidth={3} aria-hidden="true" />
                     </button>
-                    <span aria-live="polite" className="w-10 text-center text-xl font-black tabular-nums text-text-main">{value}</span>
+                    <span aria-live="polite" className="w-10 text-center text-xl font-black tabular-nums text-text-main">
+                      {value}
+                      <span className="sr-only"> {value === 1 ? 'point' : 'points'}</span>
+                    </span>
                     <button
                       type="button"
                       aria-label={`Increase ${rule.label} points`}
@@ -406,11 +400,11 @@ export default function SettingsPanel({
 
       {showStartConfirm ? (
         <div className="animate-overlay-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6">
-          <div role="dialog" aria-modal="true" aria-labelledby="start-confirm-title" className="animate-dialog-in w-full max-w-md border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 sm:p-6">
+          <div ref={startDialogRef} role="dialog" aria-modal="true" aria-labelledby="start-confirm-title" aria-describedby="start-confirm-desc" tabIndex={-1} className="animate-dialog-in w-full max-w-md border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 sm:p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h2 id="start-confirm-title" className="text-2xl font-black tracking-tight text-text-main">Unsaved changes</h2>
-                <p className="mt-1 text-sm text-text-muted">
+                <p id="start-confirm-desc" className="mt-1 text-sm text-text-muted">
                   You have unsaved settings. What would you like to do before starting the room?
                 </p>
               </div>

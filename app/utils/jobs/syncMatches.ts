@@ -1,4 +1,5 @@
 import 'server-only'
+import { cacheTags, invalidateCacheTags } from '@/app/utils/cache/tags'
 import type { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 import { ESPN_PROVIDER, fetchEspnFixtures, type MatchStatus, type ProviderFixture } from '@/app/utils/providers/espn'
 
@@ -16,18 +17,29 @@ type TrackedMatch = {
   scheduled_start_at: string
 }
 
-type ExistingMatch = {
-  provider_match_id: string
-  status: string
-  home_score_ft: number | null
-  away_score_ft: number | null
-}
+// Every column the cached match lists (app/utils/cache/sharedReads.ts) show.
+const DISPLAYED_COLUMNS = [
+  'status',
+  'scheduled_start_at',
+  'home_team',
+  'away_team',
+  'home_logo',
+  'away_logo',
+  'home_score_ft',
+  'away_score_ft',
+  'live_minute',
+] as const
+
+type DisplayedColumn = (typeof DISPLAYED_COLUMNS)[number]
+
+type ExistingMatch = { provider_match_id: string } & Record<DisplayedColumn, string | number | null>
 
 export type SyncMatchesResult = {
   eventsProcessed: number
   eventsSkipped: number
   matchesUpserted: number
   scoringJobsEnqueued: number
+  cacheTagsInvalidated: number
   failures: Array<{ eventId: string; message: string }>
 }
 
@@ -79,6 +91,39 @@ function toMatchRow(eventId: string, fixture: ProviderFixture, now: Date) {
     sync_error_count: 0,
     last_sync_error: null,
   }
+}
+
+// Most ticks rewrite identical rows (only sync bookkeeping columns move), so
+// cached lists are invalidated only when a displayed value really changed.
+// A row that is or was unfinished touches the fixtures list; a row that is or
+// was finished touches the results list (live -> finished touches both).
+function collectChangedMatchTags(
+  eventId: string,
+  rows: Array<ReturnType<typeof toMatchRow>>,
+  existingById: Map<string, ExistingMatch>,
+  tags: Set<string>,
+) {
+  for (const row of rows) {
+    const previous = existingById.get(row.provider_match_id)
+    const changed = !previous || DISPLAYED_COLUMNS.some((column) => !sameValue(previous[column], row[column]))
+    if (!changed) continue
+
+    const statuses = [row.status, previous?.status]
+    if (statuses.some((status) => status && status !== 'finished')) tags.add(cacheTags.eventFixtures(eventId))
+    if (statuses.includes('finished')) tags.add(cacheTags.eventResults(eventId))
+  }
+}
+
+function sameValue(stored: string | number | null | undefined, next: string | number | null | undefined) {
+  if (stored === next) return true
+  if (stored == null || next == null) return stored == next
+  // timestamptz comes back as "2026-06-11T19:00:00+00:00", we write ISO "Z".
+  if (typeof stored === 'string' && typeof next === 'string') {
+    const a = Date.parse(stored)
+    const b = Date.parse(next)
+    if (!Number.isNaN(a) && !Number.isNaN(b) && /^\d{4}-\d{2}-\d{2}T/.test(stored)) return a === b
+  }
+  return false
 }
 
 export async function finishExpiredRooms(supabase: ServiceSupabaseClient) {
@@ -161,6 +206,7 @@ export async function syncMatches(
   const failures: SyncMatchesResult['failures'] = []
   let matchesUpserted = 0
   const jobMatchIds: string[] = []
+  const staleTags = new Set<string>()
 
   for (const target of dueTargets) {
     try {
@@ -170,12 +216,12 @@ export async function syncMatches(
       const providerIds = fixtures.map((fixture) => fixture.providerMatchId)
       const { data: existingRows } = await supabase
         .from('matches')
-        .select('provider_match_id, status, home_score_ft, away_score_ft')
+        .select(`provider_match_id, ${DISPLAYED_COLUMNS.join(', ')}`)
         .eq('event_id', target.eventId)
         .in('provider_match_id', providerIds)
 
       const existingById = new Map(
-        ((existingRows ?? []) as ExistingMatch[]).map((row) => [row.provider_match_id, row])
+        ((existingRows ?? []) as unknown as ExistingMatch[]).map((row) => [row.provider_match_id, row])
       )
 
       const rows = fixtures.map((fixture) => toMatchRow(target.eventId, fixture, now))
@@ -190,6 +236,7 @@ export async function syncMatches(
       }
 
       matchesUpserted += rows.length
+      collectChangedMatchTags(target.eventId, rows, existingById, staleTags)
       const idByProviderId = new Map((upserted ?? []).map((row) => [row.provider_match_id, String(row.id)]))
 
       // (Re)score when a match has just finished or its final score was corrected.
@@ -227,11 +274,15 @@ export async function syncMatches(
     )
   }
 
+  // Only after the rows are written: the next page view refetches them.
+  invalidateCacheTags(staleTags)
+
   return {
     eventsProcessed: dueTargets.length,
     eventsSkipped: targets.size - dueTargets.length,
     matchesUpserted,
     scoringJobsEnqueued: jobMatchIds.length,
+    cacheTagsInvalidated: staleTags.size,
     failures,
   }
 }

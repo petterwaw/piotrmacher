@@ -5,6 +5,9 @@ import { X } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState, useTransition, Suspense } from 'react'
 import { usePresence } from '@/app/components/motion/usePresence'
+import { safeRedirectPath } from '@/app/utils/auth/safeRedirectPath'
+import { OPEN_AUTH_EVENT, type OpenAuthDetail } from '@/app/utils/share/invite'
+import { useDialogFocus } from '@/app/components/a11y/useDialogFocus'
 
 type User = {
   id: string
@@ -14,7 +17,11 @@ type User = {
 
 type AuthMode = 'signin' | 'signup'
 
-function LoginParamWatcher({ onLoginParam }: { onLoginParam: () => void }) {
+type AuthRequest = { mode: AuthMode; next: string | null; context: string | null }
+
+// `?login=1[&next=/path]` opens the sign-in sheet (the proxy sends logged-out
+// visitors of /home here). Both params are consumed from the URL.
+function LoginParamWatcher({ onLoginParam }: { onLoginParam: (next: string | null) => void }) {
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -33,10 +40,11 @@ function LoginParamWatcher({ onLoginParam }: { onLoginParam: () => void }) {
     }
 
     handledRef.current = true
-    onLoginParam()
+    onLoginParam(searchParams.get('next'))
 
     const nextParams = new URLSearchParams(searchParams.toString())
     nextParams.delete('login')
+    nextParams.delete('next')
     const nextQuery = nextParams.toString()
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
   }, [pathname, router, searchParams, onLoginParam])
@@ -47,6 +55,8 @@ function LoginParamWatcher({ onLoginParam }: { onLoginParam: () => void }) {
 export default function Header() {
   const router = useRouter()
   const mobileMenuRef = useRef<HTMLDivElement | null>(null)
+  const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null)
+  const authDialogRef = useRef<HTMLDivElement | null>(null)
   const [user, setUser] = useState<User | undefined>(undefined)
   const [loading, setLoading] = useState(true)
   const [showMobileUserMenu, setShowMobileUserMenu] = useState(false)
@@ -59,6 +69,13 @@ export default function Header() {
   const [authError, setAuthError] = useState<string | null>(null)
   const [authMessage, setAuthMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  // Where to go after signing in (e.g. back to an invite link) and a short
+  // line explaining why the sheet opened. Null = the usual /home.
+  const [authNext, setAuthNext] = useState<string | null>(null)
+  const [authContext, setAuthContext] = useState<string | null>(null)
+  // An auth request that arrived before we knew whether the user is signed in.
+  const [pendingAuth, setPendingAuth] = useState<AuthRequest | null>(null)
+  const postLoginPath = safeRedirectPath(authNext)
   const logoHref = user ? '/home' : '/'
   // Overlays stay mounted for their exit animation.
   const authPresence = usePresence(showAuthModal)
@@ -101,8 +118,38 @@ export default function Header() {
   const closeAuthModal = () => {
     if (isPending) return
     setShowAuthModal(false)
+    setAuthNext(null)
+    setAuthContext(null)
     resetAuthForm()
   }
+
+  useEffect(() => {
+    const handleOpenAuth = (event: Event) => {
+      const detail = (event as CustomEvent<OpenAuthDetail>).detail ?? {}
+      setPendingAuth({
+        mode: detail.mode ?? 'signin',
+        next: detail.next ?? null,
+        context: detail.context ?? null,
+      })
+    }
+    window.addEventListener(OPEN_AUTH_EVENT, handleOpenAuth)
+    return () => window.removeEventListener(OPEN_AUTH_EVENT, handleOpenAuth)
+  }, [])
+
+  // Open queued requests once the session check is done (never for a user
+  // who is already signed in).
+  useEffect(() => {
+    if (!pendingAuth || loading) return
+    setPendingAuth(null)
+    if (user) return
+    setShowMobileUserMenu(false)
+    setAuthMode(pendingAuth.mode)
+    setAuthNext(pendingAuth.next ? safeRedirectPath(pendingAuth.next) : null)
+    setAuthContext(pendingAuth.context)
+    setAuthError(null)
+    setAuthMessage(null)
+    setShowAuthModal(true)
+  }, [pendingAuth, loading, user])
 
   useEffect(() => {
     if (!showMobileUserMenu) {
@@ -116,8 +163,19 @@ export default function Header() {
       }
     }
 
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowMobileUserMenu(false)
+        mobileMenuButtonRef.current?.focus()
+      }
+    }
+
     document.addEventListener('mousedown', handleOutsideClick)
-    return () => document.removeEventListener('mousedown', handleOutsideClick)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+      document.removeEventListener('keydown', handleEscape)
+    }
   }, [showMobileUserMenu])
 
   useEffect(() => {
@@ -132,7 +190,9 @@ export default function Header() {
     setUser(data.user)
   }
 
-  const submitAuth = () => {
+  const submitAuth = (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault()
+    if (isPending) return
     setAuthError(null)
     setAuthMessage(null)
 
@@ -180,8 +240,10 @@ export default function Header() {
 
         await refreshUser()
         setShowAuthModal(false)
+        setAuthNext(null)
+        setAuthContext(null)
         resetAuthForm()
-        router.push('/home')
+        router.push(postLoginPath)
         router.refresh()
       } catch (error) {
         setAuthError(error instanceof Error ? error.message : 'Authentication failed.')
@@ -217,12 +279,13 @@ export default function Header() {
     </svg>
   )
 
-  const handleOpenLoginFromParam = useCallback(() => {
-    if (!loading && !user) {
-      setAuthMode('signin')
-      setShowAuthModal(true)
-    }
-  }, [loading, user])
+  // Focus moves into the dialog and stays there; Escape closes it and focus
+  // returns to the control that opened it.
+  useDialogFocus(authDialogRef, showAuthModal, closeAuthModal)
+
+  const handleOpenLoginFromParam = useCallback((next: string | null) => {
+    setPendingAuth({ mode: 'signin', next, context: null })
+  }, [])
 
   const inputClassName =
     'mb-3 min-h-12 w-full border-2 border-zinc-300 bg-gray-50 px-4 py-3 text-base text-text-main outline-none transition-colors placeholder:text-zinc-500 focus:border-brand focus:bg-white'
@@ -237,6 +300,12 @@ export default function Header() {
       <Suspense fallback={null}>
         <LoginParamWatcher onLoginParam={handleOpenLoginFromParam} />
       </Suspense>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:inline-flex focus:min-h-11 focus:items-center focus:border-2 focus:border-brand focus:bg-white focus:px-4 focus:text-sm focus:font-semibold focus:text-text-main"
+      >
+        Skip to content
+      </a>
       <header className="w-full px-4 pt-2 md:px-6 md:pt-4">
         <div className="mx-auto hidden max-w-[1320px] border border-white/40 bg-white/80 shadow-sm backdrop-blur md:block">
           <div className="min-h-[64px] items-center justify-between px-6 md:flex">
@@ -302,11 +371,12 @@ export default function Header() {
             ) : user ? (
               <>
                 <button
+                  ref={mobileMenuButtonRef}
                   type="button"
                   onClick={() => setShowMobileUserMenu((prev) => !prev)}
                   aria-label="Account menu"
-                  aria-haspopup="menu"
                   aria-expanded={showMobileUserMenu}
+                  aria-controls="mobile-account-menu"
                   className={`inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
                     showMobileUserMenu ? 'bg-brand-tint ring-2 ring-brand' : 'bg-white/80 ring-1 ring-zinc-300 active:bg-zinc-100'
                   }`}
@@ -315,10 +385,9 @@ export default function Header() {
                 </button>
 
                 {menuPresence.value ? (
-                  <div role="menu" className={`${menuPresence.isClosing ? 'animate-pop-out' : 'animate-pop-in'} absolute right-0 top-[calc(100%+6px)] z-20 w-48 border-2 border-zinc-300 bg-white shadow-lg shadow-black/10`}>
+                  <div id="mobile-account-menu" className={`${menuPresence.isClosing ? 'animate-pop-out' : 'animate-pop-in'} absolute right-0 top-[calc(100%+6px)] z-20 w-48 border-2 border-zinc-300 bg-white shadow-lg shadow-black/10`}>
                     <Link
                       href="/profile"
-                      role="menuitem"
                       onClick={() => setShowMobileUserMenu(false)}
                       className="no-press flex min-h-12 items-center px-4 text-sm font-semibold text-text-main transition-colors hover:bg-zinc-50 active:bg-zinc-100"
                     >
@@ -327,7 +396,6 @@ export default function Header() {
                     <form action="/api/auth/logout" method="post" className="border-t border-border-soft">
                       <button
                         type="submit"
-                        role="menuitem"
                         className="no-press flex min-h-12 w-full items-center px-4 text-left text-sm font-semibold text-text-main transition-colors hover:bg-zinc-50 active:bg-zinc-100"
                       >
                         Logout
@@ -355,13 +423,16 @@ export default function Header() {
           <div className="absolute inset-0" onClick={closeAuthModal} aria-hidden="true" />
 
           <div
+            ref={authDialogRef}
             role="dialog"
             aria-modal="true"
-            aria-label={authMode === 'signin' ? 'Sign in' : 'Register'}
+            aria-labelledby="auth-dialog-title"
+            tabIndex={-1}
             className={`${authPresence.isClosing ? 'animate-sheet-out md:animate-dialog-out' : 'animate-sheet-in md:animate-dialog-in'} fixed bottom-0 left-0 right-0 z-[101] max-h-[calc(100dvh-1rem)] overflow-y-auto border-t-2 border-zinc-300 bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl md:static md:w-full md:max-w-md md:border-2 md:p-6`}
           >
             <div className="mb-5 flex items-center justify-between gap-3">
-              <p className="text-[40px] font-black italic leading-none tracking-tight text-brand-bright md:text-[44px]">PIOTRMACHER</p>
+              <p aria-hidden="true" className="text-[40px] font-black italic leading-none tracking-tight text-brand-bright md:text-[44px]">PIOTRMACHER</p>
+              <h2 id="auth-dialog-title" className="sr-only">{authMode === 'signin' ? 'Sign in to Piotrmacher' : 'Register for Piotrmacher'}</h2>
               <button
                 type="button"
                 onClick={closeAuthModal}
@@ -372,7 +443,13 @@ export default function Header() {
               </button>
             </div>
 
-            <div className="mb-4 flex bg-gray-100 p-1">
+            {authContext ? (
+              <p className="mb-4 border-l-4 border-brand bg-brand-tint px-3 py-2 text-sm font-semibold text-text-main">
+                {authContext}
+              </p>
+            ) : null}
+
+            <div className="mb-4 flex bg-gray-100 p-1" role="group" aria-label="Account">
               <button
                 type="button"
                 onClick={() => setAuthMode('signin')}
@@ -391,6 +468,7 @@ export default function Header() {
               </button>
             </div>
 
+            <form onSubmit={submitAuth} noValidate>
             {authMode === 'signup' ? (
               <input
                 type="text"
@@ -398,6 +476,7 @@ export default function Header() {
                 onChange={(event) => setUsername(event.target.value)}
                 placeholder="Username"
                 aria-label="Username"
+                aria-describedby={authError ? 'auth-error' : undefined}
                 autoComplete="username"
                 className={inputClassName}
               />
@@ -409,6 +488,8 @@ export default function Header() {
               onChange={(event) => setEmail(event.target.value)}
               placeholder="E-mail"
               aria-label="E-mail"
+              data-autofocus
+              aria-describedby={authError ? 'auth-error' : undefined}
               autoComplete="email"
               className={inputClassName}
             />
@@ -419,6 +500,7 @@ export default function Header() {
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Password"
               aria-label="Password"
+              aria-describedby={authError ? 'auth-error' : undefined}
               autoComplete={authMode === 'signin' ? 'current-password' : 'new-password'}
               className={inputClassName}
             />
@@ -430,22 +512,23 @@ export default function Header() {
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 placeholder="Confirm password"
                 aria-label="Confirm password"
+                aria-describedby={authError ? 'auth-error' : undefined}
                 autoComplete="new-password"
                 className={inputClassName}
               />
             ) : null}
 
-            {authError ? <p role="alert" className="animate-message-in mb-2 text-sm font-medium text-danger">{authError}</p> : null}
+            {authError ? <p id="auth-error" role="alert" className="animate-message-in mb-2 text-sm font-medium text-danger">{authError}</p> : null}
             {authMessage ? <p role="status" className="animate-message-in mb-2 text-sm font-medium text-brand">{authMessage}</p> : null}
 
             <button
-              type="button"
-              onClick={submitAuth}
+              type="submit"
               disabled={isPending}
               className="press-soft mt-2 min-h-12 w-full border border-brand bg-brand px-4 py-3 text-base font-semibold text-white transition-colors hover:bg-brand-hover hover:border-brand-hover disabled:opacity-60 disabled:hover:bg-brand"
             >
               {isPending ? 'Please wait…' : authMode === 'signin' ? 'Sign in' : 'Create account'}
             </button>
+            </form>
 
             <div className="my-4 flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-zinc-500" aria-hidden="true">
               <span className="h-px flex-1 bg-zinc-200" />
@@ -454,7 +537,7 @@ export default function Header() {
             </div>
 
             <a
-              href="/api/auth/google?next=/home"
+              href={`/api/auth/google?next=${encodeURIComponent(postLoginPath)}`}
               className="press press-soft inline-flex min-h-12 w-full items-center justify-center border-2 border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-text-main transition-colors hover:bg-zinc-50 hover:border-brand"
             >
               <GoogleIcon />

@@ -8,6 +8,7 @@ import { Plus, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { usePresence } from '@/app/components/motion/usePresence'
+import { useDialogFocus } from '@/app/components/a11y/useDialogFocus'
 
 type ModalMode = 'create' | 'join' | null
 
@@ -53,6 +54,7 @@ const modalCopy = {
 export default function RoomActions() {
   const router = useRouter()
   const desktopActionsRef = useRef<HTMLDivElement | null>(null)
+  const dialogRef = useRef<HTMLDivElement | null>(null)
   const [mode, setMode] = useState<ModalMode>(null)
   const [value, setValue] = useState('')
   const [eventId, setEventId] = useState('')
@@ -176,8 +178,9 @@ export default function RoomActions() {
     setError(null)
   }
 
-  const handleSubmit = () => {
-    if (!mode) {
+  const handleSubmit = (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault()
+    if (!mode || isPending) {
       return
     }
 
@@ -235,6 +238,8 @@ export default function RoomActions() {
 
   // Keep the modal mounted for its exit animation after `mode` clears.
   const { value: shownMode, isClosing } = usePresence(mode)
+  // Focus trap + focus return (Escape is handled above).
+  useDialogFocus(dialogRef, Boolean(mode))
   const copy = shownMode ? modalCopy[shownMode] : null
 
   return (
@@ -300,15 +305,19 @@ export default function RoomActions() {
       {shownMode && copy ? (
         <div className={`no-stagger fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6 ${isClosing ? 'animate-overlay-out' : 'animate-overlay-in'}`}>
           <div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="room-modal-title"
+            aria-describedby="room-modal-description"
+            tabIndex={-1}
             className={`${isClosing ? 'animate-dialog-out' : 'animate-dialog-in'} max-h-full w-full max-w-md overflow-y-auto border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 sm:p-6`}
           >
+            <form onSubmit={handleSubmit} noValidate>
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h2 id="room-modal-title" className="text-2xl font-black tracking-tight text-text-main">{copy.title}</h2>
-                <p className="mt-1 text-sm text-text-muted">{copy.description}</p>
+                <p id="room-modal-description" className="mt-1 text-sm text-text-muted">{copy.description}</p>
               </div>
               <button
                 type="button"
@@ -333,7 +342,10 @@ export default function RoomActions() {
                 className="min-h-12 w-full border-2 border-zinc-300 bg-white px-4 py-3 text-base text-text-main outline-none transition-colors placeholder:text-zinc-500 focus:border-brand disabled:bg-zinc-100"
                 disabled={isPending}
                 maxLength={shownMode === 'create' ? 60 : 32}
-                autoFocus
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? 'room-modal-error' : undefined}
+                autoComplete="off"
+                data-autofocus
               />
 
               {shownMode === 'create' ? (
@@ -399,16 +411,17 @@ export default function RoomActions() {
               ) : null}
             </div>
 
-            {error ? <p role="alert" className="animate-message-in mt-3 text-sm font-medium text-danger">{error}</p> : null}
+            {error ? <p id="room-modal-error" role="alert" className="animate-message-in mt-3 text-sm font-medium text-danger">{error}</p> : null}
 
             <div className="mt-6 flex justify-end gap-3">
               <button type="button" className="btn-base btn-light rounded-none" onClick={closeModal} disabled={isPending}>
                 Cancel
               </button>
-              <button type="button" className="btn-base btn-dark rounded-none" onClick={handleSubmit} disabled={isPending}>
+              <button type="submit" className="btn-base btn-dark rounded-none" disabled={isPending}>
                 {isPending ? 'Working…' : copy.action}
               </button>
             </div>
+            </form>
           </div>
         </div>
       ) : null}
