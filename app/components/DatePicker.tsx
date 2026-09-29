@@ -1,5 +1,6 @@
 import { Calendar, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { usePresence } from '@/app/components/motion/usePresence'
 
 type Props = {
   value: string // YYYY-MM-DDTHH:mm (datetime-local format)
@@ -47,6 +48,10 @@ export default function DatePicker({
 }: Props) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  // The popover stays mounted for its exit animation.
+  const popover = usePresence(open && !disabled)
+  // Direction of the last month change, so the day grid slides the right way.
+  const [monthStep, setMonthStep] = useState<'prev' | 'next' | null>(null)
 
   const today = new Date()
   const parsed = parseValue(value)
@@ -83,10 +88,12 @@ export default function DatePicker({
   while (cells.length % 7 !== 0) cells.push(null)
 
   const prevMonth = () => {
+    setMonthStep('prev')
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1) }
     else setViewMonth(m => m - 1)
   }
   const nextMonth = () => {
+    setMonthStep('next')
     if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1) }
     else setViewMonth(m => m + 1)
   }
@@ -109,7 +116,7 @@ export default function DatePicker({
     d === selDay && viewMonth === selMonth && viewYear === selYear
 
   const calendarContent = (
-    <div className={inline ? 'border-2 border-zinc-300 bg-white' : 'animate-pop-in absolute left-0 right-0 z-50 mt-1 border-2 border-brand bg-white shadow-lg shadow-black/10'}>
+    <div className={inline ? 'border-2 border-zinc-300 bg-white' : `${popover.isClosing ? 'animate-pop-out' : 'animate-pop-in'} absolute left-0 right-0 z-50 mt-1 border-2 border-brand bg-white shadow-lg shadow-black/10`}>
       {/* Month navigation */}
       <div className="flex items-center justify-between border-b border-zinc-200 px-1.5 py-1">
         <button type="button" onClick={prevMonth} aria-label="Previous month" className="inline-flex h-9 w-9 items-center justify-center text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-text-main">
@@ -128,8 +135,11 @@ export default function DatePicker({
         ))}
       </div>
 
-      {/* Day grid */}
-      <div className="grid grid-cols-7 px-2 pb-2">
+      {/* Day grid: re-keyed per month so a month change slides in from its side. */}
+      <div
+        key={`${viewYear}-${viewMonth}`}
+        className={`grid grid-cols-7 px-2 pb-2 ${monthStep === 'next' ? 'animate-month-next' : monthStep === 'prev' ? 'animate-month-prev' : ''}`}
+      >
         {cells.map((day, idx) => (
           <div key={idx} className="flex items-center justify-center p-0.5">
             {day ? (
@@ -198,7 +208,7 @@ export default function DatePicker({
         type="button"
         onClick={() => { if (!disabled) setOpen(p => !p) }}
         disabled={disabled}
-        className={`flex min-h-12 w-full items-center gap-3 border-2 px-4 py-3 text-left text-sm outline-none transition-colors focus-visible:border-brand ${
+        className={`no-press flex min-h-12 w-full items-center gap-3 border-2 px-4 py-3 text-left text-sm outline-none transition-colors focus-visible:border-brand ${
           disabled
             ? 'cursor-not-allowed border-zinc-300 bg-gray-100 text-text-muted'
             : open
@@ -212,7 +222,7 @@ export default function DatePicker({
         </span>
       </button>
 
-      {open && !disabled ? calendarContent : null}
+      {popover.value ? calendarContent : null}
     </div>
   )
 }

@@ -14,7 +14,7 @@ export default function StandingsTable({ players }: { players: Player[] }) {
   const sorted = [...players].sort((a, b) => b.points - a.points)
 
   return (
-    <ol className="space-y-2 sm:space-y-3" aria-label="Standings">
+    <ol className="stagger space-y-2 sm:space-y-3" aria-label="Standings">
       {sorted.map((player, index) => (
         <li
           key={player.username}

@@ -7,6 +7,7 @@ import DatePicker from '@/app/components/DatePicker'
 import { Plus, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { usePresence } from '@/app/components/motion/usePresence'
 
 type ModalMode = 'create' | 'join' | null
 
@@ -232,7 +233,9 @@ export default function RoomActions() {
     })
   }
 
-  const copy = mode ? modalCopy[mode] : null
+  // Keep the modal mounted for its exit animation after `mode` clears.
+  const { value: shownMode, isClosing } = usePresence(mode)
+  const copy = shownMode ? modalCopy[shownMode] : null
 
   return (
     <>
@@ -240,14 +243,14 @@ export default function RoomActions() {
       <div className="mb-4 flex flex-col gap-3 sm:col-span-2 sm:flex-row lg:hidden">
         <button
           type="button"
-          className="min-h-12 w-full border-2 border-zinc-300 bg-white px-4 py-3 font-bold uppercase tracking-wide text-text-main transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand active:bg-brand-tint sm:w-[220px]"
+          className="press-soft min-h-12 w-full border-2 border-zinc-300 bg-white px-4 py-3 font-bold uppercase tracking-wide text-text-main transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand active:bg-brand-tint sm:w-[220px]"
           onClick={() => openModal('create')}
         >
           Create a room
         </button>
         <button
           type="button"
-          className="min-h-12 w-full border-2 border-brand bg-brand px-4 py-3 font-bold uppercase tracking-wide text-white transition-colors hover:bg-brand-hover hover:border-brand-hover active:bg-brand-hover sm:w-[220px]"
+          className="press-soft min-h-12 w-full border-2 border-brand bg-brand px-4 py-3 font-bold uppercase tracking-wide text-white transition-colors hover:bg-brand-hover hover:border-brand-hover active:bg-brand-hover sm:w-[220px]"
           onClick={() => openModal('join')}
         >
           Join a room
@@ -294,13 +297,13 @@ export default function RoomActions() {
         </div>
       </div>
 
-      {mode && copy ? (
-        <div className="animate-overlay-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6">
+      {shownMode && copy ? (
+        <div className={`no-stagger fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6 ${isClosing ? 'animate-overlay-out' : 'animate-overlay-in'}`}>
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="room-modal-title"
-            className="animate-dialog-in max-h-full w-full max-w-md overflow-y-auto border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 sm:p-6"
+            className={`${isClosing ? 'animate-dialog-out' : 'animate-dialog-in'} max-h-full w-full max-w-md overflow-y-auto border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 sm:p-6`}
           >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
@@ -329,11 +332,11 @@ export default function RoomActions() {
                 placeholder={copy.placeholder}
                 className="min-h-12 w-full border-2 border-zinc-300 bg-white px-4 py-3 text-base text-text-main outline-none transition-colors placeholder:text-zinc-500 focus:border-brand disabled:bg-zinc-100"
                 disabled={isPending}
-                maxLength={mode === 'create' ? 60 : 32}
+                maxLength={shownMode === 'create' ? 60 : 32}
                 autoFocus
               />
 
-              {mode === 'create' ? (
+              {shownMode === 'create' ? (
                 <>
                   <label className="block pt-3 text-sm font-semibold text-text-main" htmlFor="room-modal-event">
                     Event
@@ -379,19 +382,24 @@ export default function RoomActions() {
                     </div>
                   </div>
 
-                  {endMode === 'set_end_date' ? (
-                    <DatePicker
-                      value={roomEndAt}
-                      onChange={setRoomEndAt}
-                      disabled={isPending}
-                      inline
-                    />
-                  ) : null}
+                  {/* The calendar slides open below the toggle instead of popping in. */}
+                  <div className="collapsible" data-open={endMode === 'set_end_date'}>
+                    <div>
+                      <div className="pt-3">
+                        <DatePicker
+                          value={roomEndAt}
+                          onChange={setRoomEndAt}
+                          disabled={isPending}
+                          inline
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </>
               ) : null}
             </div>
 
-            {error ? <p role="alert" className="mt-3 text-sm font-medium text-danger">{error}</p> : null}
+            {error ? <p role="alert" className="animate-message-in mt-3 text-sm font-medium text-danger">{error}</p> : null}
 
             <div className="mt-6 flex justify-end gap-3">
               <button type="button" className="btn-base btn-light rounded-none" onClick={closeModal} disabled={isPending}>

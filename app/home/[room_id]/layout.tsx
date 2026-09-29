@@ -46,7 +46,7 @@ export default async function RoomLayout({
         <Link
           href="/home"
           aria-label="Back to rooms"
-          className="-ml-2 inline-flex h-11 w-11 items-center justify-center text-text-main transition-colors hover:text-brand"
+          className="press -ml-2 inline-flex h-11 w-11 items-center justify-center text-text-main transition-colors hover:text-brand"
         >
           <ArrowLeft size={24} aria-hidden="true" />
         </Link>
@@ -58,7 +58,7 @@ export default async function RoomLayout({
             href="/home"
             aria-label="Back to rooms"
             title="Back to rooms"
-            className="mb-4 inline-flex h-12 w-12 items-center justify-center text-text-main transition-colors hover:text-brand"
+            className="press mb-4 inline-flex h-12 w-12 items-center justify-center text-text-main transition-colors hover:text-brand"
           >
             <ArrowLeft size={28} aria-hidden="true" />
           </Link>

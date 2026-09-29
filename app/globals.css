@@ -4,8 +4,18 @@
   --background: #ECEFF1;
   --foreground: #171717;
 
-  /* Motion: one easing family for the whole product (exponential ease-out). */
+  /*
+   * Motion tokens (see the Motion system section at the end of this file).
+   * One easing family: exponential ease-out for arrivals and state changes,
+   * a quick ease-in for exits. UI feedback never runs longer than 300ms.
+   */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-quart: cubic-bezier(0.5, 0, 0.75, 0);
+  --dur-press: 90ms;
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+  --dur-enter: 280ms;
+  --stagger: 40ms;
 }
 
 *,
@@ -32,6 +42,11 @@ body {
 }
 
 @theme {
+  /* Every `transition-*` utility uses the product's easing and base speed. */
+  --default-transition-duration: 150ms;
+  --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
   --color-bg-page: #F5F6F8;
   --color-bg-hover: #F3F4F6;
   --color-bg-surface: #FFFFFF;
@@ -168,14 +183,68 @@ body {
   }
 }
 
-/*
- * Motion. Short, exponential ease-out entrances for overlays only; the
- * product loads straight into the task. Under reduced motion the overlays
- * still appear (opacity only), they just do not travel.
- */
+/* ==========================================================================
+ * Motion system
+ *
+ * One easing family and four durations (tokens in :root):
+ *   --ease-out-expo  arrivals and state changes (confident deceleration)
+ *   --ease-in-quart  exits (leave quickly, do not compete for attention)
+ *   --dur-press   90ms   press-down feedback
+ *   --dur-fast   150ms   colour/hover, release, every exit
+ *   --dur-base   220ms   state changes: expand/collapse, tabs, reorder, dialogs
+ *   --dur-enter  280ms   cards and lists arriving (+ --stagger per item)
+ *
+ * Rules: animate transform/opacity; grid-template-rows only for collapse;
+ * nothing loops except live/loading indicators; no overshoot. Enter
+ * animations only run when an element mounts, so router.refresh() and the
+ * 30s status poll (same keys, same DOM) never replay them.
+ * ========================================================================== */
+
+/* --- Press feedback -------------------------------------------------------
+ * Every button (and any link styled as one via .press) sinks slightly and
+ * darkens while held. Specificity (0,2,0) so it wins over single
+ * `transition-colors` utilities and adds scale/filter to their property list.
+ * Row-like controls (menu items, list options, full-width toggles) opt out
+ * with .no-press and keep their colour-only feedback. */
+@layer utilities {
+  :is(button, .press):not(.no-press) {
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color,
+      fill, stroke, box-shadow, opacity, filter, scale, translate;
+    transition-duration: var(--dur-fast);
+    transition-timing-function: var(--ease-out-expo);
+  }
+
+  :is(button, .press):not(.no-press, :disabled, [aria-disabled="true"]):active {
+    scale: var(--press-scale, 0.97);
+    filter: brightness(0.94);
+    transition-duration: var(--dur-press);
+  }
+
+  /* Large surfaces (cards, full-width buttons) move less. */
+  .press-soft {
+    --press-scale: 0.985;
+  }
+}
+
+/* --- Keyframes ------------------------------------------------------------ */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 @keyframes overlay-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
 }
 
 @keyframes dialog-in {
@@ -183,9 +252,19 @@ body {
   to { opacity: 1; transform: none; }
 }
 
+@keyframes dialog-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(4px) scale(0.985); }
+}
+
 @keyframes sheet-in {
   from { transform: translateY(24px); opacity: 0; }
   to { transform: none; opacity: 1; }
+}
+
+@keyframes sheet-out {
+  from { transform: none; opacity: 1; }
+  to { transform: translateY(24px); opacity: 0; }
 }
 
 @keyframes pop-in {
@@ -193,32 +272,255 @@ body {
   to { opacity: 1; transform: none; }
 }
 
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes pop-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-4px); }
 }
 
+/* Score digits: the new value slides in from the direction of the change. */
+@keyframes tick-up {
+  from { opacity: 0; transform: translateY(45%); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes tick-down {
+  from { opacity: 0; transform: translateY(-45%); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Calendar month change: the new month arrives from the side it lies on. */
+@keyframes month-next {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes month-prev {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes check-in {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: none; }
+}
+
+/* --- Entrances and exits -------------------------------------------------- */
 @utility animate-overlay-in {
-  animation: overlay-in 160ms ease-out both;
+  animation: overlay-in var(--dur-fast) ease-out both;
+}
+
+@utility animate-overlay-out {
+  animation: fade-out var(--dur-fast) var(--ease-in-quart) both;
+  pointer-events: none;
 }
 
 @utility animate-dialog-in {
-  animation: dialog-in 220ms var(--ease-out-expo) both;
+  animation: dialog-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+@utility animate-dialog-out {
+  animation: dialog-out var(--dur-fast) var(--ease-in-quart) both;
+  pointer-events: none;
 }
 
 @utility animate-sheet-in {
   animation: sheet-in 260ms var(--ease-out-expo) both;
 }
 
+@utility animate-sheet-out {
+  animation: sheet-out var(--dur-fast) var(--ease-in-quart) both;
+  pointer-events: none;
+}
+
 @utility animate-pop-in {
   animation: pop-in 140ms var(--ease-out-expo) both;
 }
 
+@utility animate-pop-out {
+  animation: pop-out 120ms var(--ease-in-quart) both;
+  pointer-events: none;
+}
+
+/* Cards and single blocks arriving. */
+@utility animate-enter {
+  animation: rise-in var(--dur-enter) var(--ease-out-expo) both;
+}
+
+/* Small inline messages (errors, "saved"). */
+@utility animate-message-in {
+  animation: pop-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+@utility animate-tick-up {
+  animation: tick-up var(--dur-base) var(--ease-out-expo) both;
+}
+
+@utility animate-tick-down {
+  animation: tick-down var(--dur-base) var(--ease-out-expo) both;
+}
+
+@utility animate-month-next {
+  animation: month-next var(--dur-base) var(--ease-out-expo) both;
+}
+
+@utility animate-month-prev {
+  animation: month-prev var(--dur-base) var(--ease-out-expo) both;
+}
+
+@utility animate-check-in {
+  animation: check-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+/*
+ * Light stagger for lists that arrive as a list: every direct child rises in,
+ * --stagger (40ms) apart, capped at the 8th item (total delay <= 280ms).
+ * Overlays rendered inside a staggered container opt out with .no-stagger.
+ */
+@utility stagger {
+  & > :not(.no-stagger) {
+    animation: rise-in var(--dur-enter) var(--ease-out-expo) both;
+    animation-delay: calc(var(--stagger-i, 7) * var(--stagger));
+  }
+  & > :nth-child(1) { --stagger-i: 0; }
+  & > :nth-child(2) { --stagger-i: 1; }
+  & > :nth-child(3) { --stagger-i: 2; }
+  & > :nth-child(4) { --stagger-i: 3; }
+  & > :nth-child(5) { --stagger-i: 4; }
+  & > :nth-child(6) { --stagger-i: 5; }
+  & > :nth-child(7) { --stagger-i: 6; }
+}
+
+/*
+ * Skeletons fade in after a short delay, so a fast load never flashes a
+ * skeleton at all; a slow one eases in instead of blinking.
+ */
+@utility animate-skeleton-in {
+  animation: fade-in var(--dur-base) ease-out 120ms both;
+}
+
+/* --- Expand / collapse ----------------------------------------------------
+ * .collapsible wraps a single child. Rows animate 0fr <-> 1fr, the content fades
+ * with it, and visibility flips after the close so hidden content leaves the
+ * tab order and the accessibility tree. */
+@utility collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--dur-base) var(--ease-out-expo),
+    opacity var(--dur-fast) var(--ease-in-quart),
+    visibility 0s linear var(--dur-base);
+
+  &[data-open="true"] {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    opacity: 1;
+    transition:
+      grid-template-rows var(--dur-base) var(--ease-out-expo),
+      opacity var(--dur-base) var(--ease-out-expo),
+      visibility 0s linear 0s;
+  }
+
+  & > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+/* --- Sliding tab indicator ------------------------------------------------ */
+@utility indicator-slide {
+  transition:
+    transform var(--dur-base) var(--ease-out-expo),
+    opacity var(--dur-fast) ease-out;
+}
+
+/* --- View transitions (skeleton -> content crossfade) ---------------------
+ * Loading skeletons are wrapped in <ViewTransition exit="skeleton-out">; when
+ * the page resolves, the skeleton snapshot fades out over the live content,
+ * which rises in with its own .animate-enter / .stagger. */
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-old(.skeleton-out) {
+  animation: fade-out var(--dur-fast) var(--ease-in-quart) both;
+}
+
+::view-transition-group(.skeleton-out) {
+  animation-duration: var(--dur-fast);
+}
+
+/* The fixed mobile tab bar stays on top and live (its indicator keeps sliding). */
+::view-transition-group(room-tabbar) {
+  z-index: 10;
+  animation: none;
+}
+
+::view-transition-old(room-tabbar) {
+  display: none;
+}
+
+::view-transition-new(room-tabbar) {
+  animation: none;
+}
+
+/* The rest of the page is unchanged during a handoff: swap it instantly. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+/* --- Reduced motion ---------------------------------------------------------
+ * No travel, no scaling: entrances and exits become short opacity fades,
+ * staggers collapse to zero, presses keep only their colour change, and
+ * state changes (collapse, tabs) switch instantly. */
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    --stagger: 0ms;
+  }
+
+  .animate-enter,
   .animate-dialog-in,
   .animate-sheet-in,
-  .animate-pop-in {
+  .animate-pop-in,
+  .animate-message-in,
+  .animate-tick-up,
+  .animate-tick-down,
+  .animate-check-in,
+  .animate-month-next,
+  .animate-month-prev,
+  .stagger > :not(.no-stagger) {
     animation-name: fade-in;
     animation-duration: 120ms;
+    animation-delay: 0ms;
+  }
+
+  .animate-dialog-out,
+  .animate-sheet-out,
+  .animate-pop-out {
+    animation-name: fade-out;
+    animation-duration: 100ms;
+  }
+
+  :is(button, .press):not(.no-press, :disabled, [aria-disabled="true"]):active {
+    scale: none;
+  }
+
+  .collapsible,
+  .collapsible[data-open="true"] {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+
+  .indicator-slide {
+    transition-property: opacity;
+  }
+
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 120ms !important;
+    animation-delay: 0s !important;
   }
 }

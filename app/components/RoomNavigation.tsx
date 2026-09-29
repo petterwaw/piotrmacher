@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Ticket, Clock, Trophy, BookOpen, Settings, Trash2, LogOut, Share2, Copy, Check, ListOrdered } from 'lucide-react'
 import { useState, useTransition } from 'react'
+import { usePresence } from '@/app/components/motion/usePresence'
 
 const tabIcons: Record<string, React.ElementType> = {
   Bets: Ticket,
@@ -16,9 +17,14 @@ const tabIcons: Record<string, React.ElementType> = {
 
 type ActionType = 'delete' | 'leave' | null
 
-// Shared shape for every item in the mobile bottom tab bar. The ::before bar marks the current tab.
+// Shared shape for every item in the mobile bottom tab bar. A single sliding
+// bar (see the indicator in the mobile nav) marks the current tab.
 const MOBILE_TAB =
-  'relative flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 pb-1.5 pt-2 text-[10px] leading-none transition-colors min-[400px]:text-[11px] before:absolute before:inset-x-2 before:top-0 before:h-0.5'
+  'press relative flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 pb-1.5 pt-2 text-[10px] leading-none transition-colors min-[400px]:text-[11px]'
+
+// Desktop sidebar rows are exactly 40px tall with a 4px gap; the highlight
+// slides by that pitch.
+const DESKTOP_ROW_PITCH_PX = 44
 
 export default function RoomNavigation({
   roomId,
@@ -41,6 +47,9 @@ export default function RoomNavigation({
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [copied, setCopied] = useState(false)
   const [isPending, startTransition] = useTransition()
+  // Keep dialogs mounted while they play their exit animation.
+  const invitePresence = usePresence(showInviteModal)
+  const confirmPresence = usePresence(confirmAction)
 
   const handleCopyInviteCode = () => {
     if (inviteCode) {
@@ -79,6 +88,9 @@ export default function RoomNavigation({
     }
     return pathname.startsWith(href)
   }
+
+  const activeIndex = tabs.findIndex((tab) => isActive(tab.href, tab.exact))
+  const mobileItemCount = tabs.length + (isHost && inviteCode ? 1 : 0) + 1
 
   const handleAction = (action: ActionType) => {
     if (action === 'delete') {
@@ -123,9 +135,9 @@ export default function RoomNavigation({
   return (
     <>
       {/* Invite Code Modal */}
-      {showInviteModal && (
-        <div className="animate-overlay-in fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4 pointer-events-auto">
-          <div role="dialog" aria-modal="true" aria-labelledby="invite-dialog-title" className="animate-dialog-in w-full max-w-sm border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 pointer-events-auto">
+      {invitePresence.value && (
+        <div className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4 ${invitePresence.isClosing ? 'animate-overlay-out' : 'animate-overlay-in pointer-events-auto'}`}>
+          <div role="dialog" aria-modal="true" aria-labelledby="invite-dialog-title" className={`w-full max-w-sm border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 ${invitePresence.isClosing ? 'animate-dialog-out' : 'animate-dialog-in pointer-events-auto'}`}>
             <h3 id="invite-dialog-title" className="mb-2 text-sm font-bold uppercase tracking-wide text-text-main">
               Invite code
             </h3>
@@ -167,15 +179,16 @@ export default function RoomNavigation({
       )}
 
       {/* Confirm Action Modal */}
-      {confirmAction && (() => {
+      {confirmPresence.value && (() => {
+        const shownAction = confirmPresence.value
         const actionLabel = isHost ? 'Delete room' : 'Leave room'
         const confirmMessage = isHost
           ? 'Are you sure you want to delete this room? This action cannot be undone.'
           : 'Are you sure you want to leave this room?'
 
         return (
-          <div className="animate-overlay-in fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4 pointer-events-auto">
-            <div role="alertdialog" aria-modal="true" aria-labelledby="room-action-title" aria-describedby="room-action-desc" className="animate-dialog-in w-full max-w-sm border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 pointer-events-auto">
+          <div className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4 ${confirmPresence.isClosing ? 'animate-overlay-out' : 'animate-overlay-in pointer-events-auto'}`}>
+            <div role="alertdialog" aria-modal="true" aria-labelledby="room-action-title" aria-describedby="room-action-desc" className={`w-full max-w-sm border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 ${confirmPresence.isClosing ? 'animate-dialog-out' : 'animate-dialog-in pointer-events-auto'}`}>
               <h3 id="room-action-title" className="mb-2 text-sm font-bold uppercase tracking-wide text-text-main">
                 {actionLabel}
               </h3>
@@ -191,7 +204,7 @@ export default function RoomNavigation({
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleAction(confirmAction)}
+                  onClick={() => handleAction(shownAction)}
                   disabled={isPending}
                   className={`min-h-11 flex-1 border-2 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white transition-colors disabled:opacity-50 ${
                     isHost
@@ -209,15 +222,21 @@ export default function RoomNavigation({
 
       {/* Desktop sidebar nav */}
       <nav aria-label="Room" className="mb-6 hidden md:block">
-        <div className="flex w-full flex-col gap-1">
+        <div className="relative flex w-full flex-col gap-1">
+          {/* Current-page highlight: one surface that slides between rows. */}
+          <div
+            aria-hidden="true"
+            className={`indicator-slide pointer-events-none absolute inset-x-0 top-0 h-10 bg-white shadow-sm ${activeIndex < 0 ? 'opacity-0' : 'opacity-100'}`}
+            style={{ transform: `translateY(${Math.max(activeIndex, 0) * DESKTOP_ROW_PITCH_PX}px)` }}
+          />
           {tabs.map((tab) => (
             <Link
               key={tab.href}
               href={tab.href}
               aria-current={isActive(tab.href, tab.exact) ? 'page' : undefined}
-              className={`flex min-h-10 items-center px-3 py-2 text-left text-sm transition-colors ${
+              className={`press relative flex min-h-10 items-center px-3 py-2 text-left text-sm transition-colors ${
                 isActive(tab.href, tab.exact)
-                  ? 'bg-white font-bold text-brand shadow-sm'
+                  ? 'font-bold text-brand'
                   : 'font-medium text-zinc-700 hover:bg-white/60 hover:text-text-main'
               }`}
             >
@@ -258,7 +277,24 @@ export default function RoomNavigation({
       </nav>
 
       {/* Mobile bottom nav */}
-      <nav aria-label="Room" className="fixed bottom-0 left-0 right-0 z-50 flex border-t-2 border-zinc-300 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav
+        aria-label="Room"
+        // Own view-transition layer: the tab bar stays above (and unaffected by)
+        // skeleton -> content crossfades. Only one copy is ever rendered.
+        style={{ viewTransitionName: 'room-tabbar' }}
+        className="fixed bottom-0 left-0 right-0 z-50 flex border-t-2 border-zinc-300 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      >
+        {/* Current-tab bar: slides between the equal-width items. */}
+        <div
+          aria-hidden="true"
+          className={`indicator-slide pointer-events-none absolute left-0 top-0 ${activeIndex < 0 ? 'opacity-0' : 'opacity-100'}`}
+          style={{
+            width: `${100 / mobileItemCount}%`,
+            transform: `translateX(${Math.max(activeIndex, 0) * 100}%)`,
+          }}
+        >
+          <div className="mx-2 h-0.5 bg-brand" />
+        </div>
         {tabs.map((tab) => {
           const Icon = tabIcons[tab.label]
           const active = isActive(tab.href, tab.exact)
@@ -268,7 +304,7 @@ export default function RoomNavigation({
               href={tab.href}
               aria-current={active ? 'page' : undefined}
               className={`${MOBILE_TAB} ${
-                active ? 'font-bold text-brand before:bg-brand' : 'font-semibold text-zinc-600 before:bg-transparent active:bg-zinc-100'
+                active ? 'font-bold text-brand' : 'font-semibold text-zinc-600 active:bg-zinc-100'
               }`}
             >
               <Icon size={20} strokeWidth={active ? 2.5 : 2} aria-hidden="true" />
@@ -282,7 +318,7 @@ export default function RoomNavigation({
           <button
             type="button"
             onClick={() => setShowInviteModal(true)}
-            className={`${MOBILE_TAB} font-semibold text-brand before:bg-transparent active:bg-brand-tint`}
+            className={`${MOBILE_TAB} font-semibold text-brand active:bg-brand-tint`}
           >
             <Share2 size={20} aria-hidden="true" />
             <span className="max-w-full truncate">Invite</span>
@@ -294,7 +330,7 @@ export default function RoomNavigation({
           type="button"
           onClick={() => setConfirmAction(isHost ? 'delete' : 'leave')}
           disabled={isPending}
-          className={`${MOBILE_TAB} font-semibold before:bg-transparent disabled:opacity-50 ${
+          className={`${MOBILE_TAB} font-semibold disabled:opacity-50 ${
             isHost
               ? 'text-red-700 active:bg-red-50'
               : 'text-zinc-600 active:bg-zinc-100'

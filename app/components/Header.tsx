@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { X } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState, useTransition, Suspense } from 'react'
+import { usePresence } from '@/app/components/motion/usePresence'
 
 type User = {
   id: string
@@ -59,6 +60,9 @@ export default function Header() {
   const [authMessage, setAuthMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const logoHref = user ? '/home' : '/'
+  // Overlays stay mounted for their exit animation.
+  const authPresence = usePresence(showAuthModal)
+  const menuPresence = usePresence(showMobileUserMenu)
 
   useEffect(() => {
     const checkUser = async () => {
@@ -249,12 +253,12 @@ export default function Header() {
                   <div className="h-10 w-24 bg-zinc-200/80 motion-safe:animate-pulse" />
                 </div>
               ) : user ? (
-                <>
+                <div className="animate-overlay-in flex items-center gap-2">
                   <Link
                     href="/profile"
                     aria-label="Account"
                     title="Account"
-                    className="inline-flex h-10 w-10 items-center justify-center border border-gray-300 bg-white transition-colors hover:border-brand hover:bg-brand-tint"
+                    className="press inline-flex h-10 w-10 items-center justify-center border border-gray-300 bg-white transition-colors hover:border-brand hover:bg-brand-tint"
                   >
                     <UserIcon />
                   </Link>
@@ -263,9 +267,9 @@ export default function Header() {
                       Logout
                     </button>
                   </form>
-                </>
+                </div>
               ) : (
-                <>
+                <div className="animate-overlay-in flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => openAuthModal('signup')}
@@ -280,7 +284,7 @@ export default function Header() {
                   >
                     Sign in
                   </button>
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -310,13 +314,13 @@ export default function Header() {
                   <UserIcon />
                 </button>
 
-                {showMobileUserMenu ? (
-                  <div role="menu" className="animate-pop-in absolute right-0 top-[calc(100%+6px)] z-20 w-48 border-2 border-zinc-300 bg-white shadow-lg shadow-black/10">
+                {menuPresence.value ? (
+                  <div role="menu" className={`${menuPresence.isClosing ? 'animate-pop-out' : 'animate-pop-in'} absolute right-0 top-[calc(100%+6px)] z-20 w-48 border-2 border-zinc-300 bg-white shadow-lg shadow-black/10`}>
                     <Link
                       href="/profile"
                       role="menuitem"
                       onClick={() => setShowMobileUserMenu(false)}
-                      className="flex min-h-12 items-center px-4 text-sm font-semibold text-text-main transition-colors hover:bg-zinc-50 active:bg-zinc-100"
+                      className="no-press flex min-h-12 items-center px-4 text-sm font-semibold text-text-main transition-colors hover:bg-zinc-50 active:bg-zinc-100"
                     >
                       Account
                     </Link>
@@ -324,7 +328,7 @@ export default function Header() {
                       <button
                         type="submit"
                         role="menuitem"
-                        className="flex min-h-12 w-full items-center px-4 text-left text-sm font-semibold text-text-main transition-colors hover:bg-zinc-50 active:bg-zinc-100"
+                        className="no-press flex min-h-12 w-full items-center px-4 text-left text-sm font-semibold text-text-main transition-colors hover:bg-zinc-50 active:bg-zinc-100"
                       >
                         Logout
                       </button>
@@ -346,15 +350,15 @@ export default function Header() {
         </div>
       </header>
 
-      {showAuthModal ? (
-        <div className="animate-overlay-in fixed inset-0 z-[100] bg-black/50 md:flex md:items-center md:justify-center md:px-4">
+      {authPresence.value ? (
+        <div className={`fixed inset-0 z-[100] bg-black/50 md:flex md:items-center md:justify-center md:px-4 ${authPresence.isClosing ? 'animate-overlay-out' : 'animate-overlay-in'}`}>
           <div className="absolute inset-0" onClick={closeAuthModal} aria-hidden="true" />
 
           <div
             role="dialog"
             aria-modal="true"
             aria-label={authMode === 'signin' ? 'Sign in' : 'Register'}
-            className="animate-sheet-in md:animate-dialog-in fixed bottom-0 left-0 right-0 z-[101] max-h-[calc(100dvh-1rem)] overflow-y-auto border-t-2 border-zinc-300 bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl md:static md:w-full md:max-w-md md:border-2 md:p-6"
+            className={`${authPresence.isClosing ? 'animate-sheet-out md:animate-dialog-out' : 'animate-sheet-in md:animate-dialog-in'} fixed bottom-0 left-0 right-0 z-[101] max-h-[calc(100dvh-1rem)] overflow-y-auto border-t-2 border-zinc-300 bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl md:static md:w-full md:max-w-md md:border-2 md:p-6`}
           >
             <div className="mb-5 flex items-center justify-between gap-3">
               <p className="text-[40px] font-black italic leading-none tracking-tight text-brand-bright md:text-[44px]">PIOTRMACHER</p>
@@ -431,14 +435,14 @@ export default function Header() {
               />
             ) : null}
 
-            {authError ? <p role="alert" className="mb-2 text-sm font-medium text-danger">{authError}</p> : null}
-            {authMessage ? <p role="status" className="mb-2 text-sm font-medium text-brand">{authMessage}</p> : null}
+            {authError ? <p role="alert" className="animate-message-in mb-2 text-sm font-medium text-danger">{authError}</p> : null}
+            {authMessage ? <p role="status" className="animate-message-in mb-2 text-sm font-medium text-brand">{authMessage}</p> : null}
 
             <button
               type="button"
               onClick={submitAuth}
               disabled={isPending}
-              className="mt-2 min-h-12 w-full border border-brand bg-brand px-4 py-3 text-base font-semibold text-white transition-colors hover:bg-brand-hover hover:border-brand-hover disabled:opacity-60 disabled:hover:bg-brand"
+              className="press-soft mt-2 min-h-12 w-full border border-brand bg-brand px-4 py-3 text-base font-semibold text-white transition-colors hover:bg-brand-hover hover:border-brand-hover disabled:opacity-60 disabled:hover:bg-brand"
             >
               {isPending ? 'Please wait…' : authMode === 'signin' ? 'Sign in' : 'Create account'}
             </button>
@@ -451,7 +455,7 @@ export default function Header() {
 
             <a
               href="/api/auth/google?next=/home"
-              className="inline-flex min-h-12 w-full items-center justify-center border-2 border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-text-main transition-colors hover:bg-zinc-50 hover:border-brand"
+              className="press press-soft inline-flex min-h-12 w-full items-center justify-center border-2 border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-text-main transition-colors hover:bg-zinc-50 hover:border-brand"
             >
               <GoogleIcon />
               <span className="ml-2">Continue with Google</span>

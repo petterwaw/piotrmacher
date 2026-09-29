@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, ChevronDown, Minus, Pencil, Plus } from 'lucide-react'
+import { Check, ChevronDown, LoaderCircle, Minus, Pencil, Plus } from 'lucide-react'
+import TickNumber from '@/app/components/motion/TickNumber'
+import { useSmoothHeight } from '@/app/components/motion/useLayoutMotion'
 
 type MatchStatus = 'scheduled' | 'delayed' | 'live' | 'finished' | 'cancelled'
 
@@ -74,6 +76,14 @@ export default function ScorePredictionCard({
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [showBets, setShowBets] = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null)
+  // True once the user has toggled edit mode: from then on the swapped-in
+  // score / buttons fade in. Never true on first render or data refreshes.
+  const [hasToggled, setHasToggled] = useState(false)
+  const swapIn = hasToggled ? 'animate-message-in' : ''
+
+  // Score <-> steppers changes the card's height: glide instead of jumping.
+  useSmoothHeight(cardRef, isEditing)
 
   useEffect(() => {
     if (!saveMessage) {
@@ -110,12 +120,14 @@ export default function ScorePredictionCard({
     if (!canEdit) return
     setError(null)
     setSaveMessage(null)
+    setHasToggled(true)
     setIsEditing(true)
     setHomeScore(0)
     setAwayScore(0)
   }
 
   const cancelEditing = () => {
+    setHasToggled(true)
     setError(null)
     setSaveMessage(null)
     setIsEditing(false)
@@ -130,6 +142,7 @@ export default function ScorePredictionCard({
 
     // Optimistic update: show the new score immediately in the card.
     setSavedPrediction(optimisticPrediction)
+    setHasToggled(true)
     setIsEditing(false)
 
     startTransition(async () => {
@@ -168,9 +181,12 @@ export default function ScorePredictionCard({
     typeof match.liveScore?.away === 'number'
 
   const showPlayerPredictionInCenter = !isStarted && !isEditing && savedPrediction
+  // The transition stays pending through the follow-up refresh; once the save
+  // is confirmed, "Saved." takes over from "Saving…".
+  const isSaving = isPending && !saveMessage
 
   return (
-    <div className="border-2 border-zinc-300 bg-white/90 p-4 sm:p-5">
+    <div ref={cardRef} className="border-2 border-zinc-300 bg-white/90 p-4 sm:p-5">
       <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
         <div />
         <p className="text-center text-sm tabular-nums text-zinc-600">
@@ -208,19 +224,19 @@ export default function ScorePredictionCard({
 
         <div className="w-[24%] min-w-[112px] text-center">
           {!isEditing ? (
-            <div className="flex flex-col items-center">
+            <div key="score" className={`flex flex-col items-center ${swapIn}`}>
               <div className="text-4xl font-black leading-none tracking-tight tabular-nums text-text-main">
                 {showOfficialScore ? (
                   <span>
-                    {match.liveScore?.home}
+                    <TickNumber value={match.liveScore?.home ?? 0} />
                     <span className="mx-1.5 text-zinc-400">:</span>
-                    {match.liveScore?.away}
+                    <TickNumber value={match.liveScore?.away ?? 0} />
                   </span>
                 ) : showPlayerPredictionInCenter ? (
                   <span>
-                    {savedPrediction.home}
+                    <TickNumber value={savedPrediction.home} />
                     <span className="mx-1.5 text-zinc-400">:</span>
-                    {savedPrediction.away}
+                    <TickNumber value={savedPrediction.away} />
                   </span>
                 ) : (
                   <span className="text-zinc-300" aria-label="No score yet">
@@ -233,7 +249,7 @@ export default function ScorePredictionCard({
               ) : null}
             </div>
           ) : (
-            <div className="grid grid-cols-[40px_auto_40px] items-center justify-center gap-2">
+            <div key="steppers" className="animate-message-in grid grid-cols-[40px_auto_40px] items-center justify-center gap-2">
               <div className="flex flex-col items-center gap-1.5">
                 <button
                   type="button"
@@ -244,7 +260,7 @@ export default function ScorePredictionCard({
                 >
                   <Plus size={18} strokeWidth={3} aria-hidden="true" />
                 </button>
-                <span aria-live="polite" className="w-10 text-center text-3xl font-black leading-none tabular-nums text-text-main">{homeScore}</span>
+                <span aria-live="polite" className="w-10 overflow-hidden text-center text-3xl font-black leading-none tabular-nums text-text-main"><TickNumber value={homeScore} /></span>
                 <button
                   type="button"
                   aria-label={`Decrease ${match.homeTeam} score`}
@@ -268,7 +284,7 @@ export default function ScorePredictionCard({
                 >
                   <Plus size={18} strokeWidth={3} aria-hidden="true" />
                 </button>
-                <span aria-live="polite" className="w-10 text-center text-3xl font-black leading-none tabular-nums text-text-main">{awayScore}</span>
+                <span aria-live="polite" className="w-10 overflow-hidden text-center text-3xl font-black leading-none tabular-nums text-text-main"><TickNumber value={awayScore} /></span>
                 <button
                   type="button"
                   aria-label={`Decrease ${match.awayTeam} score`}
@@ -293,23 +309,37 @@ export default function ScorePredictionCard({
         </div>
       </div>
 
-      {error ? <p role="alert" className="mt-3 text-center text-sm font-medium text-danger">{error}</p> : null}
+      {error ? <p role="alert" className="animate-message-in mt-3 text-center text-sm font-medium text-danger">{error}</p> : null}
 
       {canEdit ? (
         <div className="mt-4 flex items-center justify-between gap-3 border-t border-zinc-200 pt-4">
-          <span
-            aria-live="polite"
-            className={`inline-flex min-w-[56px] items-center gap-1 text-sm font-semibold text-brand transition-opacity duration-300 ${saveMessage ? 'opacity-100' : 'opacity-0'}`}
-          >
-            <Check size={16} strokeWidth={3} aria-hidden="true" />
-            {saveMessage ?? 'Saved.'}
+          {/* Save status: "Saving…" while the request runs, then "Saved." with a
+              check. Both sit in one grid cell so they crossfade without shifting. */}
+          <span aria-live="polite" className="grid min-w-[80px] text-sm font-semibold">
+            <span
+              className={`col-start-1 row-start-1 inline-flex items-center gap-1.5 text-zinc-600 transition-[opacity,translate] duration-150 ${
+                isSaving ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-1 opacity-0'
+              }`}
+            >
+              <LoaderCircle size={15} strokeWidth={2.5} aria-hidden="true" className="motion-safe:animate-spin" />
+              {isSaving ? 'Saving…' : null}
+            </span>
+            <span
+              className={`col-start-1 row-start-1 inline-flex items-center gap-1 text-brand transition-[opacity,translate] duration-[220ms] ${
+                saveMessage ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-1 opacity-0'
+              }`}
+            >
+              <Check key={saveMessage ?? 'idle'} size={16} strokeWidth={3} aria-hidden="true" className={saveMessage ? 'animate-check-in' : ''} />
+              {saveMessage ?? 'Saved.'}
+            </span>
           </span>
 
           <div className="flex items-center justify-end gap-2 sm:gap-3">
             {!isEditing ? (
               <button
+                key="edit"
                 type="button"
-                className={SECONDARY_ACTION}
+                className={`${SECONDARY_ACTION} ${swapIn}`}
                 onClick={startEditing}
                 disabled={isPending}
               >
@@ -319,16 +349,18 @@ export default function ScorePredictionCard({
             ) : (
               <>
                 <button
+                  key="cancel"
                   type="button"
-                  className={SECONDARY_ACTION}
+                  className={`${SECONDARY_ACTION} animate-message-in`}
                   onClick={cancelEditing}
                   disabled={isPending}
                 >
                   Cancel
                 </button>
                 <button
+                  key="save"
                   type="button"
-                  className="inline-flex min-h-11 items-center justify-center border-2 border-brand bg-brand px-5 py-2 text-sm font-semibold text-white transition-colors hover:border-brand-hover hover:bg-brand-hover active:bg-brand-hover disabled:opacity-60"
+                  className="animate-message-in inline-flex min-h-11 items-center justify-center gap-2 border-2 border-brand bg-brand px-5 py-2 text-sm font-semibold text-white transition-colors hover:border-brand-hover hover:bg-brand-hover active:bg-brand-hover disabled:opacity-60"
                   onClick={handleSave}
                   disabled={isPending}
                 >
@@ -347,7 +379,7 @@ export default function ScorePredictionCard({
             type="button"
             onClick={() => setShowBets((prev) => !prev)}
             aria-expanded={showBets}
-            className="flex min-h-11 w-full items-center justify-between gap-2 pt-1 text-sm font-semibold text-zinc-700 transition-colors hover:text-text-main"
+            className="no-press flex min-h-11 w-full items-center justify-between gap-2 pt-1 text-sm font-semibold text-zinc-700 transition-colors hover:text-text-main active:text-brand"
           >
             <span>
               Players bets <span className="tabular-nums text-zinc-500">({livePredictions.length})</span>
@@ -355,11 +387,11 @@ export default function ScorePredictionCard({
             <ChevronDown
               size={18}
               aria-hidden="true"
-              className={`text-zinc-500 transition-transform duration-200 ${showBets ? 'rotate-180' : ''}`}
+              className={`text-zinc-500 transition-transform duration-[220ms] ${showBets ? 'rotate-180' : ''}`}
             />
           </button>
-          {showBets ? (
-            <ul className="animate-pop-in divide-y divide-zinc-100">
+          <div className="collapsible" data-open={showBets}>
+            <ul className="divide-y divide-zinc-100">
               {livePredictions.map((item) => (
                 <li key={`${item.username}-${item.homeScore}-${item.awayScore}`} className="flex items-center justify-between gap-3 py-2 text-sm text-text-main">
                   <span className="min-w-0 truncate">{item.username}</span>
@@ -372,7 +404,7 @@ export default function ScorePredictionCard({
                 </li>
               ))}
             </ul>
-          ) : null}
+          </div>
         </div>
       ) : null}
     </div>
