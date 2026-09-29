@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { usePresence } from '@/app/components/motion/usePresence'
 
 type SortOption = 'newest' | 'oldest'
 type StatusFilter = 'all' | 'waiting' | 'active' | 'finished'
@@ -52,6 +53,9 @@ export function applyFilters(rooms: RoomCardProps[], sort: SortOption, status: S
 export default function RoomFilters({ sort, status, onSortChange, onStatusChange, className }: RoomFiltersProps) {
   const [sortOpen, setSortOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
+  // Menus stay mounted for their exit animation.
+  const sortMenu = usePresence(sortOpen)
+  const statusMenu = usePresence(statusOpen)
 
   const statusMap: Record<StatusFilter, string> = {
     all: 'All Statuses',
@@ -89,15 +93,15 @@ export default function RoomFilters({ sort, status, onSortChange, onStatusChange
           <ChevronDown size={14} aria-hidden="true" className={`ml-1.5 transition-transform duration-200 ${statusOpen ? 'rotate-180' : ''}`} />
         </button>
 
-        {statusOpen && (
-          <div role="listbox" className="animate-pop-in absolute right-0 top-full z-30 mt-1 min-w-max border-2 border-zinc-300 bg-white shadow-lg shadow-black/10">
+        {statusMenu.value && (
+          <div role="listbox" className={`${statusMenu.isClosing ? 'animate-pop-out' : 'animate-pop-in'} absolute right-0 top-full z-30 mt-1 min-w-max border-2 border-zinc-300 bg-white shadow-lg shadow-black/10`}>
             {(Object.keys(statusMap) as StatusFilter[]).map((key) => (
               <button
                 key={key}
                 onClick={() => handleStatusChange(key)}
                 role="option"
                 aria-selected={status === key}
-                className={`flex min-h-11 w-full items-center px-4 py-2 text-left text-sm font-semibold uppercase tracking-wide transition-colors ${
+                className={`no-press flex min-h-11 w-full items-center px-4 py-2 text-left text-sm font-semibold uppercase tracking-wide transition-colors ${
                   status === key
                     ? 'bg-brand text-white'
                     : 'text-text-main hover:bg-brand-tint hover:text-brand'
@@ -122,15 +126,15 @@ export default function RoomFilters({ sort, status, onSortChange, onStatusChange
           <ChevronDown size={14} aria-hidden="true" className={`ml-1.5 transition-transform duration-200 ${sortOpen ? 'rotate-180' : ''}`} />
         </button>
 
-        {sortOpen && (
-          <div role="listbox" className="animate-pop-in absolute right-0 top-full z-30 mt-1 min-w-max border-2 border-zinc-300 bg-white shadow-lg shadow-black/10">
+        {sortMenu.value && (
+          <div role="listbox" className={`${sortMenu.isClosing ? 'animate-pop-out' : 'animate-pop-in'} absolute right-0 top-full z-30 mt-1 min-w-max border-2 border-zinc-300 bg-white shadow-lg shadow-black/10`}>
             {(Object.keys(sortMap) as SortOption[]).map((key) => (
               <button
                 key={key}
                 onClick={() => handleSortChange(key)}
                 role="option"
                 aria-selected={sort === key}
-                className={`flex min-h-11 w-full items-center px-4 py-2 text-left text-sm font-semibold uppercase tracking-wide transition-colors ${
+                className={`no-press flex min-h-11 w-full items-center px-4 py-2 text-left text-sm font-semibold uppercase tracking-wide transition-colors ${
                   sort === key
                     ? 'bg-brand text-white'
                     : 'text-text-main hover:bg-brand-tint hover:text-brand'

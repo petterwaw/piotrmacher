@@ -60,7 +60,7 @@ export default function RoomCard({
     return (
         <Link
             href={href}
-            className="group flex flex-col border-2 border-zinc-300 bg-white/90 p-5 transition-[border-color,box-shadow,transform] duration-200 ease-out hover:border-brand hover:shadow-lg hover:shadow-black/5 motion-safe:hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+            className="press press-soft group flex flex-col border-2 border-zinc-300 bg-white/90 p-5 transition-[border-color,box-shadow,transform] duration-200 ease-out hover:border-brand hover:shadow-lg hover:shadow-black/5 motion-safe:hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
         >
             <div className="hidden h-full flex-col md:flex">
                 <h2 className="break-words text-lg font-black uppercase leading-tight tracking-tight text-text-main">{eventName}</h2>

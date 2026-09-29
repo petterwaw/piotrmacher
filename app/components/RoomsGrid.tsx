@@ -29,7 +29,7 @@ export default function RoomsGrid({ rooms }: { rooms: RoomCardProps[] }) {
       {/* Desktop: filters above grid */}
       {showFilters ? <RoomFilters {...filterProps} className="mb-6 hidden sm:flex justify-end gap-2 sm:gap-3" /> : null}
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+      <section className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <RoomActions />
 
         {/* Mobile: filters below Create/Join buttons */}

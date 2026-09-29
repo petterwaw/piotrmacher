@@ -1,3 +1,22 @@
+/// <reference types="react/canary" />
+import { ViewTransition, type ReactNode } from 'react'
+
+/*
+ * Every page skeleton sits in a SkeletonShell:
+ * - it fades in after a short delay (.animate-skeleton-in), so fast loads never
+ *   flash a skeleton;
+ * - when the page resolves, the ViewTransition exit crossfades the skeleton
+ *   out over the arriving content (see ::view-transition-old(.skeleton-out)).
+ * The ViewTransition must be the outermost node of the loading UI.
+ */
+function SkeletonShell({ className = '', children }: { className?: string; children: ReactNode }) {
+  return (
+    <ViewTransition exit="skeleton-out" default="none">
+      <div className={`animate-skeleton-in ${className}`}>{children}</div>
+    </ViewTransition>
+  )
+}
+
 function SkeletonBlock({ className }: { className: string }) {
   return <div aria-hidden="true" className={`bg-zinc-200/80 motion-safe:animate-pulse ${className}`} />
 }
@@ -13,7 +32,7 @@ function LoadingLabel() {
 
 export function StandingsSkeleton({ rows = 6 }: { rows?: number }) {
   return (
-    <div className="space-y-2 sm:space-y-3">
+    <SkeletonShell className="space-y-2 sm:space-y-3">
       <LoadingLabel />
       {Array.from({ length: rows }, (_, index) => (
         <div key={index} className="flex items-center justify-between gap-3 border-2 border-zinc-300 bg-white/90 px-3 py-3 sm:px-4">
@@ -24,7 +43,7 @@ export function StandingsSkeleton({ rows = 6 }: { rows?: number }) {
           <SkeletonBlock className="h-6 w-16" />
         </div>
       ))}
-    </div>
+    </SkeletonShell>
   )
 }
 
@@ -62,9 +81,9 @@ export function MatchCardSkeleton() {
   )
 }
 
-export function MatchesSkeleton({ cards = 3 }: { cards?: number }) {
+export function MatchesSkeleton({ cards = 3, className = '' }: { cards?: number; className?: string }) {
   return (
-    <div className="space-y-4">
+    <SkeletonShell className={`space-y-4 ${className}`}>
       <LoadingLabel />
       <div className="hide-scrollbar flex gap-2 overflow-x-auto py-1">
         {Array.from({ length: 5 }, (_, index) => (
@@ -77,13 +96,13 @@ export function MatchesSkeleton({ cards = 3 }: { cards?: number }) {
           <MatchCardSkeleton key={index} />
         ))}
       </div>
-    </div>
+    </SkeletonShell>
   )
 }
 
 export function HistorySkeleton() {
   return (
-    <div className="mx-auto max-w-xl space-y-4">
+    <SkeletonShell className="mx-auto max-w-xl space-y-4">
       <LoadingLabel />
       <div className="space-y-4">
         {Array.from({ length: 3 }, (_, index) => (
@@ -96,13 +115,13 @@ export function HistorySkeleton() {
           <SkeletonBlock key={index} className="h-11 w-11" />
         ))}
       </div>
-    </div>
+    </SkeletonShell>
   )
 }
 
 export function RulesSkeleton() {
   return (
-    <div>
+    <SkeletonShell>
       <LoadingLabel />
       <div className="space-y-4 border-2 border-zinc-300 bg-white p-4 sm:p-6">
         <div>
@@ -168,13 +187,13 @@ export function RulesSkeleton() {
           </div>
         </div>
       </div>
-    </div>
+    </SkeletonShell>
   )
 }
 
 export function SettingsSkeleton() {
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <SkeletonShell className="mx-auto max-w-2xl space-y-6">
       <LoadingLabel />
       <div className="border-2 border-zinc-300 bg-white p-4 sm:p-5">
         <SkeletonBlock className="mb-3 h-4 w-24" />
@@ -227,53 +246,35 @@ export function SettingsSkeleton() {
         <SkeletonBlock className="h-11 w-28" />
         <SkeletonBlock className="h-11 w-36" />
       </div>
-    </div>
+    </SkeletonShell>
   )
 }
 
 export function ProfileSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-xl space-y-4 px-4 py-8 md:px-6">
+    <SkeletonShell className="mx-auto w-full max-w-xl px-4 py-8 md:px-6 md:py-10">
       <LoadingLabel />
-      <div className="border-2 border-zinc-300 bg-white/90 divide-y divide-zinc-200">
-        <div className="px-4 py-3">
-          <SkeletonBlock className="mb-2 h-3 w-14" />
-          <SkeletonBlock className="h-4 w-48 max-w-full" />
-        </div>
+      <SkeletonBlock className="h-8 w-32" />
+      <SkeletonBlock className="mt-2 h-4 w-44" />
 
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
+      <div className="mt-5 divide-y-2 divide-zinc-200 border-2 border-zinc-300 bg-white">
+        {['w-28', 'w-48', 'w-24'].map((width, index) => (
+          <div key={width} className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
             <div className="min-w-0 flex-1">
-              <SkeletonBlock className="mb-2 h-3 w-20" />
-              <SkeletonBlock className="h-4 w-32 max-w-full" />
+              <SkeletonBlock className="mb-2 h-3.5 w-20" />
+              <SkeletonBlock className={`h-5 max-w-full ${width}`} />
             </div>
-            <SkeletonBlock className="h-10 w-10 shrink-0" />
+            {index !== 1 ? <SkeletonBlock className="h-11 w-24 shrink-0" /> : null}
           </div>
-        </div>
-
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <SkeletonBlock className="mb-2 h-3 w-20" />
-              <SkeletonBlock className="h-4 w-24 max-w-full" />
-            </div>
-            <SkeletonBlock className="h-10 w-10 shrink-0" />
-          </div>
-        </div>
-
-        <div className="px-4 py-3">
-          <SkeletonBlock className="mb-2 h-3 w-24" />
-          <SkeletonBlock className="h-4 w-36 max-w-full" />
-        </div>
+        ))}
       </div>
 
-      <section className="border-2 border-orange-400 bg-orange-50 p-4 sm:p-5">
-        <SkeletonBlock className="mb-3 h-6 w-36" />
-        <SkeletonBlock className="h-4 w-full" />
-        <SkeletonBlock className="mt-2 h-4 w-5/6" />
-        <SkeletonBlock className="mt-4 h-10 w-full" />
-        <SkeletonBlock className="mt-3 h-10 w-40" />
-      </section>
-    </div>
+      <div className="mt-12 border-t-2 border-zinc-300 pt-6">
+        <SkeletonBlock className="h-5 w-32" />
+        <SkeletonBlock className="mt-3 h-4 w-full" />
+        <SkeletonBlock className="mt-2 h-4 w-3/4" />
+        <SkeletonBlock className="mt-5 h-11 w-full sm:w-80" />
+      </div>
+    </SkeletonShell>
   )
 }

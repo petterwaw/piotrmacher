@@ -1,9 +1,10 @@
 'use client'
 
 import type { PickemGroup } from '@/app/utils/pickem/groups'
-import { ChevronDown, ChevronUp, GripVertical, Lock, Save, Trophy } from 'lucide-react'
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { Check, ChevronDown, ChevronUp, GripVertical, Lock, Save, Trophy } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { useFlipReorder } from '@/app/components/motion/useLayoutMotion'
 
 type PickemPick = {
   orderedTeamIds: string[]
@@ -53,6 +54,11 @@ export default function PickemPanel({
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const listRef = useRef<HTMLDivElement>(null)
+
+  // Rows glide to their new place when the order changes (arrows or drag).
+  // The trigger is the order itself, so refreshes never animate.
+  useFlipReorder(listRef, JSON.stringify(orders))
 
   const teamsByGroup = useMemo(() => {
     return new Map(groups.map((group) => [
@@ -173,7 +179,7 @@ export default function PickemPanel({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
+    <div ref={listRef} className="stagger mx-auto max-w-2xl space-y-5">
       <div className="border-2 border-zinc-300 bg-white p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -229,6 +235,7 @@ export default function PickemPanel({
                 return (
                   <div
                     key={team.teamId}
+                    data-flip-key={`${group.groupKey}:${team.teamId}`}
                     draggable={canEdit && !isPending}
                     onDragStart={() => setDragged({ groupKey: group.groupKey, teamId: team.teamId })}
                     onDragOver={(event) => {
@@ -290,8 +297,13 @@ export default function PickemPanel({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          {error ? <p role="alert" className="text-sm font-medium text-danger">{error}</p> : null}
-          {message ? <p role="status" className="text-sm font-medium text-brand">{message}</p> : null}
+          {error ? <p role="alert" className="animate-message-in text-sm font-medium text-danger">{error}</p> : null}
+          {message ? (
+            <p role="status" className="animate-message-in inline-flex items-center gap-1.5 text-sm font-medium text-brand">
+              <Check size={16} strokeWidth={3} aria-hidden="true" className="animate-check-in" />
+              {message}
+            </p>
+          ) : null}
         </div>
 
         {canEdit ? (

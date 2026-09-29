@@ -1,5 +1,6 @@
 import { Check, ChevronDown } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { usePresence } from '@/app/components/motion/usePresence'
 
 type Option = {
   id: string
@@ -22,6 +23,8 @@ export default function EventSelect({ id, value, onChange, options, disabled = f
 
   const selectedOption = options.find((opt) => opt.id === value)
   const isDisabled = disabled || loading
+  // The list stays mounted for its exit animation.
+  const list = usePresence(open && !isDisabled)
 
   useEffect(() => {
     if (!open) return
@@ -58,7 +61,7 @@ export default function EventSelect({ id, value, onChange, options, disabled = f
         disabled={isDisabled}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={`flex min-h-12 w-full items-center justify-between gap-3 border-2 px-4 py-3 text-left text-sm outline-none transition-colors focus-visible:border-brand ${
+        className={`no-press flex min-h-12 w-full items-center justify-between gap-3 border-2 px-4 py-3 text-left text-sm outline-none transition-colors focus-visible:border-brand ${
           isDisabled
             ? 'cursor-not-allowed border-zinc-300 bg-gray-100 text-text-muted'
             : open
@@ -76,11 +79,11 @@ export default function EventSelect({ id, value, onChange, options, disabled = f
         />
       </button>
 
-      {open && !isDisabled ? (
+      {list.value ? (
         <ul
           ref={listRef}
           role="listbox"
-          className="animate-pop-in absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto border-2 border-brand bg-white shadow-lg shadow-black/10"
+          className={`${list.isClosing ? 'animate-pop-out' : 'animate-pop-in'} absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto border-2 border-brand bg-white shadow-lg shadow-black/10`}
         >
           {options.length === 0 ? (
             <li className="px-4 py-3 text-sm text-text-muted">No events available</li>

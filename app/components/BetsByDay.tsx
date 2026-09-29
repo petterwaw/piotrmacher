@@ -214,7 +214,9 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
         </button>
       </div>
 
-      <div className="space-y-4">
+      {/* Keyed by day: switching days swaps the whole list, which rises in with
+          a light stagger. Refreshes keep the key, so nothing replays. */}
+      <div key={activeDay} className="stagger space-y-4">
         {filteredMatches.length > 0 ? (
           filteredMatches.map((item) => (
             <ScorePredictionCard

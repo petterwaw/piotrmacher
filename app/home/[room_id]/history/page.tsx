@@ -10,7 +10,7 @@ import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 const MATCHES_PER_PAGE = 5
 
 const PAGE_ITEM =
-  'inline-flex h-11 min-w-11 items-center justify-center border-2 px-2 text-sm font-semibold tabular-nums transition-colors'
+  'press inline-flex h-11 min-w-11 items-center justify-center border-2 px-2 text-sm font-semibold tabular-nums transition-colors'
 
 function buildPagination(currentPage: number, totalPages: number): Array<number | 'dots'> {
   if (totalPages <= 7) {
@@ -170,7 +170,7 @@ export default async function HistoryPage({
       {matches.length === 0 ? (
         <EmptyState icon={History} title="No historical bets yet" />
       ) : (
-        <div className="space-y-4">
+        <div className="stagger space-y-4">
           {matches.map((match) => {
             const userBet = userBetByMatchId.get(match.id)
 
