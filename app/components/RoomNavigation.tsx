@@ -54,6 +54,8 @@ export default function RoomNavigation({
   const invitePresence = usePresence(showInviteModal)
   const confirmPresence = usePresence(confirmAction)
   const confirmDialogRef = useRef<HTMLDivElement>(null)
+  const inviteDialogRef = useRef<HTMLDivElement>(null)
+  useDialogFocus(inviteDialogRef, showInviteModal, () => setShowInviteModal(false))
   useDialogFocus(confirmDialogRef, Boolean(confirmAction), () => {
     if (!isPending) setConfirmAction(null)
   })
@@ -136,7 +138,7 @@ export default function RoomNavigation({
       {/* Invite Code Modal */}
       {invitePresence.value && (
         <div className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4 ${invitePresence.isClosing ? 'animate-overlay-out' : 'animate-overlay-in pointer-events-auto'}`}>
-          <div role="dialog" aria-modal="true" aria-labelledby="invite-dialog-title" className={`w-full max-w-sm border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 ${invitePresence.isClosing ? 'animate-dialog-out' : 'animate-dialog-in pointer-events-auto'}`}>
+          <div ref={inviteDialogRef} role="dialog" aria-modal="true" aria-labelledby="invite-dialog-title" tabIndex={-1} className={`w-full max-w-sm border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 ${invitePresence.isClosing ? 'animate-dialog-out' : 'animate-dialog-in pointer-events-auto'}`}>
             <h3 id="invite-dialog-title" className="mb-2 text-sm font-bold uppercase tracking-wide text-text-main">
               Invite friends
             </h3>
