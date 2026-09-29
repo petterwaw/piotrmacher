@@ -284,7 +284,7 @@ export default function ScorePredictionCard({
 
       <div className="relative flex min-h-24 flex-nowrap items-center justify-between gap-2 py-1 sm:min-h-28 sm:gap-3">
         <div className="relative flex min-w-0 flex-1 flex-col items-center text-center">
-          <p className={`${displayFont.className} team-name text-[clamp(0.95rem,4.2vw,1.5rem)] font-extrabold uppercase leading-[1.05] tracking-wide text-text-main`}>{match.homeTeam}</p>
+          <p className={`${displayFont.className} team-name text-[clamp(1.05rem,4.6vw,1.6rem)] font-extrabold leading-[1.05] text-text-main`}>{match.homeTeam}</p>
         </div>
 
         <div className="relative shrink-0 text-center">
@@ -390,7 +390,7 @@ export default function ScorePredictionCard({
         </div>
 
         <div className="relative flex min-w-0 flex-1 flex-col items-center text-center">
-          <p className={`${displayFont.className} team-name text-[clamp(0.95rem,4.2vw,1.5rem)] font-extrabold uppercase leading-[1.05] tracking-wide text-text-main`}>{match.awayTeam}</p>
+          <p className={`${displayFont.className} team-name text-[clamp(1.05rem,4.6vw,1.6rem)] font-extrabold leading-[1.05] text-text-main`}>{match.awayTeam}</p>
         </div>
       </div>
 
@@ -399,7 +399,7 @@ export default function ScorePredictionCard({
       {error ? <p role="alert" className="animate-message-in mt-3 text-center text-sm font-medium text-danger">{error}</p> : null}
 
       {canEdit ? (
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-zinc-200 pt-4">
+        <div className="mt-4 flex items-center justify-between gap-3 pt-4">
           {/* Save status: "Saving…" while the request runs, then "Saved." with a
               check. Both sit in one grid cell so they crossfade without shifting. */}
           <span role="status" className="sr-only">
@@ -466,7 +466,7 @@ export default function ScorePredictionCard({
 
       {/* Collapsible other players' bets */}
       {livePredictions.length > 0 ? (
-        <div className="mt-4 border-t-2 border-zinc-200">
+        <div className="mt-4">
           <button
             type="button"
             onClick={() => setShowBets((prev) => !prev)}

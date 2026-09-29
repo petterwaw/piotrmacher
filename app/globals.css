@@ -563,9 +563,6 @@ body {
 
 /* Team names sit on top of zoomed crests: a soft light halo keeps them readable. */
 .team-name {
-  text-shadow:
-    0 0 2px rgb(255 255 255 / 0.95),
-    0 0 8px rgb(255 255 255 / 0.9),
-    0 1px 12px rgb(255 255 255 / 0.8);
+  text-shadow: 0 0 6px rgb(255 255 255 / 0.7);
   overflow-wrap: break-word;
 }
