@@ -233,47 +233,29 @@ export function SettingsSkeleton() {
 
 export function ProfileSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-xl space-y-4 px-4 py-8 md:px-6">
+    <div className="mx-auto w-full max-w-xl px-4 py-8 md:px-6 md:py-10">
       <LoadingLabel />
-      <div className="border-2 border-zinc-300 bg-white/90 divide-y divide-zinc-200">
-        <div className="px-4 py-3">
-          <SkeletonBlock className="mb-2 h-3 w-14" />
-          <SkeletonBlock className="h-4 w-48 max-w-full" />
-        </div>
+      <SkeletonBlock className="h-8 w-32" />
+      <SkeletonBlock className="mt-2 h-4 w-44" />
 
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
+      <div className="mt-5 divide-y-2 divide-zinc-200 border-2 border-zinc-300 bg-white">
+        {['w-28', 'w-48', 'w-24'].map((width, index) => (
+          <div key={width} className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
             <div className="min-w-0 flex-1">
-              <SkeletonBlock className="mb-2 h-3 w-20" />
-              <SkeletonBlock className="h-4 w-32 max-w-full" />
+              <SkeletonBlock className="mb-2 h-3.5 w-20" />
+              <SkeletonBlock className={`h-5 max-w-full ${width}`} />
             </div>
-            <SkeletonBlock className="h-10 w-10 shrink-0" />
+            {index !== 1 ? <SkeletonBlock className="h-11 w-24 shrink-0" /> : null}
           </div>
-        </div>
-
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <SkeletonBlock className="mb-2 h-3 w-20" />
-              <SkeletonBlock className="h-4 w-24 max-w-full" />
-            </div>
-            <SkeletonBlock className="h-10 w-10 shrink-0" />
-          </div>
-        </div>
-
-        <div className="px-4 py-3">
-          <SkeletonBlock className="mb-2 h-3 w-24" />
-          <SkeletonBlock className="h-4 w-36 max-w-full" />
-        </div>
+        ))}
       </div>
 
-      <section className="border-2 border-orange-400 bg-orange-50 p-4 sm:p-5">
-        <SkeletonBlock className="mb-3 h-6 w-36" />
-        <SkeletonBlock className="h-4 w-full" />
-        <SkeletonBlock className="mt-2 h-4 w-5/6" />
-        <SkeletonBlock className="mt-4 h-10 w-full" />
-        <SkeletonBlock className="mt-3 h-10 w-40" />
-      </section>
+      <div className="mt-12 border-t-2 border-zinc-300 pt-6">
+        <SkeletonBlock className="h-5 w-32" />
+        <SkeletonBlock className="mt-3 h-4 w-full" />
+        <SkeletonBlock className="mt-2 h-4 w-3/4" />
+        <SkeletonBlock className="mt-5 h-11 w-full sm:w-80" />
+      </div>
     </div>
   )
 }

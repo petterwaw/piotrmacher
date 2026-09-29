@@ -1,14 +1,15 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { Pencil, X } from 'lucide-react'
 import { ProfileSkeleton } from '@/app/components/LoadingSkeletons'
 
 const INPUT =
   'min-h-11 w-full border-2 border-zinc-300 bg-white px-3 py-2 text-base text-text-main outline-none transition-colors placeholder:text-zinc-500 focus:border-brand sm:text-sm'
-const LABEL = 'text-xs font-bold uppercase tracking-wide text-zinc-600'
-const EDIT_TOGGLE =
-  'ml-3 inline-flex h-10 w-10 shrink-0 items-center justify-center border-2 border-zinc-300 bg-white text-zinc-700 transition-colors hover:border-brand hover:text-brand aria-expanded:border-brand aria-expanded:text-brand'
+const ROW = 'flex flex-wrap items-center gap-x-3 gap-y-4 px-4 py-3.5 sm:px-5'
+const TERM = 'text-sm text-zinc-600'
+const FIELD_LABEL = 'mb-1.5 block text-sm font-semibold text-text-main'
+const TOGGLE =
+  'inline-flex min-h-11 min-w-24 items-center justify-center border-2 border-zinc-300 bg-white px-4 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:text-brand aria-expanded:border-zinc-300 aria-expanded:text-zinc-700'
 const PRIMARY =
   'inline-flex min-h-11 items-center justify-center border-2 border-brand bg-brand px-5 py-2 text-sm font-semibold text-white transition-colors hover:border-brand-hover hover:bg-brand-hover active:bg-brand-hover disabled:opacity-60'
 
@@ -67,7 +68,7 @@ export default function ProfilePage() {
     if (!profile?.createdAt) return 'Unknown'
     const date = new Date(profile.createdAt)
     if (Number.isNaN(date.getTime())) return 'Unknown'
-    return date.toLocaleString('pl-PL')
+    return date.toLocaleDateString('pl-PL')
   }, [profile?.createdAt])
 
   const updateUsername = () => {
@@ -159,53 +160,49 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className='mx-auto w-full max-w-xl space-y-4 px-4 py-8 md:px-6'>
-      <h1 className='sr-only'>Account</h1>
-      {error ? <p role='alert' className='border-2 border-orange-400 bg-orange-50 p-3 text-sm font-medium text-orange-900'>{error}</p> : null}
-      {message ? <p role='status' className='border-2 border-brand/50 bg-brand-tint p-3 text-sm font-medium text-brand'>{message}</p> : null}
+    <div className='mx-auto w-full max-w-xl px-4 py-8 md:px-6 md:py-10'>
+      <h1 className='text-2xl font-black tracking-tight text-text-main'>Account</h1>
+      <p className='mt-1 text-sm text-zinc-600'>
+        Member since <span className='tabular-nums'>{createdAtLabel}</span>
+      </p>
 
-      {/* Account info card */}
-      <div className='border-2 border-zinc-300 bg-white/90 divide-y divide-zinc-200'>
+      {error ? <p role='alert' className='mt-5 border-2 border-danger/40 bg-white p-3 text-sm font-medium text-danger'>{error}</p> : null}
+      {message ? <p role='status' className='mt-5 border-2 border-brand/40 bg-brand-tint p-3 text-sm font-medium text-brand'>{message}</p> : null}
 
-        {/* Email row */}
-        <div className='flex min-h-16 items-center justify-between px-4 py-3'>
-          <div className='min-w-0'>
-            <p className={LABEL}>Email</p>
-            <p className='mt-0.5 break-all text-sm font-medium text-text-main'>{profile?.email ?? '-'}</p>
+      <div className='mt-5 divide-y-2 divide-zinc-200 border-2 border-zinc-300 bg-white'>
+        <div className={ROW}>
+          <div className='min-w-0 flex-1'>
+            <p className={TERM}>Username</p>
+            <div className='mt-0.5 truncate text-base font-bold text-text-main'>{profile?.username ?? '-'}</div>
           </div>
-        </div>
-
-        {/* Username row */}
-        <div className='px-4 py-3'>
-          <div className='flex items-center justify-between'>
-            <div className='min-w-0'>
-              <p className={LABEL}>Username</p>
-              <p className='mt-0.5 truncate text-sm font-medium text-text-main'>{profile?.username ?? '-'}</p>
-            </div>
+          <div>
             <button
               type='button'
               onClick={() => { setEditingUsername((v) => !v); setEditingPassword(false) }}
-              className={EDIT_TOGGLE}
-              aria-label='Edit username'
+              className={TOGGLE}
               aria-expanded={editingUsername}
+              aria-controls='username-form'
             >
-              {editingUsername ? <X size={16} aria-hidden='true' /> : <Pencil size={16} aria-hidden='true' />}
+              {editingUsername ? 'Cancel' : 'Change'}
+              <span className='sr-only'> username</span>
             </button>
           </div>
           {editingUsername && (
-            <div className='animate-pop-in mt-3 space-y-2'>
+            <div id='username-form' className='animate-pop-in basis-full'>
+              <label htmlFor='username' className={FIELD_LABEL}>New username</label>
               <input
                 id='username'
                 name='username'
-                aria-label='New username'
+                aria-describedby='username-hint'
                 autoComplete='username'
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className={INPUT}
               />
+              <p id='username-hint' className='mt-1.5 text-sm text-zinc-600'>3–24 characters: letters, numbers, _ or .</p>
               <button
                 type='button'
-                className={PRIMARY}
+                className={`${PRIMARY} mt-3`}
                 onClick={updateUsername}
                 disabled={isPending}
               >
@@ -215,52 +212,67 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Password row */}
-        <div className='px-4 py-3'>
-          <div className='flex items-center justify-between'>
-            <div className='min-w-0'>
-              <p className={LABEL}>Password</p>
-              <p className='mt-0.5 text-sm font-medium tracking-widest text-text-main'>••••••••</p>
-            </div>
+        <div className={ROW}>
+          <div className='min-w-0 flex-1'>
+            <p className={TERM}>Email</p>
+            <div className='mt-0.5 break-all text-base text-text-main'>{profile?.email ?? '-'}</div>
+          </div>
+        </div>
+
+        <div className={ROW}>
+          <div className='min-w-0 flex-1'>
+            <p className={TERM}>Password</p>
+            <p className='mt-0.5 text-base tracking-widest text-text-main'><span aria-hidden='true'>••••••••</span><span className='sr-only'>Hidden</span></p>
+          </div>
+          <div>
             <button
               type='button'
               onClick={() => { setEditingPassword((v) => !v); setEditingUsername(false) }}
-              className={EDIT_TOGGLE}
-              aria-label='Edit password'
+              className={TOGGLE}
               aria-expanded={editingPassword}
+              aria-controls='password-form'
             >
-              {editingPassword ? <X size={16} aria-hidden='true' /> : <Pencil size={16} aria-hidden='true' />}
+              {editingPassword ? 'Cancel' : 'Change'}
+              <span className='sr-only'> password</span>
             </button>
           </div>
           {editingPassword && (
-            <div className='animate-pop-in mt-3 space-y-2'>
-              <input
-                type='password'
-                aria-label='Current password'
-                autoComplete='current-password'
-                placeholder='Current password'
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className={INPUT}
-              />
-              <input
-                type='password'
-                aria-label='New password'
-                autoComplete='new-password'
-                placeholder='New password'
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className={INPUT}
-              />
-              <input
-                type='password'
-                aria-label='Confirm new password'
-                autoComplete='new-password'
-                placeholder='Confirm new password'
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className={INPUT}
-              />
+            <div id='password-form' className='animate-pop-in basis-full space-y-3'>
+              <div>
+                <label htmlFor='current-password' className={FIELD_LABEL}>Current password</label>
+                <input
+                  id='current-password'
+                  type='password'
+                  autoComplete='current-password'
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className={INPUT}
+                />
+              </div>
+              <div>
+                <label htmlFor='new-password' className={FIELD_LABEL}>New password</label>
+                <input
+                  id='new-password'
+                  type='password'
+                  aria-describedby='new-password-hint'
+                  autoComplete='new-password'
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className={INPUT}
+                />
+                <p id='new-password-hint' className='mt-1.5 text-sm text-zinc-600'>At least 8 characters.</p>
+              </div>
+              <div>
+                <label htmlFor='confirm-password' className={FIELD_LABEL}>Repeat new password</label>
+                <input
+                  id='confirm-password'
+                  type='password'
+                  autoComplete='new-password'
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={INPUT}
+                />
+              </div>
               <button
                 type='button'
                 className={PRIMARY}
@@ -272,39 +284,34 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
-
-        {/* Member since row */}
-        <div className='flex min-h-16 items-center justify-between px-4 py-3'>
-          <div>
-            <p className={LABEL}>Member since</p>
-            <p className='mt-0.5 text-sm font-medium tabular-nums text-text-main'>{createdAtLabel}</p>
-          </div>
-        </div>
       </div>
 
-      {/* Delete account */}
-      <section className='border-2 border-orange-400 bg-orange-50 p-4 sm:p-5'>
-        <h2 className='mb-2 text-lg font-black tracking-tight text-orange-900'>Delete account</h2>
-        <p className='mb-3 text-sm leading-relaxed text-orange-900'>
-          If you are host, rooms created by you will be removed. If you are only a participant,
-          your room memberships and bets will be removed.
+      <section aria-labelledby='delete-account' className='mt-12 border-t-2 border-zinc-300 pt-6'>
+        <h2 id='delete-account' className='text-base font-black tracking-tight text-danger'>Delete account</h2>
+        <p className='mt-1 text-sm leading-relaxed text-zinc-700'>
+          Rooms you host are deleted for everyone in them. In other rooms, your bets and membership are removed.
+          This can&apos;t be undone.
         </p>
-        <input
-          value={deleteConfirm}
-          onChange={(e) => setDeleteConfirm(e.target.value)}
-          placeholder='Type DELETE to confirm'
-          aria-label='Type DELETE to confirm'
-          autoComplete='off'
-          className='min-h-11 w-full border-2 border-orange-400 bg-white px-3 py-2 text-base text-text-main outline-none transition-colors placeholder:text-orange-900/60 focus:border-danger sm:text-sm'
-        />
-        <button
-          type='button'
-          className='mt-3 inline-flex min-h-11 items-center justify-center border-2 border-danger bg-danger px-5 py-2 text-sm font-semibold text-white transition-colors hover:border-danger-hover hover:bg-danger-hover active:bg-danger-hover disabled:opacity-60'
-          onClick={deleteAccount}
-          disabled={isPending}
-        >
-          {isPending ? 'Deleting…' : 'Delete my account'}
-        </button>
+        <label htmlFor='delete-confirm' className={`${FIELD_LABEL} mt-4`}>
+          Type <span className='font-mono font-bold'>DELETE</span> to confirm
+        </label>
+        <div className='flex flex-col gap-2 sm:flex-row'>
+          <input
+            id='delete-confirm'
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+            autoComplete='off'
+            className='min-h-11 w-full border-2 border-zinc-300 bg-white px-3 py-2 text-base text-text-main outline-none transition-colors focus:border-danger sm:max-w-56 sm:text-sm'
+          />
+          <button
+            type='button'
+            className='inline-flex min-h-11 shrink-0 items-center justify-center border-2 border-danger bg-white px-5 py-2 text-sm font-semibold text-danger transition-colors hover:bg-danger hover:text-white active:bg-danger-hover active:text-white disabled:opacity-60 disabled:hover:bg-white disabled:hover:text-danger'
+            onClick={deleteAccount}
+            disabled={isPending}
+          >
+            {isPending ? 'Deleting…' : 'Delete my account'}
+          </button>
+        </div>
       </section>
     </div>
   )
