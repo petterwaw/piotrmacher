@@ -1,10 +1,11 @@
 import type { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
-import { ESPN_PROVIDER, hasEspnFixturesBetween } from '@/app/utils/providers/espn'
+import { ESPN_PROVIDER, fetchEspnLastMatchDay } from '@/app/utils/providers/espn'
 
 type ServiceSupabaseClient = ReturnType<typeof createServiceRoleSupabaseClient>
 
-// Long enough to span a league's summer break or a Nations League gap.
-const LOOKAHEAD_MS = 180 * 24 * 60 * 60 * 1000
+// Leagues and club cups roll over into the next season under the same ESPN
+// slug, so only one-off tournaments are ever closed automatically.
+const ONE_OFF_TOURNAMENTS = new Set(['fifa.world', 'uefa.euro', 'conmebol.america', 'fifa.cwc'])
 
 export async function deactivateFinishedEvents(supabase: ServiceSupabaseClient) {
   const { data: events, error } = await supabase
@@ -17,18 +18,16 @@ export async function deactivateFinishedEvents(supabase: ServiceSupabaseClient) 
     return { ok: false as const, error: 'Could not load active events.' }
   }
 
-  const now = new Date()
-  const from = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-  const to = new Date(now.getTime() + LOOKAHEAD_MS)
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
   const toDeactivate: string[] = []
   const skipped: Array<{ eventId: string; reason: string }> = []
 
   for (const event of events ?? []) {
-    if (!event.provider_event_id) continue
+    if (!event.provider_event_id || !ONE_OFF_TOURNAMENTS.has(event.provider_event_id)) continue
 
     try {
-      const hasFixtures = await hasEspnFixturesBetween(event.provider_event_id, from, to)
-      if (!hasFixtures) toDeactivate.push(event.id)
+      const lastMatchDay = await fetchEspnLastMatchDay(event.provider_event_id)
+      if (lastMatchDay && lastMatchDay < yesterday) toDeactivate.push(event.id)
     } catch (fetchError) {
       skipped.push({
         eventId: event.id,

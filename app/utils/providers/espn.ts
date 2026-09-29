@@ -1,7 +1,17 @@
 // Unofficial, keyless ESPN endpoints. Undocumented, so parse defensively and
 // keep everything provider-specific inside this file.
-const SCOREBOARD_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer'
-const STANDINGS_BASE = 'https://site.api.espn.com/apis/v2/sports/soccer'
+// Notes from testing against the live API (Sept 2026):
+// - site.api.espn.com rejects requests from cloud IPs (Akamai 403);
+//   site.web.api.espn.com serves the same data.
+// - The scoreboard needs a User-Agent and rejects date *ranges* (400), so
+//   fixtures are fetched one day at a time using the league's calendar.
+const SCOREBOARD_BASE = 'https://site.web.api.espn.com/apis/site/v2/sports/soccer'
+const STANDINGS_BASE = 'https://site.web.api.espn.com/apis/v2/sports/soccer'
+const REQUEST_HEADERS = {
+  Accept: 'application/json',
+  'User-Agent': 'Mozilla/5.0 (compatible; piotrmacher/1.0; +https://piotrmacher.fun)',
+}
+const DAY_MS = 24 * 60 * 60 * 1000
 
 export const ESPN_PROVIDER = 'espn'
 export const ESPN_MATCH_ID_PREFIX = 'espn:'
@@ -77,8 +87,8 @@ function toInt(value: unknown): number | null {
   return Number.isFinite(parsed) ? Math.trunc(parsed) : null
 }
 
-function yyyymmdd(date: Date) {
-  return date.toISOString().slice(0, 10).replaceAll('-', '')
+function isoDay(date: Date) {
+  return date.toISOString().slice(0, 10)
 }
 
 export function toMatchStatus(status: EspnStatus | undefined): MatchStatus {
@@ -194,40 +204,95 @@ export function parseEspnEvent(event: EspnEvent): ProviderFixture | null {
 
 async function getJson(url: URL): Promise<unknown> {
   const response = await fetch(url, {
-    headers: { Accept: 'application/json' },
+    headers: REQUEST_HEADERS,
     cache: 'no-store',
     signal: AbortSignal.timeout(15_000),
   })
 
   if (!response.ok) {
-    throw new Error(`ESPN responded with ${response.status}`)
+    throw new Error(`ESPN responded with ${response.status} for ${url.pathname}`)
   }
 
   return response.json()
 }
 
-export async function fetchEspnFixtures(leagueSlug: string, from: Date, to: Date): Promise<ProviderFixture[]> {
+type EspnScoreboard = {
+  events?: EspnEvent[]
+  leagues?: Array<{
+    calendarType?: string
+    calendar?: unknown[]
+    calendarEndDate?: string
+  }>
+}
+
+function scoreboardUrl(leagueSlug: string, day?: string) {
   const url = new URL(`${SCOREBOARD_BASE}/${encodeURIComponent(leagueSlug)}/scoreboard`)
-  url.searchParams.set('dates', `${yyyymmdd(from)}-${yyyymmdd(to)}`)
-  url.searchParams.set('limit', '500')
+  if (day) url.searchParams.set('dates', day.replaceAll('-', ''))
+  return url
+}
 
-  const body = (await getJson(url)) as { events?: EspnEvent[] }
-  const events = Array.isArray(body?.events) ? body.events : []
+async function getScoreboard(leagueSlug: string, day?: string) {
+  return (await getJson(scoreboardUrl(leagueSlug, day))) as EspnScoreboard
+}
 
-  return events
+// Match days ("YYYY-MM-DD") ESPN lists for the season, or null when the
+// league uses a phase-based calendar (e.g. Champions League).
+function calendarDays(scoreboard: EspnScoreboard): string[] | null {
+  const league = scoreboard.leagues?.[0]
+  if (league?.calendarType !== 'day' || !Array.isArray(league.calendar)) return null
+  return league.calendar
+    .filter((value): value is string => typeof value === 'string')
+    .map((value) => value.slice(0, 10))
+}
+
+function everyDay(from: Date, to: Date) {
+  const days: string[] = []
+  for (let time = from.getTime(); time <= to.getTime(); time += DAY_MS) {
+    days.push(isoDay(new Date(time)))
+  }
+  return days
+}
+
+export async function fetchEspnFixtures(leagueSlug: string, from: Date, to: Date): Promise<ProviderFixture[]> {
+  // The default scoreboard gives the current match day plus the season calendar.
+  const current = await getScoreboard(leagueSlug)
+  const fromDay = isoDay(from)
+  const toDay = isoDay(to)
+
+  // ESPN days are US-based, so pad the window by a day on each side.
+  const days = (calendarDays(current) ?? everyDay(new Date(from.getTime() - DAY_MS), new Date(to.getTime() + DAY_MS)))
+    .filter((day) => day >= isoDay(new Date(from.getTime() - DAY_MS)) && day <= isoDay(new Date(to.getTime() + DAY_MS)))
+
+  const eventsById = new Map<string, EspnEvent>()
+  for (const event of current.events ?? []) {
+    if (event.id) eventsById.set(String(event.id), event)
+  }
+
+  for (const day of new Set(days)) {
+    const scoreboard = await getScoreboard(leagueSlug, day)
+    for (const event of scoreboard.events ?? []) {
+      if (event.id) eventsById.set(String(event.id), event)
+    }
+  }
+
+  return [...eventsById.values()]
     .map(parseEspnEvent)
     .filter((fixture): fixture is ProviderFixture => fixture !== null)
+    .filter((fixture) => {
+      const day = fixture.scheduledStartAt.slice(0, 10)
+      return day >= fromDay && day <= toDay
+    })
 }
 
-export async function hasEspnFixturesBetween(leagueSlug: string, from: Date, to: Date): Promise<boolean> {
-  const url = new URL(`${SCOREBOARD_BASE}/${encodeURIComponent(leagueSlug)}/scoreboard`)
-  url.searchParams.set('dates', `${yyyymmdd(from)}-${yyyymmdd(to)}`)
-  url.searchParams.set('limit', '1')
+// Last day with scheduled matches in the competition's current calendar.
+export async function fetchEspnLastMatchDay(leagueSlug: string): Promise<string | null> {
+  const scoreboard = await getScoreboard(leagueSlug)
+  const days = calendarDays(scoreboard)
+  if (days && days.length > 0) return days.reduce((latest, day) => (day > latest ? day : latest))
 
-  const body = (await getJson(url)) as { events?: unknown[] }
-  return Array.isArray(body?.events) && body.events.length > 0
+  const end = scoreboard.leagues?.[0]?.calendarEndDate
+  return end ? end.slice(0, 10) : null
 }
-
 type EspnStandingsNode = {
   name?: string
   abbreviation?: string
