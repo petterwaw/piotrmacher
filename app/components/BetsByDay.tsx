@@ -4,7 +4,7 @@ import ScorePredictionCard, { type BasicMatch } from '@/app/components/ScorePred
 import { CalendarX2, ChevronLeft, ChevronRight } from 'lucide-react'
 import EmptyState from '@/app/components/EmptyState'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 
 type LivePrediction = {
   username: string
@@ -22,8 +22,18 @@ type Props = {
   roomId: string
   roomStatus: 'waiting' | 'active' | 'finished'
   visibleDaysAhead?: number
+  // Server render time of this payload, used to spot a page served from the
+  // client router cache (or a prefetch) rather than fresh from the server.
+  renderedAt: number
   matches: BetsByDayMatch[]
 }
+
+// A payload older than this may carry an outdated live score.
+const LIVE_SCORE_MAX_AGE_MS = 15_000
+
+// Render ids already mounted in this tab. Mounting the same one again means
+// the page came back from the client cache.
+const mountedRenders = new Set<number>()
 
 function toDayKey(isoDate: string) {
   const date = new Date(isoDate)
@@ -71,8 +81,10 @@ function buildDayRange(daysAhead: number) {
   })
 }
 
-export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, matches }: Props) {
+export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, renderedAt, matches }: Props) {
   const router = useRouter()
+  const [isRefreshingScores, startScoreRefresh] = useTransition()
+  const checkedCacheRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
@@ -85,6 +97,32 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
     () => sortedMatches.some((item) => item.match.status === 'live'),
     [sortedMatches]
   )
+
+  // Everything on this page can be shown from the client cache except the
+  // score of matches that are (or may by now be) in play. When the payload is
+  // not fresh, re-fetch it right away and show a skeleton in place of those
+  // scores until it lands; the rest of the page stays as it was.
+  useEffect(() => {
+    // Strict Mode runs mount effects twice; only the first run counts.
+    if (checkedCacheRef.current) return
+    checkedCacheRef.current = true
+
+    const seenBefore = mountedRenders.has(renderedAt)
+    mountedRenders.add(renderedAt)
+
+    if (roomStatus !== 'active') return
+    if (!seenBefore && Date.now() - renderedAt < LIVE_SCORE_MAX_AGE_MS) return
+
+    const now = Date.now()
+    const mayBeLive = matches.some(
+      (item) => item.match.status === 'live' || new Date(item.match.startTime).getTime() <= now
+    )
+    if (!mayBeLive) return
+
+    startScoreRefresh(() => router.refresh())
+    // Only on mount: later refreshes deliver a new renderedAt with fresh data.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const dayKeys = useMemo(() => buildDayRange(visibleDaysAhead), [visibleDaysAhead])
 
@@ -234,6 +272,7 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
               roomStatus={roomStatus}
               livePredictions={item.livePredictions}
               match={item.match}
+              scoreLoading={isRefreshingScores}
             />
           ))
         ) : (

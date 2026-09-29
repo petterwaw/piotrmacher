@@ -108,6 +108,8 @@ export default function RoomNavigation({
           }
 
           router.push('/home')
+          // The rooms list may be in the client cache and still show this room.
+          router.refresh()
         } catch {
           alert('Failed to delete room.')
         }
@@ -126,6 +128,8 @@ export default function RoomNavigation({
           }
 
           router.push('/home')
+          // The rooms list may be in the client cache and still show this room.
+          router.refresh()
         } catch {
           alert('Failed to leave room.')
         }
@@ -206,6 +210,10 @@ export default function RoomNavigation({
             <Link
               key={tab.href}
               href={tab.href}
+              // Full prefetch (not just up to loading.tsx): opening a tab for
+              // the first time renders from the prefetched payload instead of
+              // a skeleton + server round trip.
+              prefetch
               aria-current={isActive(tab.href, tab.exact) ? 'page' : undefined}
               className={`press relative flex min-h-10 items-center px-3 py-2 text-left text-sm transition-colors ${
                 isActive(tab.href, tab.exact)
@@ -275,6 +283,7 @@ export default function RoomNavigation({
             <Link
               key={tab.href}
               href={tab.href}
+              prefetch
               aria-current={active ? 'page' : undefined}
               className={`${MOBILE_TAB} ${
                 active ? 'font-bold text-brand' : 'font-semibold text-zinc-600 active:bg-zinc-100'
