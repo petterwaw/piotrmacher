@@ -20,7 +20,7 @@ const DAY = 24 * HOUR
 
 // Bump when a cached return shape changes: unstable_cache entries survive
 // deploys (on Vercel they live in the Data Cache).
-const CACHE_VERSION = 'v3'
+const CACHE_VERSION = 'v4'
 
 const MATCH_COLUMNS =
   'id, home_team, home_logo, away_team, away_logo, scheduled_start_at, status, home_score_ft, away_score_ft, live_minute'
@@ -156,17 +156,33 @@ export function getRoomStandings(roomId: string) {
 
       // Only scored bets count: points are set once a match inside the room
       // window has finished, so the percentage matches what earned points.
-      const { data: scored, error: betsError } = await supabase
-        .from('bets')
-        .select('user_id, home_score, away_score, matches!inner(home_score_ft, away_score_ft)')
-        .eq('room_id', roomId)
-        .not('points', 'is', null)
+      // PostgREST caps each response at 1000 rows and big rooms have more
+      // scored bets than that, so read them in pages.
+      type ScoredBet = {
+        user_id: string
+        home_score: number
+        away_score: number
+        matches: { home_score_ft: number | null; away_score_ft: number | null } | Array<{ home_score_ft: number | null; away_score_ft: number | null }> | null
+      }
+      const PAGE = 1000
+      const scored: ScoredBet[] = []
+      for (let from = 0; ; from += PAGE) {
+        const { data: page, error: betsError } = await supabase
+          .from('bets')
+          .select('id, user_id, home_score, away_score, matches!inner(home_score_ft, away_score_ft)')
+          .eq('room_id', roomId)
+          .not('points', 'is', null)
+          .order('id', { ascending: true })
+          .range(from, from + PAGE - 1)
 
-      if (betsError) fail('room-standings', betsError)
+        if (betsError) fail('room-standings', betsError)
+        scored.push(...((page ?? []) as ScoredBet[]))
+        if (!page || page.length < PAGE) break
+      }
 
       const outcome = (home: number, away: number) => Math.sign(home - away)
       const accuracy = new Map<string, { hits: number; total: number }>()
-      for (const bet of scored ?? []) {
+      for (const bet of scored) {
         const match = Array.isArray(bet.matches) ? bet.matches[0] : bet.matches
         if (!match || match.home_score_ft === null || match.away_score_ft === null) continue
         const entry = accuracy.get(bet.user_id) ?? { hits: 0, total: 0 }
