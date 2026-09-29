@@ -120,9 +120,10 @@ export default async function HomePage() {
     const rooms = await getRooms()
 
     return (
-        <main className="mx-auto w-full max-w-[1320px] px-4 py-8 md:px-6">
+        <div className="mx-auto w-full max-w-[1320px] px-4 py-8 md:px-6">
+            <h1 className="sr-only">Your rooms</h1>
             <PendingInviteBanner />
             <RoomsGrid rooms={rooms} />
-        </main>
+        </div>
     )
 }

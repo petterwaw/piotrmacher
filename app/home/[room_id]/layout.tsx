@@ -41,7 +41,7 @@ export default async function RoomLayout({
   const inviteCode = isHost && roomStatus !== 'finished' ? room?.invite_code ?? null : null
 
   return (
-    <main className="mx-auto w-full max-w-[1320px] px-4 pt-1 pb-24 md:pt-6 md:px-6 md:pb-8">
+    <div className="mx-auto w-full max-w-[1320px] px-4 pt-1 pb-24 md:pt-6 md:px-6 md:pb-8">
       <RoomStatusSync roomId={room_id} initialStatus={roomStatus} />
 
       <div className="mb-3 md:hidden">
@@ -78,6 +78,6 @@ export default async function RoomLayout({
           <div className="mx-auto w-full max-w-xl md:max-w-none xl:mx-auto xl:max-w-xl">{children}</div>
         </div>
       </div>
-    </main>
+    </div>
   )
 }

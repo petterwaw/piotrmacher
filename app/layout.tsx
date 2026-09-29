@@ -49,7 +49,7 @@ export default function RootLayout({
       <body className="min-h-dvh">
         <div className="min-h-dvh flex flex-col">
           <Header />
-          <main className="flex-1 flex pt-0">{children}</main>
+          <main id="main-content" tabIndex={-1} className="flex-1 flex pt-0 focus:outline-none">{children}</main>
           <AppFooter />
         </div>
         <Analytics />

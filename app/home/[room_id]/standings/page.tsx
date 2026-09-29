@@ -18,6 +18,7 @@ export default async function StandingsPage({
 
   return (
     <div>
+      <h1 className="sr-only">Standings</h1>
       {players.length > 0 ? (
         <StandingsTable players={players} />
       ) : (

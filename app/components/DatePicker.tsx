@@ -11,6 +11,7 @@ type Props = {
 }
 
 const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -115,8 +116,17 @@ export default function DatePicker({
   const isSelected = (d: number) =>
     d === selDay && viewMonth === selMonth && viewYear === selYear
 
+  // Full date for each day button, so a screen reader hears
+  // "Tuesday, 15 September 2026" rather than "15".
+  const dayLabel = (d: number) =>
+    `${WEEKDAY_NAMES[new Date(viewYear, viewMonth, d).getDay()]}, ${d} ${MONTHS[viewMonth]} ${viewYear}`
+
   const calendarContent = (
-    <div className={inline ? 'border-2 border-zinc-300 bg-white' : `${popover.isClosing ? 'animate-pop-out' : 'animate-pop-in'} absolute left-0 right-0 z-50 mt-1 border-2 border-brand bg-white shadow-lg shadow-black/10`}>
+    <div
+      role="group"
+      aria-label="End date and time"
+      className={inline ? 'border-2 border-zinc-300 bg-white' : `${popover.isClosing ? 'animate-pop-out' : 'animate-pop-in'} absolute left-0 right-0 z-50 mt-1 border-2 border-brand bg-white shadow-lg shadow-black/10`}
+    >
       {/* Month navigation */}
       <div className="flex items-center justify-between border-b border-zinc-200 px-1.5 py-1">
         <button type="button" onClick={prevMonth} aria-label="Previous month" className="inline-flex h-9 w-9 items-center justify-center text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-text-main">
@@ -129,7 +139,7 @@ export default function DatePicker({
       </div>
 
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 px-2 pt-2">
+      <div aria-hidden="true" className="grid grid-cols-7 px-2 pt-2">
         {WEEKDAYS.map((d) => (
           <div key={d} className="py-1 text-center text-[11px] font-bold uppercase tracking-wide text-zinc-600">{d}</div>
         ))}
@@ -149,6 +159,7 @@ export default function DatePicker({
                 disabled={disabled}
                 aria-pressed={isSelected(day)}
                 aria-current={isToday(day) ? 'date' : undefined}
+                aria-label={dayLabel(day)}
                 className={`h-9 w-9 text-sm font-medium tabular-nums transition-colors sm:h-10 sm:w-10 disabled:opacity-40 ${
                   isSelected(day)
                     ? 'bg-brand font-bold text-white'
@@ -167,24 +178,24 @@ export default function DatePicker({
       {/* Time picker */}
       <div className="flex items-center gap-2 border-t border-zinc-200 px-3 py-2.5">
         <Clock size={14} aria-hidden="true" className="shrink-0 text-zinc-600" />
-        <span className="text-xs font-semibold text-zinc-600">Time:</span>
+        <span aria-hidden="true" className="text-xs font-semibold text-zinc-600">Time:</span>
         <input
           type="number"
           min={0}
           max={23}
           value={hour}
-          aria-label="Hour"
+          aria-label="End time, hour"
           disabled={disabled}
           onChange={(e) => { setHour(e.target.value); commitTime(e.target.value, minute, selYear, selMonth, selDay) }}
           className="h-10 w-12 border-2 border-zinc-300 px-1 text-center text-sm font-semibold tabular-nums outline-none transition-colors focus:border-brand disabled:bg-gray-100"
         />
-        <span className="text-text-muted">:</span>
+        <span aria-hidden="true" className="text-text-muted">:</span>
         <input
           type="number"
           min={0}
           max={59}
           value={minute}
-          aria-label="Minute"
+          aria-label="End time, minute"
           disabled={disabled}
           onChange={(e) => { setMinute(e.target.value); commitTime(hour, e.target.value, selYear, selMonth, selDay) }}
           className="h-10 w-12 border-2 border-zinc-300 px-1 text-center text-sm font-semibold tabular-nums outline-none transition-colors focus:border-brand disabled:bg-gray-100"
@@ -208,6 +219,7 @@ export default function DatePicker({
         type="button"
         onClick={() => { if (!disabled) setOpen(p => !p) }}
         disabled={disabled}
+        aria-expanded={open}
         className={`no-press flex min-h-12 w-full items-center gap-3 border-2 px-4 py-3 text-left text-sm outline-none transition-colors focus-visible:border-brand ${
           disabled
             ? 'cursor-not-allowed border-zinc-300 bg-gray-100 text-text-muted'

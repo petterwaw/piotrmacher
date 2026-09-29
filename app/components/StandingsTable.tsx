@@ -28,13 +28,18 @@ export default function StandingsTable({ players }: { players: Player[] }) {
                 podiumStyles[index] ?? 'text-zinc-600'
               }`}
             >
-              <span className="sr-only">Place </span>#{index + 1}
+              <span className="sr-only">Place </span>
+              <span aria-hidden="true">#</span>
+              {index + 1}
             </span>
             <span className="min-w-0 truncate font-semibold text-text-main">{player.username}</span>
           </div>
           <span className="shrink-0 text-right">
             <span className="text-lg font-black tabular-nums text-brand">{player.points}</span>
-            <span className="ml-1 text-sm font-semibold text-zinc-600">pts</span>
+            <span className="ml-1 text-sm font-semibold text-zinc-600">
+              <span aria-hidden="true">pts</span>
+              <span className="sr-only">{player.points === 1 ? 'point' : 'points'}</span>
+            </span>
           </span>
         </li>
       ))}

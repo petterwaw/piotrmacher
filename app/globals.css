@@ -116,6 +116,33 @@ body {
     cursor: not-allowed;
   }
 
+  /* Users who ask for more contrast get a heavier, darker focus ring. */
+  @media (prefers-contrast: more) {
+    :focus-visible {
+      outline-width: 3px;
+      outline-color: var(--color-brand-hover);
+    }
+  }
+
+  /*
+   * Windows High Contrast / forced colours drop background fills, which is
+   * how selected days, tabs, options and toggles are marked. Give those states
+   * a system-colour outline so "selected" never disappears.
+   */
+  @media (forced-colors: active) {
+    :focus-visible {
+      outline-color: Highlight;
+    }
+
+    [aria-pressed="true"],
+    [aria-selected="true"],
+    [aria-current="page"],
+    [aria-current="date"] {
+      outline: 2px solid Highlight;
+      outline-offset: -2px;
+    }
+  }
+
   /* Hide number spinners on the compact time inputs. */
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {

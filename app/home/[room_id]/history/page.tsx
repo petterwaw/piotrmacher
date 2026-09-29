@@ -146,6 +146,7 @@ export default async function HistoryPage({
 
   return (
     <div className="mx-auto max-w-xl">
+      <h1 className="sr-only">History</h1>
       {matches.length === 0 ? (
         <EmptyState icon={History} title="No historical bets yet" />
       ) : (
@@ -188,6 +189,7 @@ export default async function HistoryPage({
               <Link
                 href={currentPage > 1 ? `?page=${currentPage - 1}` : '#'}
                 aria-disabled={currentPage === 1}
+                tabIndex={currentPage === 1 ? -1 : undefined}
                 aria-label="Previous page"
                 className={`${PAGE_ITEM} ${
                   currentPage === 1
@@ -229,6 +231,7 @@ export default async function HistoryPage({
               <Link
                 href={currentPage < totalPages ? `?page=${currentPage + 1}` : '#'}
                 aria-disabled={currentPage === totalPages}
+                tabIndex={currentPage === totalPages ? -1 : undefined}
                 aria-label="Next page"
                 className={`${PAGE_ITEM} ${
                   currentPage === totalPages

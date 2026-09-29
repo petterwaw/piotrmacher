@@ -88,12 +88,12 @@ export default function RulesContent({ rules, showPickem }: { rules: RoomRules; 
 
         <dl className="mt-5 divide-y divide-zinc-200 border-y-2 border-zinc-200">
           {rows.map((row) => (
-            <div key={row.label} className="flex items-baseline justify-between gap-4 py-3">
-              <div className="min-w-0">
-                <dt className="text-[15px] font-bold text-text-main">{row.label}</dt>
-                <dd className="mt-0.5 text-sm leading-snug text-zinc-600">{row.explain}</dd>
-              </div>
-              <dd className="shrink-0 whitespace-nowrap text-right text-[15px] font-bold tabular-nums text-brand">
+            // dt/dd must be direct children of the row div for a valid list;
+            // the grid keeps the label + explanation left and the points right.
+            <div key={row.label} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 py-3">
+              <dt className="col-start-1 row-start-1 text-[15px] font-bold text-text-main">{row.label}</dt>
+              <dd className="col-start-1 row-start-2 mt-0.5 text-sm leading-snug text-zinc-600">{row.explain}</dd>
+              <dd className="col-start-2 row-start-1 whitespace-nowrap text-right text-[15px] font-bold tabular-nums text-brand">
                 {row.points}
               </dd>
             </div>

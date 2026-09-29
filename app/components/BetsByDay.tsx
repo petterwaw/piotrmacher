@@ -48,6 +48,11 @@ function formatDayLabel(dayKey: string, todayKey: string, tomorrowKey: string) {
   })
 }
 
+// Smooth scrolling is motion: honour prefers-reduced-motion.
+function scrollBehavior(): ScrollBehavior {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+}
+
 function startOfDay(value: Date) {
   return new Date(value.getFullYear(), value.getMonth(), value.getDate())
 }
@@ -114,7 +119,7 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
     const container = scrollRef.current
     if (!container || !activeDay) return
     const activeBtn = container.querySelector<HTMLElement>('[data-day-active="true"]')
-    activeBtn?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' })
+    activeBtn?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: scrollBehavior() })
   }, [activeDay])
 
   useEffect(() => {
@@ -150,7 +155,7 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
       : undefined
 
   const scrollDays = (delta: number) => {
-    scrollRef.current?.scrollBy({ left: delta, behavior: 'smooth' })
+    scrollRef.current?.scrollBy({ left: delta, behavior: scrollBehavior() })
   }
 
   return (
@@ -159,7 +164,8 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
         <button
           type="button"
           onClick={() => scrollDays(-120)}
-          aria-label="Scroll left"
+          aria-label="Show earlier days"
+          aria-hidden={canScrollLeft ? undefined : true}
           tabIndex={canScrollLeft ? undefined : -1}
           className={`hidden h-10 w-8 shrink-0 items-center justify-center text-zinc-600 transition-[color,opacity] hover:text-brand md:flex ${canScrollLeft ? '' : 'pointer-events-none opacity-0'}`}
         >
@@ -190,6 +196,8 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
                 type="button"
                 data-day-active={isActive ? 'true' : undefined}
                 aria-pressed={isActive}
+                // Weekday/date labels are formatted in Polish; Today/Tomorrow are English.
+                lang={dayKey === todayKey || dayKey === tomorrowKey ? undefined : 'pl'}
                 onClick={() => setSelectedDay(dayKey)}
                 className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap border-2 px-3.5 text-sm font-bold uppercase tracking-wide tabular-nums transition-colors ${
                   isActive
@@ -206,7 +214,8 @@ export default function BetsByDay({ roomId, roomStatus, visibleDaysAhead = 7, ma
         <button
           type="button"
           onClick={() => scrollDays(120)}
-          aria-label="Scroll right"
+          aria-label="Show later days"
+          aria-hidden={canScrollRight ? undefined : true}
           tabIndex={canScrollRight ? undefined : -1}
           className={`hidden h-10 w-8 shrink-0 items-center justify-center text-zinc-600 transition-[color,opacity] hover:text-brand md:flex ${canScrollRight ? '' : 'pointer-events-none opacity-0'}`}
         >

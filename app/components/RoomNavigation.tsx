@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Ticket, Clock, Trophy, BookOpen, Settings, Trash2, LogOut, Share2, ListOrdered } from 'lucide-react'
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { usePresence } from '@/app/components/motion/usePresence'
+import { useDialogFocus } from '@/app/components/a11y/useDialogFocus'
 import InviteShare from '@/app/components/InviteShare'
 
 const tabIcons: Record<string, React.ElementType> = {
@@ -52,6 +53,10 @@ export default function RoomNavigation({
   // Keep dialogs mounted while they play their exit animation.
   const invitePresence = usePresence(showInviteModal)
   const confirmPresence = usePresence(confirmAction)
+  const confirmDialogRef = useRef<HTMLDivElement>(null)
+  useDialogFocus(confirmDialogRef, Boolean(confirmAction), () => {
+    if (!isPending) setConfirmAction(null)
+  })
 
   const tabs: Array<{ href: string; label: string; exact?: boolean }> = []
 
@@ -154,7 +159,7 @@ export default function RoomNavigation({
 
         return (
           <div className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4 ${confirmPresence.isClosing ? 'animate-overlay-out' : 'animate-overlay-in pointer-events-auto'}`}>
-            <div role="alertdialog" aria-modal="true" aria-labelledby="room-action-title" aria-describedby="room-action-desc" className={`w-full max-w-sm border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 ${confirmPresence.isClosing ? 'animate-dialog-out' : 'animate-dialog-in pointer-events-auto'}`}>
+            <div ref={confirmDialogRef} role="alertdialog" aria-modal="true" aria-labelledby="room-action-title" aria-describedby="room-action-desc" tabIndex={-1} className={`w-full max-w-sm border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 ${confirmPresence.isClosing ? 'animate-dialog-out' : 'animate-dialog-in pointer-events-auto'}`}>
               <h3 id="room-action-title" className="mb-2 text-sm font-bold uppercase tracking-wide text-text-main">
                 {actionLabel}
               </h3>

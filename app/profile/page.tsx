@@ -163,7 +163,7 @@ export default function ProfilePage() {
     <div className='mx-auto w-full max-w-xl px-4 py-8 md:px-6 md:py-10'>
       <h1 className='text-2xl font-black tracking-tight text-text-main'>Account</h1>
       <p className='mt-1 text-sm text-zinc-600'>
-        Member since <span className='tabular-nums'>{createdAtLabel}</span>
+        Member since <span lang='pl' className='tabular-nums'>{createdAtLabel}</span>
       </p>
 
       {error ? <p role='alert' className='mt-5 border-2 border-danger/40 bg-white p-3 text-sm font-medium text-danger'>{error}</p> : null}
@@ -188,7 +188,11 @@ export default function ProfilePage() {
             </button>
           </div>
           {editingUsername && (
-            <div id='username-form' className='animate-pop-in basis-full'>
+            <form
+              id='username-form'
+              className='animate-pop-in basis-full'
+              onSubmit={(event) => { event.preventDefault(); if (!isPending) updateUsername() }}
+            >
               <label htmlFor='username' className={FIELD_LABEL}>New username</label>
               <input
                 id='username'
@@ -201,14 +205,13 @@ export default function ProfilePage() {
               />
               <p id='username-hint' className='mt-1.5 text-sm text-zinc-600'>3–24 characters: letters, numbers, _ or .</p>
               <button
-                type='button'
+                type='submit'
                 className={`${PRIMARY} mt-3`}
-                onClick={updateUsername}
                 disabled={isPending}
               >
                 {isPending ? 'Saving…' : 'Save username'}
               </button>
-            </div>
+            </form>
           )}
         </div>
 
@@ -237,7 +240,11 @@ export default function ProfilePage() {
             </button>
           </div>
           {editingPassword && (
-            <div id='password-form' className='animate-pop-in basis-full space-y-3'>
+            <form
+              id='password-form'
+              className='animate-pop-in basis-full space-y-3'
+              onSubmit={(event) => { event.preventDefault(); if (!isPending) updatePassword() }}
+            >
               <div>
                 <label htmlFor='current-password' className={FIELD_LABEL}>Current password</label>
                 <input
@@ -274,14 +281,13 @@ export default function ProfilePage() {
                 />
               </div>
               <button
-                type='button'
+                type='submit'
                 className={PRIMARY}
-                onClick={updatePassword}
                 disabled={isPending}
               >
                 {isPending ? 'Saving…' : 'Change password'}
               </button>
-            </div>
+            </form>
           )}
         </div>
       </div>

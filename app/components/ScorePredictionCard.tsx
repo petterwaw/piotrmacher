@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, ChevronDown, LoaderCircle, Minus, Pencil, Plus } from 'lucide-react'
 import TickNumber from '@/app/components/motion/TickNumber'
@@ -76,7 +76,11 @@ export default function ScorePredictionCard({
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [showBets, setShowBets] = useState(false)
-  const cardRef = useRef<HTMLDivElement>(null)
+  const cardRef = useRef<HTMLElement>(null)
+  const editButtonRef = useRef<HTMLButtonElement>(null)
+  const firstStepperRef = useRef<HTMLButtonElement>(null)
+  const titleId = useId()
+  const betsListId = useId()
   // True once the user has toggled edit mode: from then on the swapped-in
   // score / buttons fade in. Never true on first render or data refreshes.
   const [hasToggled, setHasToggled] = useState(false)
@@ -84,6 +88,18 @@ export default function ScorePredictionCard({
 
   // Score <-> steppers changes the card's height: glide instead of jumping.
   useSmoothHeight(cardRef, isEditing)
+
+  // The Edit / Cancel buttons unmount when edit mode toggles; keep keyboard
+  // focus in the card (first stepper on edit, Edit button after cancel/save)
+  // instead of dropping it to the page. Only when focus was lost or is
+  // already inside this card, so refreshes never steal focus.
+  useEffect(() => {
+    if (!hasToggled) return
+    const active = document.activeElement
+    if (active && active !== document.body && !cardRef.current?.contains(active)) return
+    if (isEditing) firstStepperRef.current?.focus()
+    else editButtonRef.current?.focus()
+  }, [isEditing, hasToggled])
 
   useEffect(() => {
     if (!saveMessage) {
@@ -186,10 +202,13 @@ export default function ScorePredictionCard({
   const isSaving = isPending && !saveMessage
 
   return (
-    <div ref={cardRef} className="border-2 border-zinc-300 bg-white/90 p-4 sm:p-5">
+    <article ref={cardRef} aria-labelledby={titleId} className="border-2 border-zinc-300 bg-white/90 p-4 sm:p-5">
+      <h2 id={titleId} className="sr-only">
+        {match.homeTeam} vs {match.awayTeam}
+      </h2>
       <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
         <div />
-        <p className="text-center text-sm tabular-nums text-zinc-600">
+        <p lang="pl" className="text-center text-sm tabular-nums text-zinc-600">
           {new Date(match.startTime).toLocaleString('pl-PL', {
             dateStyle: 'medium',
             timeStyle: 'short',
@@ -208,7 +227,8 @@ export default function ScorePredictionCard({
             <span className="absolute inline-flex h-full w-full rounded-full bg-brand-bright opacity-75 motion-safe:animate-ping" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-brand" />
           </span>
-          <span>LIVE{typeof match.liveMinute === 'number' ? ` ${match.liveMinute}'` : ''}</span>
+          <span aria-hidden="true">LIVE{typeof match.liveMinute === 'number' ? ` ${match.liveMinute}'` : ''}</span>
+          <span className="sr-only">Live{typeof match.liveMinute === 'number' ? `, minute ${match.liveMinute}` : ''}</span>
         </div>
       ) : null}
 
@@ -225,7 +245,14 @@ export default function ScorePredictionCard({
         <div className="w-[24%] min-w-[112px] text-center">
           {!isEditing ? (
             <div key="score" className={`flex flex-col items-center ${swapIn}`}>
-              <div className="text-4xl font-black leading-none tracking-tight tabular-nums text-text-main">
+              <p className="sr-only">
+                {showOfficialScore
+                  ? `Score: ${match.homeTeam} ${match.liveScore?.home ?? 0}, ${match.awayTeam} ${match.liveScore?.away ?? 0}`
+                  : showPlayerPredictionInCenter
+                    ? `Your pick: ${match.homeTeam} ${savedPrediction.home}, ${match.awayTeam} ${savedPrediction.away}`
+                    : 'No pick yet'}
+              </p>
+              <div aria-hidden="true" className="text-4xl font-black leading-none tracking-tight tabular-nums text-text-main">
                 {showOfficialScore ? (
                   <span>
                     <TickNumber value={match.liveScore?.home ?? 0} />
@@ -239,31 +266,41 @@ export default function ScorePredictionCard({
                     <TickNumber value={savedPrediction.away} />
                   </span>
                 ) : (
-                  <span className="text-zinc-300" aria-label="No score yet">
+                  <span className="text-zinc-300">
                     –<span className="mx-1.5">:</span>–
                   </span>
                 )}
               </div>
               {!showOfficialScore && showPlayerPredictionInCenter ? (
-                <span className="mt-1.5 text-[11px] font-bold uppercase tracking-wide text-zinc-600">Your pick</span>
+                <span aria-hidden="true" className="mt-1.5 text-[11px] font-bold uppercase tracking-wide text-zinc-600">Your pick</span>
               ) : null}
             </div>
           ) : (
-            <div key="steppers" className="animate-message-in grid grid-cols-[40px_auto_40px] items-center justify-center gap-2">
+            <div
+              key="steppers"
+              role="group"
+              aria-label={`Your pick for ${match.homeTeam} vs ${match.awayTeam}`}
+              className="animate-message-in grid grid-cols-[40px_auto_40px] items-center justify-center gap-2"
+            >
+              {/* One concise announcement per change: "Arsenal 2, Chelsea 1". */}
+              <span aria-live="polite" className="sr-only">
+                {`${match.homeTeam} ${homeScore}, ${match.awayTeam} ${awayScore}`}
+              </span>
               <div className="flex flex-col items-center gap-1.5">
                 <button
+                  ref={firstStepperRef}
                   type="button"
-                  aria-label={`Increase ${match.homeTeam} score`}
+                  aria-label={`${match.homeTeam} goals, increase`}
                   className={STEP_UP}
                   onClick={increaseHome}
                   disabled={isPending || homeScore >= MAX_PREDICTED_GOALS}
                 >
                   <Plus size={18} strokeWidth={3} aria-hidden="true" />
                 </button>
-                <span aria-live="polite" className="w-10 overflow-hidden text-center text-3xl font-black leading-none tabular-nums text-text-main"><TickNumber value={homeScore} /></span>
+                <span className="w-10 overflow-hidden text-center text-3xl font-black leading-none tabular-nums text-text-main"><TickNumber value={homeScore} /></span>
                 <button
                   type="button"
-                  aria-label={`Decrease ${match.homeTeam} score`}
+                  aria-label={`${match.homeTeam} goals, decrease`}
                   className={STEP_DOWN}
                   onClick={decreaseHome}
                   disabled={isPending || homeScore <= 0}
@@ -277,17 +314,17 @@ export default function ScorePredictionCard({
               <div className="flex flex-col items-center gap-1.5">
                 <button
                   type="button"
-                  aria-label={`Increase ${match.awayTeam} score`}
+                  aria-label={`${match.awayTeam} goals, increase`}
                   className={STEP_UP}
                   onClick={increaseAway}
                   disabled={isPending || awayScore >= MAX_PREDICTED_GOALS}
                 >
                   <Plus size={18} strokeWidth={3} aria-hidden="true" />
                 </button>
-                <span aria-live="polite" className="w-10 overflow-hidden text-center text-3xl font-black leading-none tabular-nums text-text-main"><TickNumber value={awayScore} /></span>
+                <span className="w-10 overflow-hidden text-center text-3xl font-black leading-none tabular-nums text-text-main"><TickNumber value={awayScore} /></span>
                 <button
                   type="button"
-                  aria-label={`Decrease ${match.awayTeam} score`}
+                  aria-label={`${match.awayTeam} goals, decrease`}
                   className={STEP_DOWN}
                   onClick={decreaseAway}
                   disabled={isPending || awayScore <= 0}
@@ -315,7 +352,10 @@ export default function ScorePredictionCard({
         <div className="mt-4 flex items-center justify-between gap-3 border-t border-zinc-200 pt-4">
           {/* Save status: "Saving…" while the request runs, then "Saved." with a
               check. Both sit in one grid cell so they crossfade without shifting. */}
-          <span aria-live="polite" className="grid min-w-[80px] text-sm font-semibold">
+          <span role="status" className="sr-only">
+            {isSaving ? 'Saving your pick…' : saveMessage ? 'Your pick is saved.' : ''}
+          </span>
+          <span aria-hidden="true" className="grid min-w-[80px] text-sm font-semibold">
             <span
               className={`col-start-1 row-start-1 inline-flex items-center gap-1.5 text-zinc-600 transition-[opacity,translate] duration-150 ${
                 isSaving ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-1 opacity-0'
@@ -338,6 +378,7 @@ export default function ScorePredictionCard({
             {!isEditing ? (
               <button
                 key="edit"
+                ref={editButtonRef}
                 type="button"
                 className={`${SECONDARY_ACTION} ${swapIn}`}
                 onClick={startEditing}
@@ -345,6 +386,7 @@ export default function ScorePredictionCard({
               >
                 <Pencil size={14} aria-hidden="true" />
                 Edit
+                <span className="sr-only"> pick for {match.homeTeam} vs {match.awayTeam}</span>
               </button>
             ) : (
               <>
@@ -379,6 +421,7 @@ export default function ScorePredictionCard({
             type="button"
             onClick={() => setShowBets((prev) => !prev)}
             aria-expanded={showBets}
+            aria-controls={betsListId}
             className="no-press flex min-h-11 w-full items-center justify-between gap-2 pt-1 text-sm font-semibold text-zinc-700 transition-colors hover:text-text-main active:text-brand"
           >
             <span>
@@ -390,7 +433,7 @@ export default function ScorePredictionCard({
               className={`text-zinc-500 transition-transform duration-[220ms] ${showBets ? 'rotate-180' : ''}`}
             />
           </button>
-          <div className="collapsible" data-open={showBets}>
+          <div id={betsListId} className="collapsible" data-open={showBets}>
             <ul className="divide-y divide-zinc-100">
               {livePredictions.map((item) => (
                 <li key={`${item.username}-${item.homeScore}-${item.awayScore}`} className="flex items-center justify-between gap-3 py-2 text-sm text-text-main">
@@ -407,6 +450,6 @@ export default function ScorePredictionCard({
           </div>
         </div>
       ) : null}
-    </div>
+    </article>
   )
 }

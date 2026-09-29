@@ -53,6 +53,9 @@ export default function PickemPanel({
   const [dragged, setDragged] = useState<{ groupKey: string; teamId: string } | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Screen-reader announcement after a team moves ("Mexico A moved to
+  // position 2 of 4 in Group A").
+  const [moveAnnouncement, setMoveAnnouncement] = useState('')
   const [isPending, startTransition] = useTransition()
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -104,8 +107,32 @@ export default function PickemPanel({
     return () => window.clearTimeout(timeout)
   }, [message])
 
+  const announceMove = (groupKey: string, teamId: string, index: number, count: number) => {
+    const group = groups.find((item) => item.groupKey === groupKey)
+    const team = teamsByGroup.get(groupKey)?.get(teamId)
+    if (!group || !team) return
+    setMoveAnnouncement(`${team.name} moved to position ${index + 1} of ${count} in ${group.groupName}.`)
+  }
+
   const moveTeam = (groupKey: string, teamId: string, direction: -1 | 1) => {
     if (!canEdit || isPending) return
+
+    const current = orders[groupKey] ?? []
+    const currentIndex = current.indexOf(teamId)
+    const targetIndex = currentIndex + direction
+    if (currentIndex >= 0 && targetIndex >= 0 && targetIndex < current.length) {
+      announceMove(groupKey, teamId, targetIndex, current.length)
+
+      // The pressed arrow becomes disabled at the top/bottom of the group:
+      // keep keyboard focus on the row by moving it to the other arrow.
+      const atEdge = targetIndex === 0 || targetIndex === current.length - 1
+      if (atEdge) {
+        const other = direction === -1 ? 'down' : 'up'
+        window.requestAnimationFrame(() => {
+          document.querySelector<HTMLButtonElement>(`[data-move="${groupKey}:${teamId}:${other}"]`)?.focus()
+        })
+      }
+    }
 
     setOrders((prev) => {
       const next = [...(prev[groupKey] ?? [])]
@@ -143,6 +170,12 @@ export default function PickemPanel({
 
       return { ...prev, [groupKey]: next }
     })
+
+    const current = orders[groupKey] ?? []
+    const toIndex = current.indexOf(targetTeamId)
+    if (toIndex >= 0 && dragged.teamId !== targetTeamId) {
+      announceMove(groupKey, dragged.teamId, toIndex, current.length)
+    }
 
     setDragged(null)
   }
@@ -186,18 +219,22 @@ export default function PickemPanel({
             <p className="text-xs font-bold uppercase tracking-wide text-brand">Pickem</p>
             <h1 className="mt-1 text-2xl font-black tracking-tight text-text-main">Set the group order</h1>
             <p className="mt-2 max-w-[52ch] text-sm leading-relaxed text-zinc-700">
-              Drag teams or use arrows. You get {pointsPerCorrectPosition} pts for every team placed in the correct final position.
+              Drag teams or use the up and down buttons. You get {pointsPerCorrectPosition} pts for every team placed in the correct final position.
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             <div className="border-2 border-zinc-300 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-zinc-600">
               <span className="block text-[11px] leading-none">Total points</span>
-              <span className="mt-1.5 block text-lg font-black leading-none tabular-nums text-brand">{totalPickemPoints} pts</span>
+              <span className="mt-1.5 block text-lg font-black leading-none tabular-nums text-brand">
+                {totalPickemPoints} <span aria-hidden="true">pts</span>
+                <span className="sr-only">{totalPickemPoints === 1 ? 'point' : 'points'}</span>
+              </span>
             </div>
             <div className={`flex items-center gap-2 border-2 px-3 py-2 text-xs font-bold uppercase tracking-wide ${
               canEdit ? 'border-brand bg-brand text-white' : 'border-zinc-300 bg-zinc-100 text-text-muted'
             }`}>
               {canEdit ? <Trophy size={16} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}
+              <span className="sr-only">Pickem is </span>
               {canEdit ? 'Open' : 'Locked'}
             </div>
           </div>
@@ -214,26 +251,28 @@ export default function PickemPanel({
         return (
           <section
             key={group.groupKey}
+            aria-labelledby={`pickem-${group.groupKey}`}
             className="border-2 border-zinc-300 bg-white/90 p-3 sm:p-4"
           >
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black tracking-tight text-text-main">{group.groupName}</h2>
-                <p className="text-xs text-zinc-600">Your predicted final table</p>
+                <h2 id={`pickem-${group.groupKey}`} className="text-lg font-black tracking-tight text-text-main">{group.groupName}</h2>
+                <p id={`pickem-${group.groupKey}-desc`} className="text-xs text-zinc-600">Your predicted final table</p>
               </div>
               {pick ? (
                 <span className="shrink-0 border-2 border-zinc-300 bg-white px-3 py-1 text-sm font-black tabular-nums text-brand">
-                  {pick.points} pts
+                  {pick.points} <span aria-hidden="true">pts</span>
+                  <span className="sr-only">{pick.points === 1 ? 'point' : 'points'} in {group.groupName}</span>
                 </span>
               ) : null}
             </div>
 
-            <div className="space-y-2">
+            <ol className="space-y-2" aria-labelledby={`pickem-${group.groupKey} pickem-${group.groupKey}-desc`}>
               {orderedTeams.map((team, index) => {
                 const officialPosition = team.currentPosition
 
                 return (
-                  <div
+                  <li
                     key={team.teamId}
                     data-flip-key={`${group.groupKey}:${team.teamId}`}
                     draggable={canEdit && !isPending}
@@ -252,7 +291,11 @@ export default function PickemPanel({
                     </div>
 
                     <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                      <span className="w-7 shrink-0 text-lg font-black tabular-nums text-brand">#{index + 1}</span>
+                      <span className="w-7 shrink-0 text-lg font-black tabular-nums text-brand">
+                        <span className="sr-only">Position </span>
+                        <span aria-hidden="true">#</span>
+                        {index + 1}
+                      </span>
                       {team.logo ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={team.logo} alt="" aria-hidden="true" className="h-8 w-8 shrink-0 object-contain" />
@@ -269,6 +312,7 @@ export default function PickemPanel({
 
                     <div className="flex items-center gap-1.5">
                       <button
+                        data-move={`${group.groupKey}:${team.teamId}:up`}
                         type="button"
                         onClick={() => moveTeam(group.groupKey, team.teamId, -1)}
                         disabled={!canEdit || isPending || index === 0}
@@ -278,6 +322,7 @@ export default function PickemPanel({
                         <ChevronUp size={18} aria-hidden="true" />
                       </button>
                       <button
+                        data-move={`${group.groupKey}:${team.teamId}:down`}
                         type="button"
                         onClick={() => moveTeam(group.groupKey, team.teamId, 1)}
                         disabled={!canEdit || isPending || index === orderedTeams.length - 1}
@@ -287,13 +332,15 @@ export default function PickemPanel({
                         <ChevronDown size={18} aria-hidden="true" />
                       </button>
                     </div>
-                  </div>
+                  </li>
                 )
               })}
-            </div>
+            </ol>
           </section>
         )
       })}
+
+      <p aria-live="polite" className="sr-only">{moveAnnouncement}</p>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

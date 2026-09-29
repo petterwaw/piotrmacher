@@ -94,6 +94,7 @@ export default async function BetsPage({
 
   return (
     <div className="mx-auto max-w-xl">
+      <h1 className="sr-only">Bets</h1>
 
       {matches.length === 0 ? (
         <EmptyState icon={CalendarX2} title="No upcoming matches for this event." />

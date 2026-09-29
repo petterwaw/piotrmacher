@@ -57,18 +57,20 @@ function Stepper({
     'inline-flex h-11 w-11 items-center justify-center border-2 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1B5E20] disabled:cursor-not-allowed disabled:opacity-40'
 
   return (
-    <div className="flex items-center gap-2" role="group" aria-label={`${team} goals in your pick`}>
+    // Below 360px (e.g. 320px / 400% zoom) the steppers stack vertically so the
+    // demo reflows without horizontal scrolling.
+    <div className="flex items-center gap-2 max-[359px]:flex-col" role="group" aria-label={`${team} goals in your pick`}>
       <button
         type="button"
         onClick={() => onChange(Math.max(0, value - 1))}
         disabled={value === 0}
-        aria-label={`One goal fewer for ${team}`}
+        aria-label={`${team} goals, decrease`}
         className={`${buttonClass} border-zinc-300 bg-white text-[#0F1A12] hover:border-[#2E7D32]`}
       >
         <Minus size={18} strokeWidth={2.5} aria-hidden="true" />
       </button>
       <output
-        aria-live="polite"
+        aria-live="off"
         className={`${displayFont.className} w-9 text-center text-5xl font-extrabold leading-none tabular-nums text-[#0F1A12]`}
       >
         {value}
@@ -77,7 +79,7 @@ function Stepper({
         type="button"
         onClick={() => onChange(Math.min(MAX_GOALS, value + 1))}
         disabled={value === MAX_GOALS}
-        aria-label={`One goal more for ${team}`}
+        aria-label={`${team} goals, increase`}
         className={`${buttonClass} border-[#2E7D32] bg-[#2E7D32] text-white hover:border-[#1B5E20] hover:bg-[#1B5E20]`}
       >
         <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
@@ -143,11 +145,11 @@ export default function ScoringDemo() {
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 pb-4 pt-5 sm:px-5">
         <p className="text-right text-base font-bold text-[#0F1A12]">Arsenal</p>
-        <p
-          className={`${displayFont.className} px-3 text-6xl font-extrabold leading-none tabular-nums text-[#0F1A12]`}
-          aria-label={`Final score: Arsenal ${FINAL.home}, Chelsea ${FINAL.away}`}
-        >
-          {FINAL.home}<span className="px-1 text-zinc-400">:</span>{FINAL.away}
+        <p className={`${displayFont.className} px-3 text-6xl font-extrabold leading-none tabular-nums text-[#0F1A12]`}>
+          <span className="sr-only">{`Final score: Arsenal ${FINAL.home}, Chelsea ${FINAL.away}`}</span>
+          <span aria-hidden="true">
+            {FINAL.home}<span className="px-1 text-zinc-400">:</span>{FINAL.away}
+          </span>
         </p>
         <p className="text-base font-bold text-[#0F1A12]">Chelsea</p>
       </div>
@@ -155,6 +157,10 @@ export default function ScoringDemo() {
       <div className="border-t-2 border-dashed border-zinc-200 bg-[#F4F7F4] px-4 py-4 sm:px-5">
         <p className="text-center text-sm font-bold text-[#0F1A12]">Your pick, locked at kickoff</p>
         <p className="mt-0.5 text-center text-sm text-[#3F4A43]">Change it and watch the points.</p>
+        {/* One concise announcement per change instead of the whole breakdown. */}
+        <p aria-live="polite" className="sr-only">
+          {`Your pick: Arsenal ${pick.home}, Chelsea ${pick.away}. ${yourPoints} ${yourPoints === 1 ? 'point' : 'points'}.`}
+        </p>
         <div className="mt-4 flex items-center justify-center gap-3 sm:gap-5">
           <Stepper team="Arsenal" value={pick.home} onChange={(home) => setPick((p) => ({ ...p, home }))} />
           <span className={`${displayFont.className} text-4xl font-extrabold text-zinc-400`} aria-hidden="true">:</span>
@@ -180,7 +186,7 @@ export default function ScoringDemo() {
                   {rule.label}
                   <span className="sr-only">{rule.hit ? ', scored' : ', not scored'}</span>
                 </span>
-                <span className="tabular-nums">{rule.hit ? '+1' : '0'}</span>
+                <span className="tabular-nums" aria-hidden="true">{rule.hit ? '+1' : '0'}</span>
               </li>
             ))}
           </ul>
@@ -204,12 +210,23 @@ export default function ScoringDemo() {
                 }}
                 className={`relative grid grid-cols-[1.75rem_1fr_auto_2rem] items-center gap-2 border-b border-zinc-200 py-1.5 text-sm last:border-b-0 ${row.you ? 'z-10 -mx-2 bg-[#E3F1E4] px-2 font-bold text-[#0F1A12]' : 'text-[#27312B]'}`}
               >
-                <span className="tabular-nums text-[#5B665F]">{ranks[index]}.</span>
-                <span>{row.name}</span>
+                <span className="tabular-nums text-[#5B665F]">
+                  <span className="sr-only">Place </span>
+                  {ranks[index]}
+                  <span aria-hidden="true">.</span>
+                </span>
+                <span>
+                  {row.name}
+                  <span className="sr-only">, pick</span>
+                </span>
                 <span className="tabular-nums text-[#5B665F]">
                   {row.pick.home}:{row.pick.away}
+                  <span className="sr-only">,</span>
                 </span>
-                <span className="text-right font-bold tabular-nums">{row.points}</span>
+                <span className="text-right font-bold tabular-nums">
+                  {row.points}
+                  <span className="sr-only"> {row.points === 1 ? 'point' : 'points'}</span>
+                </span>
               </li>
             ))}
           </ol>
