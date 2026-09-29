@@ -19,28 +19,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Enter a valid invite code.' }, { status: 400 })
     }
 
-    // Direct SELECT on rooms is blocked by RLS for non-members.
-    // SECURITY DEFINER function bypasses RLS to resolve invite_code → room id.
-    const { data: roomId, error: roomError } = await supabase
-      .rpc('get_room_id_by_invite_code', { p_code: code })
+    // Membership rows can't be inserted directly (RLS); this SECURITY DEFINER
+    // function validates the code and adds the caller to the room.
+    const { data: roomId, error: joinError } = await supabase.rpc('join_room_by_code', { p_code: code })
 
-    if (roomError || !roomId) {
+    if (joinError || !roomId) {
       return NextResponse.json({ error: 'Room not found for this invite code.' }, { status: 404 })
-    }
-
-    const { error: joinError } = await supabase.from('room_players').upsert(
-      {
-        room_id: roomId,
-        user_id: user.id,
-      },
-      {
-        onConflict: 'room_id,user_id',
-        ignoreDuplicates: true,
-      }
-    )
-
-    if (joinError) {
-      return NextResponse.json({ error: 'Could not join room.' }, { status: 500 })
     }
 
     return NextResponse.json({ roomId: roomId })

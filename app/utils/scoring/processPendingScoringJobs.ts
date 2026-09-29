@@ -56,8 +56,8 @@ function matchOutcome(home: number, away: number): 'home' | 'away' | 'draw' {
 }
 
 function toRuleScore(rules: Rules, key: keyof Rules): number {
-  const value = rules[key]
-  return Number.isFinite(value) ? Number(value) : 0
+  const value = Number(rules[key])
+  return Number.isFinite(value) && value > 0 ? value : 0
 }
 
 function calculatePoints(
@@ -100,13 +100,51 @@ function calculatePoints(
   return points
 }
 
-export async function processPendingScoringJobs(supabase: ServiceSupabaseClient, batchSize = 50): Promise<ScoringResult> {
-  const clampedBatchSize = Math.min(200, Math.max(1, batchSize))
+const STALE_PROCESSING_MS = 10 * 60 * 1000
+const MAX_ATTEMPTS = 5
 
-  const { data: pendingJobs, error: pendingError } = await supabase
+// Room totals are always recomputed from bets + pickem picks in SQL, so a
+// re-run can never double count and nothing depends on stored deltas.
+export async function recomputeRoomPoints(supabase: ServiceSupabaseClient, roomIds: string[]) {
+  if (roomIds.length === 0) return null
+  const { error } = await supabase.rpc('recompute_room_player_points', { p_room_ids: roomIds })
+  return error
+}
+
+// Safety net for finished matches with unscored bets but no scoring job
+// (e.g. a job was lost or a bet was inserted by an admin later).
+export async function backfillMissingScoringJobs(supabase: ServiceSupabaseClient) {
+  const { data: unscoredBets, error } = await supabase
+    .from('bets')
+    .select('match_id, matches!inner(status)')
+    .is('points', null)
+    .eq('matches.status', 'finished')
+    .limit(1000)
+
+  if (error || !unscoredBets || unscoredBets.length === 0) return 0
+
+  const matchIds = [...new Set(unscoredBets.map((row) => String(row.match_id)))]
+  // Only create missing jobs; existing ones keep their status and attempt count.
+  const { error: upsertError } = await supabase
     .from('scoring_jobs')
-    .select('id, match_id, attempts')
-    .eq('status', 'pending')
+    .upsert(
+      matchIds.map((matchId) => ({ match_id: matchId })),
+      { onConflict: 'match_id', ignoreDuplicates: true }
+    )
+
+  return upsertError ? 0 : matchIds.length
+}
+
+export async function processPendingScoringJobs(supabase: ServiceSupabaseClient, batchSize = 50): Promise<ScoringResult> {
+  const clampedBatchSize = Math.min(200, Math.max(1, Number.isFinite(batchSize) ? batchSize : 50))
+  const staleBefore = new Date(Date.now() - STALE_PROCESSING_MS).toISOString()
+
+  // Pending jobs, plus jobs stuck in 'processing' after a crashed run.
+  const { data: candidateJobs, error: pendingError } = await supabase
+    .from('scoring_jobs')
+    .select('id, match_id, attempts, status')
+    .or(`status.eq.pending,and(status.eq.processing,started_at.lt."${staleBefore}")`)
+    .lt('attempts', MAX_ATTEMPTS)
     .order('created_at', { ascending: true })
     .limit(clampedBatchSize)
 
@@ -114,32 +152,44 @@ export async function processPendingScoringJobs(supabase: ServiceSupabaseClient,
     return { ok: false, error: 'Could not load scoring jobs.' }
   }
 
-  if (!pendingJobs || pendingJobs.length === 0) {
+  if (!candidateJobs || candidateJobs.length === 0) {
     return { ok: true, jobsPicked: 0, betsUpdated: 0, roomPlayersUpdated: 0 }
   }
 
-  const pickedIds = pendingJobs.map((job) => job.id)
+  const nowIso = new Date().toISOString()
+  const processingJobs: Array<{ id: string; match_id: string; attempts: number }> = []
 
-  const { data: processingJobs, error: processingError } = await supabase
-    .from('scoring_jobs')
-    .update({
-      status: 'processing',
-      started_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .in('id', pickedIds)
-    .eq('status', 'pending')
-    .select('id, match_id, attempts')
+  // Lock each job with a compare-and-set on its current status/attempts.
+  for (const job of candidateJobs) {
+    const { data: locked } = await supabase
+      .from('scoring_jobs')
+      .update({ status: 'processing', attempts: job.attempts + 1, started_at: nowIso, updated_at: nowIso })
+      .eq('id', job.id)
+      .eq('status', job.status)
+      .eq('attempts', job.attempts)
+      .select('id, match_id, attempts')
+      .maybeSingle()
 
-  if (processingError) {
-    return { ok: false, error: 'Could not lock scoring jobs.' }
+    if (locked) processingJobs.push(locked)
   }
 
-  if (!processingJobs || processingJobs.length === 0) {
+  if (processingJobs.length === 0) {
     return { ok: true, jobsPicked: 0, betsUpdated: 0, roomPlayersUpdated: 0 }
   }
 
+  const processingIds = processingJobs.map((job) => job.id)
   const lockedMatchIds = processingJobs.map((job) => job.match_id)
+
+  const failJobs = async (message: string) => {
+    await supabase
+      .from('scoring_jobs')
+      .update({
+        status: 'pending',
+        last_error: message,
+        updated_at: new Date().toISOString(),
+      })
+      .in('id', processingIds)
+  }
 
   const { data: betsRows, error: betsError } = await supabase
     .from('bets')
@@ -149,21 +199,12 @@ export async function processPendingScoringJobs(supabase: ServiceSupabaseClient,
     .in('match_id', lockedMatchIds)
 
   if (betsError) {
-    await supabase
-      .from('scoring_jobs')
-      .update({
-        status: 'failed',
-        last_error: 'Could not load bets for scoring.',
-        finished_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .in('id', processingJobs.map((job) => job.id))
-
+    await failJobs('Could not load bets for scoring.')
     return { ok: false, error: 'Could not load bets for scoring.' }
   }
 
   const betUpdates: Array<{ id: string; points: number }> = []
-  const roomUserDelta = new Map<string, { roomId: string; userId: string; delta: number }>()
+  const affectedRoomIds = new Set<string>()
 
   for (const raw of (betsRows ?? []) as BetWithRelations[]) {
     const match = pickOne(raw.matches)
@@ -178,98 +219,42 @@ export async function processPendingScoringJobs(supabase: ServiceSupabaseClient,
     if (actualHome === null || actualAway === null) continue
 
     const newPoints = calculatePoints(raw.home_score, raw.away_score, actualHome, actualAway, room.rules ?? {})
-    const oldPoints = raw.points ?? 0
-    const delta = newPoints - oldPoints
 
-    if (delta !== 0 || raw.points === null) {
-      betUpdates.push({
-        id: raw.id,
-        points: newPoints,
-      })
-    }
-
-    if (delta !== 0) {
-      const key = `${raw.room_id}:${raw.user_id}`
-      const current = roomUserDelta.get(key)
-      if (current) {
-        current.delta += delta
-      } else {
-        roomUserDelta.set(key, {
-          roomId: raw.room_id,
-          userId: raw.user_id,
-          delta,
-        })
-      }
+    if (raw.points !== newPoints) {
+      betUpdates.push({ id: raw.id, points: newPoints })
+      affectedRoomIds.add(raw.room_id)
     }
   }
 
-  if (betUpdates.length > 0) {
-    for (const update of betUpdates) {
-      const { error: betUpdateError } = await supabase
-        .from('bets')
-        .update({ points: update.points })
-        .eq('id', update.id)
+  for (const update of betUpdates) {
+    const { error: betUpdateError } = await supabase
+      .from('bets')
+      .update({ points: update.points })
+      .eq('id', update.id)
 
-      if (betUpdateError) {
-        await supabase
-          .from('scoring_jobs')
-          .update({
-            status: 'failed',
-            last_error: `Could not update bet points: ${betUpdateError.message}`,
-            finished_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .in('id', processingJobs.map((job) => job.id))
-
-        return { ok: false, error: 'Could not update bet points.', details: betUpdateError.message }
-      }
+    if (betUpdateError) {
+      await failJobs(`Could not update bet points: ${betUpdateError.message}`)
+      return { ok: false, error: 'Could not update bet points.', details: betUpdateError.message }
     }
   }
 
-  console.log(`[scoring] Processed ${betUpdates.length} bet updates, ${roomUserDelta.size} room-user deltas`)
-  const deltaEntries = [...roomUserDelta.values()]
-
-  if (deltaEntries.length > 0) {
-    const roomIds = [...new Set(deltaEntries.map((entry) => entry.roomId))]
-    const userIds = [...new Set(deltaEntries.map((entry) => entry.userId))]
-
-    const { data: roomPlayers, error: roomPlayersError } = await supabase
-      .from('room_players')
-      .select('id, room_id, user_id, points')
-      .in('room_id', roomIds)
-      .in('user_id', userIds)
-
-    if (roomPlayersError) {
-      return { ok: false, error: 'Could not load room players for point updates.' }
-    }
-
-    const byKey = new Map((roomPlayers ?? []).map((row) => [`${row.room_id}:${row.user_id}`, row]))
-
-    for (const entry of deltaEntries) {
-      const row = byKey.get(`${entry.roomId}:${entry.userId}`)
-      if (!row) continue
-
-      const { error: rpUpdateError } = await supabase
-        .from('room_players')
-        .update({ points: row.points + entry.delta })
-        .eq('id', row.id)
-
-      if (rpUpdateError) {
-        return { ok: false, error: 'Could not update room player points.' }
-      }
-    }
+  const recomputeError = await recomputeRoomPoints(supabase, [...affectedRoomIds])
+  if (recomputeError) {
+    await failJobs(`Could not recompute room points: ${recomputeError.message}`)
+    return { ok: false, error: 'Could not recompute room points.', details: recomputeError.message }
   }
+
+  console.log(`[scoring] Updated ${betUpdates.length} bets across ${affectedRoomIds.size} rooms`)
 
   const { error: completeError } = await supabase
     .from('scoring_jobs')
     .update({
       status: 'completed',
-      attempts: 1,
       last_error: null,
       finished_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .in('id', processingJobs.map((job) => job.id))
+    .in('id', processingIds)
 
   if (completeError) {
     return { ok: false, error: 'Could not complete scoring jobs.' }
@@ -279,6 +264,6 @@ export async function processPendingScoringJobs(supabase: ServiceSupabaseClient,
     ok: true,
     jobsPicked: processingJobs.length,
     betsUpdated: betUpdates.length,
-    roomPlayersUpdated: deltaEntries.length,
+    roomPlayersUpdated: affectedRoomIds.size,
   }
 }

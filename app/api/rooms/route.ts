@@ -106,21 +106,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Could not create room.' }, { status: 500 })
     }
 
-    const { error: memberError } = await supabase.from('room_players').upsert(
-      {
-        room_id: room.id,
-        user_id: user.id,
-      },
-      {
-        onConflict: 'room_id,user_id',
-        ignoreDuplicates: true,
-      }
-    )
-
-    if (memberError) {
-      return NextResponse.json({ error: 'Room created, but membership could not be added.' }, { status: 500 })
-    }
-
+    // The host is added to room_players by the rooms_add_host trigger.
     return NextResponse.json({ roomId: room.id }, { status: 201 })
   } catch {
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })

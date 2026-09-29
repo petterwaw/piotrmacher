@@ -14,7 +14,9 @@ A score prediction app I built for playing typer with friends during football to
 
 ## Tech
 
-Next.js 16, Supabase (Postgres + Auth), Tailwind CSS v4, deployed on Vercel with cron jobs for match sync and scoring.
+Next.js 16, Supabase (Postgres + Auth), Tailwind CSS v4, deployed on Vercel. Match data comes from ESPN's public (keyless) scoreboard API.
+
+Scheduled work (match sync, scoring, pick-em, event deactivation) runs through one endpoint, `/api/internal/tick`, called every 5 minutes by Supabase `pg_cron` + `pg_net` (see `supabase/migrations/20260929140000_schedule_tick.sql`). Locally: `npm run cron` (or `npm run score:once`).
 
 ## Run locally
 
@@ -24,7 +26,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Schema is in [`schema.sql`](./schema.sql) — paste it into the Supabase SQL editor on a fresh project.
+Schema is in [`schema.sql`](./schema.sql) — paste it into the Supabase SQL editor on a fresh project, then apply [`supabase/migrations/`](./supabase/migrations) in order.
 
 ## Screenshots
 

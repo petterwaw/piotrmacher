@@ -8,6 +8,10 @@
 -- Requirements:
 --   • Supabase project with auth enabled
 --   • Run as the postgres superuser (or via Supabase SQL editor)
+--
+-- NOTE: the production database has drifted from this file (policies and
+-- helper functions were changed in the dashboard). Changes are now tracked
+-- in supabase/migrations/ — apply those after this file on a fresh project.
 -- =====================================================================
 
 

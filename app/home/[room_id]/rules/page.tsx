@@ -1,4 +1,5 @@
 import { getCachedRoomRules } from '@/app/utils/cache/roomReads'
+import { requireRoomAccess } from '@/app/utils/rooms/requireRoomAccess'
 import ScoreTester from '@/app/components/ScoreTester'
 
 type Rules = {
@@ -74,6 +75,7 @@ export default async function RulesPage({
   params: Promise<{ room_id: string }>
 }) {
   const { room_id } = await params
+  await requireRoomAccess(room_id)
   const rules = {
     ...defaultRules,
     ...(await getCachedRoomRules(room_id) ?? {}),

@@ -1,4 +1,5 @@
 import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
+import { ESPN_PROVIDER, fetchEspnStandings } from '@/app/utils/providers/espn'
 
 export type PickemEvent = {
   id: string
@@ -31,17 +32,7 @@ type PickemGroupTeamRow = {
   last_synced_at: string | null
 }
 
-type ApiFootballStandingRow = {
-  rank?: number | string | null
-  group?: string | null
-  team?: {
-    id?: number | string | null
-    name?: string | null
-    logo?: string | null
-  } | null
-}
-
-const PICKEM_GROUP_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000
+const PICKEM_GROUP_SYNC_INTERVAL_MS = 60 * 60 * 1000
 
 function isThirdPlaceGroup(groupName: string, groupKey: string): boolean {
   const name = groupName.toLowerCase()
@@ -62,11 +53,6 @@ function groupKeyFromName(groupName: string, fallbackIndex: number) {
     .replace(/^-+|-+$/g, '')
 
   return key || `group-${fallbackIndex + 1}`
-}
-
-function parsePosition(value: unknown, fallback: number) {
-  const parsed = Number(value)
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
 }
 
 function rowsToGroups(rows: PickemGroupTeamRow[]): PickemGroup[] {
@@ -104,54 +90,28 @@ function rowsToGroups(rows: PickemGroupTeamRow[]): PickemGroup[] {
     }))
 }
 
-function parseApiFootballStandings(body: unknown, eventId: string) {
-  const response = (body as { response?: unknown })?.response
-  const first = Array.isArray(response) ? response[0] : null
-  const standings = (first as { league?: { standings?: unknown } } | null)?.league?.standings
-
-  if (!Array.isArray(standings)) {
-    return []
-  }
-
+async function fetchStandingRows(leagueSlug: string, eventId: string) {
+  const standings = await fetchEspnStandings(leagueSlug)
   const nowIso = new Date().toISOString()
   const rows: Array<Record<string, unknown>> = []
 
-  standings.forEach((groupRows, groupIndex) => {
-    if (!Array.isArray(groupRows)) {
-      return
-    }
+  for (const standing of standings) {
+    const groupKey = groupKeyFromName(standing.groupName, standing.groupOrder)
+    if (isThirdPlaceGroup(standing.groupName, groupKey)) continue
 
-    groupRows.forEach((standing, teamIndex) => {
-      const row = standing as ApiFootballStandingRow
-      const teamId = row.team?.id === undefined || row.team?.id === null ? '' : String(row.team.id)
-      const teamName = row.team?.name?.trim()
-
-      if (!teamId || !teamName) {
-        return
-      }
-
-      const groupName = row.group?.trim() || `Group ${groupIndex + 1}`
-      const groupKey = groupKeyFromName(groupName, groupIndex)
-
-      if (isThirdPlaceGroup(groupName, groupKey)) return
-
-      const position = parsePosition(row.rank, teamIndex + 1)
-
-      rows.push({
-        event_id: eventId,
-        group_key: groupKey,
-        group_name: groupName,
-        group_order: groupIndex,
-        provider_team_id: teamId,
-        team_name: teamName,
-        team_logo: row.team?.logo ?? null,
-        initial_position: position,
-        current_position: position,
-        last_synced_at: nowIso,
-        updated_at: nowIso,
-      })
+    rows.push({
+      event_id: eventId,
+      group_key: groupKey,
+      group_name: standing.groupName,
+      group_order: standing.groupOrder,
+      provider_team_id: standing.teamId,
+      team_name: standing.teamName,
+      team_logo: standing.teamLogo,
+      current_position: standing.position,
+      last_synced_at: nowIso,
+      updated_at: nowIso,
     })
-  })
+  }
 
   return rows
 }
@@ -200,17 +160,13 @@ export async function syncPickemGroupsForEvent(
     }
   }
 
-  const canFetchFromProvider =
-    event.provider === 'api-football' &&
-    Boolean(event.provider_event_id) &&
-    Boolean(event.season) &&
-    Boolean(process.env.FOOTBALL_API_KEY)
+  const canFetchFromProvider = event.provider === ESPN_PROVIDER && Boolean(event.provider_event_id)
 
   const shouldSync = canFetchFromProvider && (options.force || cachedRows.length === 0 || !isCacheFresh(cachedRows))
 
   if (!shouldSync) {
     const missingReason = cachedRows.length === 0 && !canFetchFromProvider
-      ? 'No cached Pickem groups yet. Check event provider data and FOOTBALL_API_KEY.'
+      ? 'No cached Pickem groups yet. Check the event provider data.'
       : null
 
     return {
@@ -220,35 +176,13 @@ export async function syncPickemGroupsForEvent(
     }
   }
 
-  const apiHost = process.env.FOOTBALL_API_HOST || 'v3.football.api-sports.io'
-  const url = new URL(`https://${apiHost}/standings`)
-  url.searchParams.set('league', String(event.provider_event_id))
-  url.searchParams.set('season', String(event.season))
-
   try {
-    const response = await fetch(url, {
-      headers: {
-        'x-rapidapi-host': apiHost,
-        'x-rapidapi-key': process.env.FOOTBALL_API_KEY!,
-      },
-      cache: 'no-store',
-    })
-
-    if (!response.ok) {
-      return {
-        groups: rowsToGroups(cachedRows),
-        error: cachedRows.length > 0 ? null : `Could not load groups from API-Football (${response.status}).`,
-        synced: false,
-      }
-    }
-
-    const body = await response.json()
-    const rows = parseApiFootballStandings(body, event.id)
+    const rows = await fetchStandingRows(String(event.provider_event_id), event.id)
 
     if (rows.length === 0) {
       return {
         groups: rowsToGroups(cachedRows),
-        error: cachedRows.length > 0 ? null : 'API-Football did not return group standings for this event yet.',
+        error: cachedRows.length > 0 ? null : 'The provider did not return group standings for this event yet.',
         synced: false,
       }
     }
@@ -276,7 +210,7 @@ export async function syncPickemGroupsForEvent(
   } catch {
     return {
       groups: rowsToGroups(cachedRows),
-      error: cachedRows.length > 0 ? null : 'Could not load groups from API-Football.',
+      error: cachedRows.length > 0 ? null : 'Could not load groups from the provider.',
       synced: false,
     }
   }
