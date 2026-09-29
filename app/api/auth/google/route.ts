@@ -1,8 +1,9 @@
+import { safeRedirectPath } from '@/app/utils/auth/safeRedirectPath'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const next = request.nextUrl.searchParams.get('next') || '/home'
+  const next = safeRedirectPath(request.nextUrl.searchParams.get('next'))
 
   try {
     const supabase = await createServerSupabaseClient()
