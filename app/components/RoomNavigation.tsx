@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Ticket, Clock, Trophy, BookOpen, Settings, Trash2, LogOut, Share2, Copy, Check, ListOrdered } from 'lucide-react'
+import { Ticket, Clock, Trophy, BookOpen, Settings, Trash2, LogOut, Share2, ListOrdered } from 'lucide-react'
 import { useState, useTransition } from 'react'
 import { usePresence } from '@/app/components/motion/usePresence'
+import InviteShare from '@/app/components/InviteShare'
 
 const tabIcons: Record<string, React.ElementType> = {
   Bets: Ticket,
@@ -33,6 +34,7 @@ export default function RoomNavigation({
   showPickem,
   isHost,
   inviteCode,
+  eventName,
 }: {
   roomId: string
   roomStatus: 'waiting' | 'active' | 'finished'
@@ -40,24 +42,16 @@ export default function RoomNavigation({
   showPickem: boolean
   isHost: boolean
   inviteCode: string | null
+  eventName?: string | null
 }) {
   const pathname = usePathname()
   const router = useRouter()
   const [confirmAction, setConfirmAction] = useState<ActionType>(null)
   const [showInviteModal, setShowInviteModal] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [isPending, startTransition] = useTransition()
   // Keep dialogs mounted while they play their exit animation.
   const invitePresence = usePresence(showInviteModal)
   const confirmPresence = usePresence(confirmAction)
-
-  const handleCopyInviteCode = () => {
-    if (inviteCode) {
-      navigator.clipboard.writeText(inviteCode)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
 
   const tabs: Array<{ href: string; label: string; exact?: boolean }> = []
 
@@ -139,41 +133,13 @@ export default function RoomNavigation({
         <div className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4 ${invitePresence.isClosing ? 'animate-overlay-out' : 'animate-overlay-in pointer-events-auto'}`}>
           <div role="dialog" aria-modal="true" aria-labelledby="invite-dialog-title" className={`w-full max-w-sm border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 ${invitePresence.isClosing ? 'animate-dialog-out' : 'animate-dialog-in pointer-events-auto'}`}>
             <h3 id="invite-dialog-title" className="mb-2 text-sm font-bold uppercase tracking-wide text-text-main">
-              Invite code
+              Invite friends
             </h3>
-            <p className="mb-4 text-sm text-text-muted">Share this code with others to invite them to the room</p>
+            <p className="mb-4 text-sm text-text-muted">Send the link. Friends sign in and land straight in this room.</p>
 
-            <div className="mb-5 border-2 border-dashed border-brand/40 bg-brand-tint px-3 py-4">
-              <p className="select-all text-center font-mono text-2xl font-bold tracking-[0.2em] text-brand">{inviteCode?.toUpperCase()}</p>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowInviteModal(false)}
-                className="min-h-11 flex-1 border-2 border-zinc-300 bg-white px-4 py-2 text-sm font-semibold uppercase tracking-wide text-text-main transition-colors hover:border-zinc-400 hover:bg-zinc-50"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={handleCopyInviteCode}
-                aria-live="polite"
-                className="min-h-11 flex-1 flex items-center justify-center gap-2 border-2 border-brand bg-brand px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white transition-colors hover:border-brand-hover hover:bg-brand-hover"
-              >
-                {copied ? (
-                  <>
-                    <Check size={16} />
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy size={16} />
-                    Copy
-                  </>
-                )}
-              </button>
-            </div>
+            {inviteCode ? (
+              <InviteShare code={inviteCode} eventName={eventName} onClose={() => setShowInviteModal(false)} />
+            ) : null}
           </div>
         </div>
       )}

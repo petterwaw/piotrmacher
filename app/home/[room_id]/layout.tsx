@@ -37,6 +37,8 @@ export default async function RoomLayout({
   const eventRelation = room?.events as EventRelation | undefined
   const eventRow = Array.isArray(eventRelation) ? eventRelation[0] : eventRelation
   const showPickem = isWorldCupPickemEvent(eventRow)
+  // Finished rooms can't be joined, so there is nothing to share.
+  const inviteCode = isHost && roomStatus !== 'finished' ? room?.invite_code ?? null : null
 
   return (
     <main className="mx-auto w-full max-w-[1320px] px-4 pt-1 pb-24 md:pt-6 md:px-6 md:pb-8">
@@ -63,12 +65,12 @@ export default async function RoomLayout({
             <ArrowLeft size={28} aria-hidden="true" />
           </Link>
 
-          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} showPickem={showPickem} isHost={isHost} inviteCode={isHost ? room?.invite_code ?? null : null} />
+          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} showPickem={showPickem} isHost={isHost} inviteCode={inviteCode} eventName={eventRow?.name ?? null} />
         </aside>
 
         {/* Mobile bottom navigation is rendered by RoomNavigation itself. */}
         <div className="md:hidden">
-          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} showPickem={showPickem} isHost={isHost} inviteCode={isHost ? room?.invite_code ?? null : null} />
+          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} showPickem={showPickem} isHost={isHost} inviteCode={inviteCode} eventName={eventRow?.name ?? null} />
         </div>
 
         {/* Page Content */}

@@ -1,8 +1,11 @@
+import type { Metadata } from 'next'
 import StandingsTable, { type Player } from '@/app/components/StandingsTable'
 import EmptyState from '@/app/components/EmptyState'
 import { Users } from 'lucide-react'
 import { getRoomStandings } from '@/app/utils/cache/sharedReads'
 import { requireRoomAccess } from '@/app/utils/rooms/requireRoomAccess'
+
+export const metadata: Metadata = { title: 'Standings' }
 
 export default async function StandingsPage({
   params,

@@ -1,4 +1,6 @@
+import type { Metadata } from 'next'
 import RoomsGrid from '../components/RoomsGrid'
+import PendingInviteBanner from '../components/PendingInviteBanner'
 import { type RoomCardProps } from '../components/RoomFilters'
 import roomsData from '../data/rooms.mock.json'
 import { createServerSupabaseClient } from '../utils/supabase/server'
@@ -110,11 +112,16 @@ async function getRooms(): Promise<RoomCardProps[]> {
     }
 }
 
+export const metadata: Metadata = {
+    title: 'Your rooms',
+}
+
 export default async function HomePage() {
     const rooms = await getRooms()
 
     return (
         <main className="mx-auto w-full max-w-[1320px] px-4 py-8 md:px-6">
+            <PendingInviteBanner />
             <RoomsGrid rooms={rooms} />
         </main>
     )

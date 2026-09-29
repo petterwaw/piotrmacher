@@ -5,6 +5,8 @@ import { X } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState, useTransition, Suspense } from 'react'
 import { usePresence } from '@/app/components/motion/usePresence'
+import { safeRedirectPath } from '@/app/utils/auth/safeRedirectPath'
+import { OPEN_AUTH_EVENT, type OpenAuthDetail } from '@/app/utils/share/invite'
 
 type User = {
   id: string
@@ -14,7 +16,11 @@ type User = {
 
 type AuthMode = 'signin' | 'signup'
 
-function LoginParamWatcher({ onLoginParam }: { onLoginParam: () => void }) {
+type AuthRequest = { mode: AuthMode; next: string | null; context: string | null }
+
+// `?login=1[&next=/path]` opens the sign-in sheet (the proxy sends logged-out
+// visitors of /home here). Both params are consumed from the URL.
+function LoginParamWatcher({ onLoginParam }: { onLoginParam: (next: string | null) => void }) {
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -33,10 +39,11 @@ function LoginParamWatcher({ onLoginParam }: { onLoginParam: () => void }) {
     }
 
     handledRef.current = true
-    onLoginParam()
+    onLoginParam(searchParams.get('next'))
 
     const nextParams = new URLSearchParams(searchParams.toString())
     nextParams.delete('login')
+    nextParams.delete('next')
     const nextQuery = nextParams.toString()
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
   }, [pathname, router, searchParams, onLoginParam])
@@ -59,6 +66,13 @@ export default function Header() {
   const [authError, setAuthError] = useState<string | null>(null)
   const [authMessage, setAuthMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  // Where to go after signing in (e.g. back to an invite link) and a short
+  // line explaining why the sheet opened. Null = the usual /home.
+  const [authNext, setAuthNext] = useState<string | null>(null)
+  const [authContext, setAuthContext] = useState<string | null>(null)
+  // An auth request that arrived before we knew whether the user is signed in.
+  const [pendingAuth, setPendingAuth] = useState<AuthRequest | null>(null)
+  const postLoginPath = safeRedirectPath(authNext)
   const logoHref = user ? '/home' : '/'
   // Overlays stay mounted for their exit animation.
   const authPresence = usePresence(showAuthModal)
@@ -101,8 +115,38 @@ export default function Header() {
   const closeAuthModal = () => {
     if (isPending) return
     setShowAuthModal(false)
+    setAuthNext(null)
+    setAuthContext(null)
     resetAuthForm()
   }
+
+  useEffect(() => {
+    const handleOpenAuth = (event: Event) => {
+      const detail = (event as CustomEvent<OpenAuthDetail>).detail ?? {}
+      setPendingAuth({
+        mode: detail.mode ?? 'signin',
+        next: detail.next ?? null,
+        context: detail.context ?? null,
+      })
+    }
+    window.addEventListener(OPEN_AUTH_EVENT, handleOpenAuth)
+    return () => window.removeEventListener(OPEN_AUTH_EVENT, handleOpenAuth)
+  }, [])
+
+  // Open queued requests once the session check is done (never for a user
+  // who is already signed in).
+  useEffect(() => {
+    if (!pendingAuth || loading) return
+    setPendingAuth(null)
+    if (user) return
+    setShowMobileUserMenu(false)
+    setAuthMode(pendingAuth.mode)
+    setAuthNext(pendingAuth.next ? safeRedirectPath(pendingAuth.next) : null)
+    setAuthContext(pendingAuth.context)
+    setAuthError(null)
+    setAuthMessage(null)
+    setShowAuthModal(true)
+  }, [pendingAuth, loading, user])
 
   useEffect(() => {
     if (!showMobileUserMenu) {
@@ -180,8 +224,10 @@ export default function Header() {
 
         await refreshUser()
         setShowAuthModal(false)
+        setAuthNext(null)
+        setAuthContext(null)
         resetAuthForm()
-        router.push('/home')
+        router.push(postLoginPath)
         router.refresh()
       } catch (error) {
         setAuthError(error instanceof Error ? error.message : 'Authentication failed.')
@@ -217,12 +263,9 @@ export default function Header() {
     </svg>
   )
 
-  const handleOpenLoginFromParam = useCallback(() => {
-    if (!loading && !user) {
-      setAuthMode('signin')
-      setShowAuthModal(true)
-    }
-  }, [loading, user])
+  const handleOpenLoginFromParam = useCallback((next: string | null) => {
+    setPendingAuth({ mode: 'signin', next, context: null })
+  }, [])
 
   const inputClassName =
     'mb-3 min-h-12 w-full border-2 border-zinc-300 bg-gray-50 px-4 py-3 text-base text-text-main outline-none transition-colors placeholder:text-zinc-500 focus:border-brand focus:bg-white'
@@ -372,6 +415,12 @@ export default function Header() {
               </button>
             </div>
 
+            {authContext ? (
+              <p className="mb-4 border-l-4 border-brand bg-brand-tint px-3 py-2 text-sm font-semibold text-text-main">
+                {authContext}
+              </p>
+            ) : null}
+
             <div className="mb-4 flex bg-gray-100 p-1">
               <button
                 type="button"
@@ -454,7 +503,7 @@ export default function Header() {
             </div>
 
             <a
-              href="/api/auth/google?next=/home"
+              href={`/api/auth/google?next=${encodeURIComponent(postLoginPath)}`}
               className="press press-soft inline-flex min-h-12 w-full items-center justify-center border-2 border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-text-main transition-colors hover:bg-zinc-50 hover:border-brand"
             >
               <GoogleIcon />

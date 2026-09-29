@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
-import { Check, Copy, Minus, Plus, X } from 'lucide-react'
+import { Minus, Plus, X } from 'lucide-react'
 import EventSelect from '@/app/components/EventSelect'
 import DatePicker from '@/app/components/DatePicker'
+import InviteShare from '@/app/components/InviteShare'
 
 type Rules = {
   correct_winner: number
@@ -74,7 +75,6 @@ export default function SettingsPanel({
   )
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [showStartConfirm, setShowStartConfirm] = useState(false)
 
@@ -222,16 +222,6 @@ export default function SettingsPanel({
     })
   }
 
-  const copyInviteCode = async () => {
-    try {
-      await navigator.clipboard.writeText(inviteCode)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1200)
-    } catch {
-      setError('Could not copy invite code.')
-    }
-  }
-
   const perfectPick =
     rules.correct_winner + rules.correct_difference + 2 * teamGoalsPoints + rules.exact_score
   const perfectDraw =
@@ -241,17 +231,9 @@ export default function SettingsPanel({
     <div className="mx-auto max-w-2xl">
       <div className="divide-y-2 divide-zinc-200 border-2 border-zinc-300 bg-white">
         <section className={SECTION} aria-labelledby="settings-invite">
-          <h2 id="settings-invite" className={H2}>Invite code</h2>
-          <p className={HINT}>Friends join the room with this code.</p>
-          <div className="mt-3 flex items-stretch gap-2">
-            <span className="inline-flex min-h-11 min-w-0 select-all items-center border-2 border-zinc-300 bg-zinc-50 px-3 font-mono text-lg font-bold tracking-[0.15em] text-text-main">
-              {inviteCode}
-            </span>
-            <button type="button" aria-live="polite" className="btn-base btn-light gap-2 rounded-none" onClick={copyInviteCode}>
-              {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-          </div>
+          <h2 id="settings-invite" className={H2}>Invite friends</h2>
+          <p className={`${HINT} mb-3`}>Send the link. Friends sign in and land straight in this room.</p>
+          <InviteShare code={inviteCode} eventName={events.find((event) => event.id === eventId)?.name ?? null} />
         </section>
 
         <section className={SECTION} aria-labelledby="settings-event-title">

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, History } from 'lucide-react'
 import EmptyState from '@/app/components/EmptyState'
@@ -56,6 +57,8 @@ type LivePrediction = {
   awayScore: number
   points?: number
 }
+
+export const metadata: Metadata = { title: 'History' }
 
 export default async function HistoryPage({
   params,

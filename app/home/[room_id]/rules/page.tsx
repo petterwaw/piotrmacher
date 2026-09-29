@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { isWorldCupPickemEvent } from '@/app/utils/pickem/eligibility'
@@ -18,6 +19,8 @@ const defaultRules: RoomRules = {
   exact_draw: 1,
   pickem_correct_position: 1,
 }
+
+export const metadata: Metadata = { title: 'Rules' }
 
 export default async function RulesPage({
   params,

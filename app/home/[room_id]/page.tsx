@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import BetsByDay from '@/app/components/BetsByDay'
 import EmptyState from '@/app/components/EmptyState'
 import { CalendarX2 } from 'lucide-react'
@@ -12,6 +13,8 @@ type LivePrediction = {
   homeScore: number
   awayScore: number
 }
+
+export const metadata: Metadata = { title: 'Bets' }
 
 export default async function BetsPage({
   params,
