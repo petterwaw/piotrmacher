@@ -7,8 +7,32 @@ function isProtectedPath(pathname: string) {
   return protectedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
 }
 
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
+
+// Browsers always send Origin on cross-site POST/PATCH/DELETE; reject those so
+// cookie-authenticated API routes can't be driven from another site (CSRF).
+// Requests without Origin (server-to-server, e.g. the pg_cron tick) pass.
+function isCrossSiteWrite(request: NextRequest) {
+  if (SAFE_METHODS.has(request.method)) return false
+  const origin = request.headers.get('origin')
+  if (!origin) return false
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host')
+  try {
+    return new URL(origin).host !== host
+  } catch {
+    return true
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  if (pathname.startsWith('/api/')) {
+    if (isCrossSiteWrite(request)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    return NextResponse.next()
+  }
 
   const response = NextResponse.next({
     request: {
@@ -60,6 +84,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/api/:path*',
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }

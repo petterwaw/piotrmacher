@@ -6,7 +6,12 @@ const appRoot = dirname(fileURLToPath(import.meta.url));
 
 const securityHeaders = [
   // Clickjacking protection (the app is never meant to be framed).
-  { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+  // Not a full script CSP (Next's inline scripts would need nonces), but it
+  // blocks framing, plugins, <base> hijacking and off-site form posts.
+  {
+    key: "Content-Security-Policy",
+    value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+  },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

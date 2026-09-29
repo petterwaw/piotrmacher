@@ -1,3 +1,4 @@
+import 'server-only'
 import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 import { ESPN_PROVIDER, fetchEspnStandings } from '@/app/utils/providers/espn'
 

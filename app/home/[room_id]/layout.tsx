@@ -60,12 +60,12 @@ export default async function RoomLayout({
             <ArrowLeft size={28} />
           </Link>
 
-          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} showPickem={showPickem} isHost={isHost} inviteCode={room?.invite_code ?? null} />
+          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} showPickem={showPickem} isHost={isHost} inviteCode={isHost ? room?.invite_code ?? null : null} />
         </aside>
 
         {/* Mobile bottom navigation is rendered by RoomNavigation itself. */}
         <div className="md:hidden">
-          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} showPickem={showPickem} isHost={isHost} inviteCode={room?.invite_code ?? null} />
+          <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} showPickem={showPickem} isHost={isHost} inviteCode={isHost ? room?.invite_code ?? null : null} />
         </div>
 
         {/* Page Content */}

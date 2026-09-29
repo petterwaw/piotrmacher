@@ -1,3 +1,4 @@
+import 'server-only'
 // Unofficial, keyless ESPN endpoints. Undocumented, so parse defensively and
 // keep everything provider-specific inside this file.
 // Notes from testing against the live API (Sept 2026):

@@ -1,3 +1,4 @@
+import 'server-only'
 import type { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 
 type ServiceSupabaseClient = ReturnType<typeof createServiceRoleSupabaseClient>
