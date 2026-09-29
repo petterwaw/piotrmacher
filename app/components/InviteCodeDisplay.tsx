@@ -23,6 +23,7 @@ export default function InviteCodeDisplay({ code, isHost }: { code: string | nul
         </div>
         <button
           onClick={handleCopy}
+          type="button"
           className="flex items-center gap-1.5 border-2 border-brand bg-white/80 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-brand transition-all hover:bg-brand hover:text-white"
         >
           {copied ? (

@@ -94,7 +94,7 @@ export default function RoomActionsMenu({
               disabled={isPending}
               className={`flex-1 border-2 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white transition-all disabled:opacity-50 ${
                 isHost
-                  ? 'border-red-500 bg-red-500 hover:bg-red-600'
+                  ? 'border-red-600 bg-red-600 hover:border-red-700 hover:bg-red-700'
                   : 'border-brand bg-brand hover:bg-brand-hover'
               }`}
             >
@@ -112,6 +112,7 @@ export default function RoomActionsMenu({
         onClick={() => setIsOpen(!isOpen)}
         className="inline-flex h-12 w-12 items-center justify-center text-text-main transition-colors hover:text-brand"
         title={actionLabel}
+        aria-label={actionLabel}
       >
         <Icon size={24} />
       </button>

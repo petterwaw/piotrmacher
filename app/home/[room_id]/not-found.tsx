@@ -4,7 +4,7 @@ export default function RoomNotFound() {
   return (
     <div className="flex w-full flex-1 items-center justify-center px-4 py-16 text-center">
       <div className="mx-auto w-full max-w-md">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#2E7D32]">Error 404</p>
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand">Error 404</p>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-text-main md:text-4xl">
           Room not found
         </h1>

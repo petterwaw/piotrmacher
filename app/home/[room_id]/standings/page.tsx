@@ -1,4 +1,6 @@
 import StandingsTable, { type Player } from '@/app/components/StandingsTable'
+import EmptyState from '@/app/components/EmptyState'
+import { Users } from 'lucide-react'
 import { getCachedStandingPlayers } from '@/app/utils/cache/roomReads'
 import { requireRoomAccess } from '@/app/utils/rooms/requireRoomAccess'
 
@@ -16,9 +18,7 @@ export default async function StandingsPage({
       {players.length > 0 ? (
         <StandingsTable players={players} />
       ) : (
-        <div className="text-center py-12 text-text-muted">
-          <p>No players in this room yet</p>
-        </div>
+        <EmptyState icon={Users} title="No players in this room yet" />
       )}
     </div>
   )

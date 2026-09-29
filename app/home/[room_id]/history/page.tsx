@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { ChevronLeft, ChevronRight, History } from 'lucide-react'
+import EmptyState from '@/app/components/EmptyState'
 import { notFound, redirect } from 'next/navigation'
 import ScorePredictionCard from '@/app/components/ScorePredictionCard'
 import { getCachedHistoryCount, getCachedHistoryMatches } from '@/app/utils/cache/roomReads'
@@ -6,6 +8,9 @@ import { createServerSupabaseClient } from '@/app/utils/supabase/server'
 import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 
 const MATCHES_PER_PAGE = 5
+
+const PAGE_ITEM =
+  'inline-flex h-11 min-w-11 items-center justify-center border-2 px-2 text-sm font-semibold tabular-nums transition-colors'
 
 function buildPagination(currentPage: number, totalPages: number): Array<number | 'dots'> {
   if (totalPages <= 7) {
@@ -163,9 +168,7 @@ export default async function HistoryPage({
   return (
     <div className="mx-auto max-w-xl">
       {matches.length === 0 ? (
-        <div className="text-center py-12 text-text-muted">
-          <p>No historical bets yet</p>
-        </div>
+        <EmptyState icon={History} title="No historical bets yet" />
       ) : (
         <div className="space-y-4">
           {matches.map((match) => {
@@ -202,24 +205,25 @@ export default async function HistoryPage({
           })}
 
           {totalPages > 1 ? (
-            <nav className="mt-6 flex items-center justify-center gap-2" aria-label="History pages">
+            <nav className="mt-6 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2" aria-label="History pages">
               <Link
                 href={currentPage > 1 ? `?page=${currentPage - 1}` : '#'}
                 aria-disabled={currentPage === 1}
-                className={`px-3 py-2 text-sm font-medium border border-border-soft transition-colors ${
+                aria-label="Previous page"
+                className={`${PAGE_ITEM} ${
                   currentPage === 1
-                    ? 'pointer-events-none text-text-muted/50 bg-zinc-100'
-                    : 'text-text-main bg-white hover:bg-zinc-100'
+                    ? 'pointer-events-none border-zinc-200 bg-zinc-100 text-zinc-400'
+                    : 'border-zinc-300 bg-white text-text-main hover:border-brand hover:text-brand'
                 }`}
               >
-                &lt;
+                <ChevronLeft size={18} aria-hidden="true" />
               </Link>
 
               {buildPagination(currentPage, totalPages).map((item, index) => {
                 if (item === 'dots') {
                   return (
-                    <span key={`dots-${index}`} className="px-2 py-2 text-text-muted">
-                      ...
+                    <span key={`dots-${index}`} aria-hidden="true" className="px-1 text-zinc-500">
+                      …
                     </span>
                   )
                 }
@@ -231,10 +235,11 @@ export default async function HistoryPage({
                     key={item}
                     href={`?page=${item}`}
                     aria-current={isActive ? 'page' : undefined}
-                    className={`min-w-9 px-3 py-2 text-center text-sm font-medium border border-border-soft transition-colors ${
+                    aria-label={`Page ${item}`}
+                    className={`${PAGE_ITEM} ${
                       isActive
-                        ? 'bg-white text-brand'
-                        : 'bg-white text-text-main hover:bg-zinc-100'
+                        ? 'border-brand bg-brand font-bold text-white'
+                        : 'border-zinc-300 bg-white text-text-main hover:border-brand hover:text-brand'
                     }`}
                   >
                     {item}
@@ -245,13 +250,14 @@ export default async function HistoryPage({
               <Link
                 href={currentPage < totalPages ? `?page=${currentPage + 1}` : '#'}
                 aria-disabled={currentPage === totalPages}
-                className={`px-3 py-2 text-sm font-medium border border-border-soft transition-colors ${
+                aria-label="Next page"
+                className={`${PAGE_ITEM} ${
                   currentPage === totalPages
-                    ? 'pointer-events-none text-text-muted/50 bg-zinc-100'
-                    : 'text-text-main bg-white hover:bg-zinc-100'
+                    ? 'pointer-events-none border-zinc-200 bg-zinc-100 text-zinc-400'
+                    : 'border-zinc-300 bg-white text-text-main hover:border-brand hover:text-brand'
                 }`}
               >
-                &gt;
+                <ChevronRight size={18} aria-hidden="true" />
               </Link>
             </nav>
           ) : null}

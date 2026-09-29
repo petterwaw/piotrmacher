@@ -3,6 +3,9 @@
 :root {
   --background: #ECEFF1;
   --foreground: #171717;
+
+  /* Motion: one easing family for the whole product (exponential ease-out). */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 *,
@@ -13,6 +16,8 @@
 
 html {
   scrollbar-gutter: stable;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -21,6 +26,9 @@ body {
     var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 @theme {
@@ -34,12 +42,76 @@ body {
 
   --color-border-soft: #E5E7EB;
 
-  --color-brand: #4CAF50;
-  --color-brand-hover: #81C784;
-  --color-brand-soft: #66BB6A;
+  /*
+   * Brand greens.
+   * - brand-bright (#4CAF50) is the signature wordmark / decorative green. It is
+   *   only 2.8:1 on white, so it is never used for text or behind white text.
+   * - brand (#2E7D32) is the same hue at an accessible depth: 5.1:1 with white
+   *   text and on white surfaces. Every action, link, selected state and score
+   *   highlight uses it.
+   */
+  --color-brand-bright: #4CAF50;
+  --color-brand: #2E7D32;
+  --color-brand-hover: #1B5E20;
+  --color-brand-tint: #E8F5E9;
 
   --color-success: #16A34A;
   --color-warning: #D97706;
+
+  /* Errors and destructive actions: the app's orange, deepened to pass AA. */
+  --color-danger: #C2410C;
+  --color-danger-hover: #9A3412;
+}
+
+@layer base {
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-brand-bright) 30%, transparent);
+    color: inherit;
+  }
+
+  :root {
+    accent-color: var(--color-brand);
+    caret-color: var(--color-brand);
+  }
+
+  /* One visible, on-brand keyboard focus ring everywhere. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p,
+  li {
+    text-wrap: pretty;
+  }
+
+  a {
+    text-underline-offset: 3px;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  /* Hide number spinners on the compact time inputs. */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
 }
 
 @layer components {
@@ -52,23 +124,101 @@ body {
     display: none;
   }
 
+  /*
+   * Expands a small control's hit area to at least 44x44px without changing
+   * its visual size or the layout around it.
+   */
+  .touch-target {
+    position: relative;
+  }
+
+  .touch-target::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+
   .btn-base {
-    @apply inline-flex hover:cursor-pointer items-center justify-center rounded-md border px-4 py-2 font-medium transition-colors;
+    @apply inline-flex min-h-11 hover:cursor-pointer items-center justify-center rounded-md border px-4 py-2 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-light {
-    @apply bg-white border-border-soft text-text-main hover:bg-brand-soft hover:border-brand-soft hover:text-white font-semibold;
+    @apply bg-white border-zinc-300 text-text-main hover:bg-brand-tint hover:border-brand hover:text-brand font-semibold disabled:hover:bg-white disabled:hover:border-zinc-300 disabled:hover:text-text-main;
   }
 
   .btn-dark {
-    @apply bg-brand border-brand text-white hover:bg-brand-hover hover:border-brand-hover font-semibold;
+    @apply bg-brand border-brand text-white hover:bg-brand-hover hover:border-brand-hover active:bg-brand-hover font-semibold disabled:hover:bg-brand disabled:hover:border-brand;
   }
 
   .btn-auth-submit {
-    @apply inline-flex w-full cursor-pointer items-center justify-center rounded-md border px-4 py-2 font-semibold transition-colors bg-brand border-brand text-white hover:bg-brand-soft hover:border-brand-soft;
+    @apply inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-md border px-4 py-2 font-semibold transition-colors bg-brand border-brand text-white hover:bg-brand-hover hover:border-brand-hover;
   }
 
   .btn-google {
-    @apply inline-flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 font-medium transition-colors bg-white border-border-soft text-text-main hover:bg-gray-50 hover:border-border-soft hover:text-text-main;
+    @apply inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md border px-4 py-2 font-medium transition-colors bg-white border-border-soft text-text-main hover:bg-gray-50 hover:border-border-soft hover:text-text-main;
+  }
+
+  /* Status chips (room status, match status): one shape, one type style. */
+  .status-chip {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-bold uppercase leading-4 tracking-wide;
+  }
+}
+
+/*
+ * Motion. Short, exponential ease-out entrances for overlays only; the
+ * product loads straight into the task. Under reduced motion the overlays
+ * still appear (opacity only), they just do not travel.
+ */
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sheet-in {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@utility animate-overlay-in {
+  animation: overlay-in 160ms ease-out both;
+}
+
+@utility animate-dialog-in {
+  animation: dialog-in 220ms var(--ease-out-expo) both;
+}
+
+@utility animate-sheet-in {
+  animation: sheet-in 260ms var(--ease-out-expo) both;
+}
+
+@utility animate-pop-in {
+  animation: pop-in 140ms var(--ease-out-expo) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-dialog-in,
+  .animate-sheet-in,
+  .animate-pop-in {
+    animation-name: fade-in;
+    animation-duration: 120ms;
   }
 }

@@ -16,6 +16,10 @@ const tabIcons: Record<string, React.ElementType> = {
 
 type ActionType = 'delete' | 'leave' | null
 
+// Shared shape for every item in the mobile bottom tab bar. The ::before bar marks the current tab.
+const MOBILE_TAB =
+  'relative flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 pb-1.5 pt-2 text-[10px] leading-none transition-colors min-[400px]:text-[11px] before:absolute before:inset-x-2 before:top-0 before:h-0.5'
+
 export default function RoomNavigation({
   roomId,
   roomStatus,
@@ -120,27 +124,30 @@ export default function RoomNavigation({
     <>
       {/* Invite Code Modal */}
       {showInviteModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 pointer-events-auto">
-          <div className="border-2 border-zinc-300 bg-white/95 p-4 mx-4 w-full max-w-sm pointer-events-auto">
-            <h3 className="mb-4 text-sm font-bold uppercase tracking-wide text-text-main">
+        <div className="animate-overlay-in fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4 pointer-events-auto">
+          <div role="dialog" aria-modal="true" aria-labelledby="invite-dialog-title" className="animate-dialog-in w-full max-w-sm border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 pointer-events-auto">
+            <h3 id="invite-dialog-title" className="mb-2 text-sm font-bold uppercase tracking-wide text-text-main">
               Invite code
             </h3>
-            <p className="mb-4 text-xs text-text-muted">Share this code with others to invite them to the room</p>
-            
-            <div className="mb-6 p-3">
-              <p className="text-center font-black text-brand text-lg">{inviteCode?.toUpperCase()}</p>
+            <p className="mb-4 text-sm text-text-muted">Share this code with others to invite them to the room</p>
+
+            <div className="mb-5 border-2 border-dashed border-brand/40 bg-brand-tint px-3 py-4">
+              <p className="select-all text-center font-mono text-2xl font-bold tracking-[0.2em] text-brand">{inviteCode?.toUpperCase()}</p>
             </div>
 
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={() => setShowInviteModal(false)}
-                className="flex-1 border-2 border-zinc-300 bg-white/80 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-text-main transition-all hover:bg-zinc-100"
+                className="min-h-11 flex-1 border-2 border-zinc-300 bg-white px-4 py-2 text-sm font-semibold uppercase tracking-wide text-text-main transition-colors hover:border-zinc-400 hover:bg-zinc-50"
               >
                 Close
               </button>
               <button
+                type="button"
                 onClick={handleCopyInviteCode}
-                className="flex-1 flex items-center justify-center gap-2 border-2 border-brand bg-brand px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white transition-all hover:bg-brand-hover"
+                aria-live="polite"
+                className="min-h-11 flex-1 flex items-center justify-center gap-2 border-2 border-brand bg-brand px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white transition-colors hover:border-brand-hover hover:bg-brand-hover"
               >
                 {copied ? (
                   <>
@@ -167,30 +174,32 @@ export default function RoomNavigation({
           : 'Are you sure you want to leave this room?'
 
         return (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 pointer-events-auto">
-            <div className="border-2 border-zinc-300 bg-white/95 p-4 mx-4 w-full max-w-sm pointer-events-auto">
-              <h3 className="mb-4 text-sm font-bold uppercase tracking-wide text-text-main">
+          <div className="animate-overlay-in fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4 pointer-events-auto">
+            <div role="alertdialog" aria-modal="true" aria-labelledby="room-action-title" aria-describedby="room-action-desc" className="animate-dialog-in w-full max-w-sm border-2 border-zinc-300 bg-white p-5 shadow-xl shadow-black/20 pointer-events-auto">
+              <h3 id="room-action-title" className="mb-2 text-sm font-bold uppercase tracking-wide text-text-main">
                 {actionLabel}
               </h3>
-              <p className="mb-6 text-sm text-text-muted">{confirmMessage}</p>
+              <p id="room-action-desc" className="mb-6 text-sm text-text-muted">{confirmMessage}</p>
               <div className="flex gap-3">
                 <button
+                  type="button"
                   onClick={() => setConfirmAction(null)}
                   disabled={isPending}
-                  className="flex-1 border-2 border-zinc-300 bg-white/80 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-text-main transition-all hover:bg-zinc-100 disabled:opacity-50"
+                  className="min-h-11 flex-1 border-2 border-zinc-300 bg-white px-4 py-2 text-sm font-semibold uppercase tracking-wide text-text-main transition-colors hover:border-zinc-400 hover:bg-zinc-50 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleAction(confirmAction)}
                   disabled={isPending}
-                  className={`flex-1 border-2 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white transition-all disabled:opacity-50 ${
+                  className={`min-h-11 flex-1 border-2 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white transition-colors disabled:opacity-50 ${
                     isHost
-                      ? 'border-red-500 bg-red-500 hover:bg-red-600'
-                      : 'border-brand bg-brand hover:bg-brand-hover'
+                      ? 'border-red-600 bg-red-600 hover:border-red-700 hover:bg-red-700'
+                      : 'border-brand bg-brand hover:border-brand-hover hover:bg-brand-hover'
                   }`}
                 >
-                  {isPending ? 'Processing...' : actionLabel}
+                  {isPending ? 'Processing…' : actionLabel}
                 </button>
               </div>
             </div>
@@ -199,16 +208,17 @@ export default function RoomNavigation({
       })()}
 
       {/* Desktop sidebar nav */}
-      <div className="mb-6 hidden md:block">
+      <nav aria-label="Room" className="mb-6 hidden md:block">
         <div className="flex w-full flex-col gap-1">
           {tabs.map((tab) => (
             <Link
               key={tab.href}
               href={tab.href}
-              className={`px-3 py-2 text-left text-sm font-medium transition-colors ${
+              aria-current={isActive(tab.href, tab.exact) ? 'page' : undefined}
+              className={`flex min-h-10 items-center px-3 py-2 text-left text-sm transition-colors ${
                 isActive(tab.href, tab.exact)
-                  ? 'bg-white text-brand'
-                  : 'text-text-muted hover:bg-zinc-100 hover:text-text-main'
+                  ? 'bg-white font-bold text-brand shadow-sm'
+                  : 'font-medium text-zinc-700 hover:bg-white/60 hover:text-text-main'
               }`}
             >
               {tab.label}
@@ -216,37 +226,39 @@ export default function RoomNavigation({
           ))}
 
           {/* Separator */}
-          {(isHost || !isHost) && <div className="my-2 border-t-2 border-zinc-200" />}
+          <div className="my-2 border-t-2 border-zinc-200" />
 
           {/* Invite code button (only for host) */}
           {isHost && inviteCode && (
             <button
+              type="button"
               onClick={() => setShowInviteModal(true)}
-              className="flex items-center gap-2 px-3 py-2 text-left text-sm font-medium text-brand transition-colors hover:bg-brand/10"
+              className="flex min-h-10 items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-brand transition-colors hover:bg-brand-tint"
             >
-              <Share2 size={16} />
+              <Share2 size={16} aria-hidden="true" />
               Invite
             </button>
           )}
 
           {/* Action button */}
           <button
+            type="button"
             onClick={() => setConfirmAction(isHost ? 'delete' : 'leave')}
             disabled={isPending}
-            className={`flex items-center gap-2 px-3 py-2 text-left text-sm font-medium transition-colors disabled:opacity-50 ${
+            className={`flex min-h-10 items-center gap-2 px-3 py-2 text-left text-sm font-semibold transition-colors disabled:opacity-50 ${
               isHost
-                ? 'text-red-600 hover:bg-red-50'
-                : 'text-brand hover:bg-brand/10'
+                ? 'text-red-700 hover:bg-red-50'
+                : 'text-zinc-700 hover:bg-white/60 hover:text-text-main'
             }`}
           >
-            {isHost ? <Trash2 size={16} /> : <LogOut size={16} />}
+            {isHost ? <Trash2 size={16} aria-hidden="true" /> : <LogOut size={16} aria-hidden="true" />}
             {isHost ? 'Delete' : 'Leave'}
           </button>
         </div>
-      </div>
+      </nav>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 flex border-t-2 border-zinc-300 bg-white md:hidden">
+      <nav aria-label="Room" className="fixed bottom-0 left-0 right-0 z-50 flex border-t-2 border-zinc-300 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {tabs.map((tab) => {
           const Icon = tabIcons[tab.label]
           const active = isActive(tab.href, tab.exact)
@@ -254,12 +266,13 @@ export default function RoomNavigation({
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold uppercase tracking-wide transition-colors ${
-                active ? 'text-brand' : 'text-zinc-400 hover:text-brand'
+              aria-current={active ? 'page' : undefined}
+              className={`${MOBILE_TAB} ${
+                active ? 'font-bold text-brand before:bg-brand' : 'font-semibold text-zinc-600 before:bg-transparent active:bg-zinc-100'
               }`}
             >
-              <Icon size={20} strokeWidth={active ? 2.5 : 2} />
-              {tab.label}
+              <Icon size={20} strokeWidth={active ? 2.5 : 2} aria-hidden="true" />
+              <span className="max-w-full truncate">{tab.label}</span>
             </Link>
           )
         })}
@@ -267,26 +280,28 @@ export default function RoomNavigation({
         {/* Mobile invite button (only for host) */}
         {isHost && inviteCode && (
           <button
+            type="button"
             onClick={() => setShowInviteModal(true)}
-            className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold uppercase tracking-wide text-brand hover:text-brand/80"
+            className={`${MOBILE_TAB} font-semibold text-brand before:bg-transparent active:bg-brand-tint`}
           >
-            <Share2 size={20} />
-            Invite
+            <Share2 size={20} aria-hidden="true" />
+            <span className="max-w-full truncate">Invite</span>
           </button>
         )}
 
         {/* Mobile action button */}
         <button
+          type="button"
           onClick={() => setConfirmAction(isHost ? 'delete' : 'leave')}
           disabled={isPending}
-          className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold uppercase tracking-wide transition-colors disabled:opacity-50 ${
+          className={`${MOBILE_TAB} font-semibold before:bg-transparent disabled:opacity-50 ${
             isHost
-              ? 'text-red-600 hover:text-red-700'
-              : 'text-zinc-400 hover:text-brand'
+              ? 'text-red-700 active:bg-red-50'
+              : 'text-zinc-600 active:bg-zinc-100'
           }`}
         >
-          {isHost ? <Trash2 size={20} /> : <LogOut size={20} />}
-          {isHost ? 'Delete' : 'Leave'}
+          {isHost ? <Trash2 size={20} aria-hidden="true" /> : <LogOut size={20} aria-hidden="true" />}
+          <span className="max-w-full truncate">{isHost ? 'Delete' : 'Leave'}</span>
         </button>
       </nav>
     </>

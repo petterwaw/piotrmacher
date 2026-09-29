@@ -4,6 +4,14 @@ import { useEffect, useMemo, useState, useTransition } from 'react'
 import { Pencil, X } from 'lucide-react'
 import { ProfileSkeleton } from '@/app/components/LoadingSkeletons'
 
+const INPUT =
+  'min-h-11 w-full border-2 border-zinc-300 bg-white px-3 py-2 text-base text-text-main outline-none transition-colors placeholder:text-zinc-500 focus:border-brand sm:text-sm'
+const LABEL = 'text-xs font-bold uppercase tracking-wide text-zinc-600'
+const EDIT_TOGGLE =
+  'ml-3 inline-flex h-10 w-10 shrink-0 items-center justify-center border-2 border-zinc-300 bg-white text-zinc-700 transition-colors hover:border-brand hover:text-brand aria-expanded:border-brand aria-expanded:text-brand'
+const PRIMARY =
+  'inline-flex min-h-11 items-center justify-center border-2 border-brand bg-brand px-5 py-2 text-sm font-semibold text-white transition-colors hover:border-brand-hover hover:bg-brand-hover active:bg-brand-hover disabled:opacity-60'
+
 type Profile = {
   id: string
   email: string
@@ -152,48 +160,52 @@ export default function ProfilePage() {
 
   return (
     <div className='mx-auto w-full max-w-xl space-y-4 px-4 py-8 md:px-6'>
-      {error ? <p className='border-2 border-orange-400 bg-orange-50 p-3 text-sm text-orange-800'>{error}</p> : null}
-      {message ? <p className='border-2 border-green-500 bg-green-50 p-3 text-sm text-green-700'>{message}</p> : null}
+      <h1 className='sr-only'>Account</h1>
+      {error ? <p role='alert' className='border-2 border-orange-400 bg-orange-50 p-3 text-sm font-medium text-orange-900'>{error}</p> : null}
+      {message ? <p role='status' className='border-2 border-brand/50 bg-brand-tint p-3 text-sm font-medium text-brand'>{message}</p> : null}
 
       {/* Account info card */}
       <div className='border-2 border-zinc-300 bg-white/90 divide-y divide-zinc-200'>
 
         {/* Email row */}
-        <div className='flex items-center justify-between px-4 py-3'>
-          <div>
-            <p className='text-xs font-semibold uppercase tracking-wide text-text-muted'>Email</p>
-            <p className='text-sm font-medium text-text-main'>{profile?.email ?? '-'}</p>
+        <div className='flex min-h-16 items-center justify-between px-4 py-3'>
+          <div className='min-w-0'>
+            <p className={LABEL}>Email</p>
+            <p className='mt-0.5 break-all text-sm font-medium text-text-main'>{profile?.email ?? '-'}</p>
           </div>
         </div>
 
         {/* Username row */}
         <div className='px-4 py-3'>
           <div className='flex items-center justify-between'>
-            <div>
-              <p className='text-xs font-semibold uppercase tracking-wide text-text-muted'>Username</p>
-              <p className='text-sm font-medium text-text-main'>{profile?.username ?? '-'}</p>
+            <div className='min-w-0'>
+              <p className={LABEL}>Username</p>
+              <p className='mt-0.5 truncate text-sm font-medium text-text-main'>{profile?.username ?? '-'}</p>
             </div>
             <button
               type='button'
               onClick={() => { setEditingUsername((v) => !v); setEditingPassword(false) }}
-              className='ml-3 border-2 border-zinc-300 p-1.5 text-text-muted hover:border-brand hover:text-brand transition-colors'
+              className={EDIT_TOGGLE}
               aria-label='Edit username'
+              aria-expanded={editingUsername}
             >
-              {editingUsername ? <X size={14} /> : <Pencil size={14} />}
+              {editingUsername ? <X size={16} aria-hidden='true' /> : <Pencil size={16} aria-hidden='true' />}
             </button>
           </div>
           {editingUsername && (
-            <div className='mt-3 space-y-2'>
+            <div className='animate-pop-in mt-3 space-y-2'>
               <input
                 id='username'
                 name='username'
+                aria-label='New username'
+                autoComplete='username'
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className='w-full border-2 border-zinc-300 bg-white px-3 py-2 text-sm text-text-main outline-none focus:border-[#66BB6A]'
+                className={INPUT}
               />
               <button
                 type='button'
-                className='border border-[#4CAF50] bg-[#4CAF50] px-5 py-2 text-sm font-semibold text-white hover:bg-[#81C784] hover:border-[#81C784] disabled:opacity-60'
+                className={PRIMARY}
                 onClick={updateUsername}
                 disabled={isPending}
               >
@@ -206,45 +218,52 @@ export default function ProfilePage() {
         {/* Password row */}
         <div className='px-4 py-3'>
           <div className='flex items-center justify-between'>
-            <div>
-              <p className='text-xs font-semibold uppercase tracking-wide text-text-muted'>Password</p>
-              <p className='text-sm font-medium text-text-main'>••••••••</p>
+            <div className='min-w-0'>
+              <p className={LABEL}>Password</p>
+              <p className='mt-0.5 text-sm font-medium tracking-widest text-text-main'>••••••••</p>
             </div>
             <button
               type='button'
               onClick={() => { setEditingPassword((v) => !v); setEditingUsername(false) }}
-              className='ml-3 border-2 border-zinc-300 p-1.5 text-text-muted hover:border-brand hover:text-brand transition-colors'
+              className={EDIT_TOGGLE}
               aria-label='Edit password'
+              aria-expanded={editingPassword}
             >
-              {editingPassword ? <X size={14} /> : <Pencil size={14} />}
+              {editingPassword ? <X size={16} aria-hidden='true' /> : <Pencil size={16} aria-hidden='true' />}
             </button>
           </div>
           {editingPassword && (
-            <div className='mt-3 space-y-2'>
+            <div className='animate-pop-in mt-3 space-y-2'>
               <input
                 type='password'
+                aria-label='Current password'
+                autoComplete='current-password'
                 placeholder='Current password'
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className='w-full border-2 border-zinc-300 bg-white px-3 py-2 text-sm text-text-main outline-none focus:border-[#66BB6A]'
+                className={INPUT}
               />
               <input
                 type='password'
+                aria-label='New password'
+                autoComplete='new-password'
                 placeholder='New password'
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className='w-full border-2 border-zinc-300 bg-white px-3 py-2 text-sm text-text-main outline-none focus:border-[#66BB6A]'
+                className={INPUT}
               />
               <input
                 type='password'
+                aria-label='Confirm new password'
+                autoComplete='new-password'
                 placeholder='Confirm new password'
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className='w-full border-2 border-zinc-300 bg-white px-3 py-2 text-sm text-text-main outline-none focus:border-[#66BB6A]'
+                className={INPUT}
               />
               <button
                 type='button'
-                className='border border-[#4CAF50] bg-[#4CAF50] px-5 py-2 text-sm font-semibold text-white hover:bg-[#81C784] hover:border-[#81C784] disabled:opacity-60'
+                className={PRIMARY}
                 onClick={updatePassword}
                 disabled={isPending}
               >
@@ -255,18 +274,18 @@ export default function ProfilePage() {
         </div>
 
         {/* Member since row */}
-        <div className='flex items-center justify-between px-4 py-3'>
+        <div className='flex min-h-16 items-center justify-between px-4 py-3'>
           <div>
-            <p className='text-xs font-semibold uppercase tracking-wide text-text-muted'>Member since</p>
-            <p className='text-sm font-medium text-text-main'>{createdAtLabel}</p>
+            <p className={LABEL}>Member since</p>
+            <p className='mt-0.5 text-sm font-medium tabular-nums text-text-main'>{createdAtLabel}</p>
           </div>
         </div>
       </div>
 
       {/* Delete account */}
-      <section className='border-2 border-orange-400 bg-orange-50 p-5'>
-        <h3 className='mb-2 text-lg font-semibold text-orange-800'>Delete Account</h3>
-        <p className='mb-3 text-sm text-orange-700'>
+      <section className='border-2 border-orange-400 bg-orange-50 p-4 sm:p-5'>
+        <h2 className='mb-2 text-lg font-black tracking-tight text-orange-900'>Delete account</h2>
+        <p className='mb-3 text-sm leading-relaxed text-orange-900'>
           If you are host, rooms created by you will be removed. If you are only a participant,
           your room memberships and bets will be removed.
         </p>
@@ -274,11 +293,13 @@ export default function ProfilePage() {
           value={deleteConfirm}
           onChange={(e) => setDeleteConfirm(e.target.value)}
           placeholder='Type DELETE to confirm'
-          className='w-full border-2 border-orange-400 bg-white px-3 py-2 text-sm text-text-main'
+          aria-label='Type DELETE to confirm'
+          autoComplete='off'
+          className='min-h-11 w-full border-2 border-orange-400 bg-white px-3 py-2 text-base text-text-main outline-none transition-colors placeholder:text-orange-900/60 focus:border-danger sm:text-sm'
         />
         <button
           type='button'
-          className='mt-3 border border-[#F97316] bg-[#F97316] px-5 py-2 text-sm font-semibold text-white hover:bg-[#EA580C] hover:border-[#EA580C] disabled:opacity-60'
+          className='mt-3 inline-flex min-h-11 items-center justify-center border-2 border-danger bg-danger px-5 py-2 text-sm font-semibold text-white transition-colors hover:border-danger-hover hover:bg-danger-hover active:bg-danger-hover disabled:opacity-60'
           onClick={deleteAccount}
           disabled={isPending}
         >

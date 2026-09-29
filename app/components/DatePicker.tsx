@@ -109,22 +109,22 @@ export default function DatePicker({
     d === selDay && viewMonth === selMonth && viewYear === selYear
 
   const calendarContent = (
-    <div className={inline ? 'border-2 border-zinc-300 bg-white' : 'absolute left-0 right-0 z-50 mt-0.5 border-2 border-brand bg-white shadow-lg'}>
+    <div className={inline ? 'border-2 border-zinc-300 bg-white' : 'animate-pop-in absolute left-0 right-0 z-50 mt-1 border-2 border-brand bg-white shadow-lg shadow-black/10'}>
       {/* Month navigation */}
-      <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2">
-        <button type="button" onClick={prevMonth} className="p-1 text-text-muted transition-colors hover:text-text-main">
-          <ChevronLeft size={16} />
+      <div className="flex items-center justify-between border-b border-zinc-200 px-1.5 py-1">
+        <button type="button" onClick={prevMonth} aria-label="Previous month" className="inline-flex h-9 w-9 items-center justify-center text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-text-main">
+          <ChevronLeft size={18} aria-hidden="true" />
         </button>
-        <span className="text-sm font-semibold text-text-main">{MONTHS[viewMonth]} {viewYear}</span>
-        <button type="button" onClick={nextMonth} className="p-1 text-text-muted transition-colors hover:text-text-main">
-          <ChevronRight size={16} />
+        <span aria-live="polite" className="text-sm font-bold tabular-nums text-text-main">{MONTHS[viewMonth]} {viewYear}</span>
+        <button type="button" onClick={nextMonth} aria-label="Next month" className="inline-flex h-9 w-9 items-center justify-center text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-text-main">
+          <ChevronRight size={18} aria-hidden="true" />
         </button>
       </div>
 
       {/* Weekday headers */}
       <div className="grid grid-cols-7 px-2 pt-2">
         {WEEKDAYS.map((d) => (
-          <div key={d} className="py-1 text-center text-[11px] font-semibold uppercase tracking-wide text-text-muted">{d}</div>
+          <div key={d} className="py-1 text-center text-[11px] font-bold uppercase tracking-wide text-zinc-600">{d}</div>
         ))}
       </div>
 
@@ -137,11 +137,13 @@ export default function DatePicker({
                 type="button"
                 onClick={() => handleDayClick(day)}
                 disabled={disabled}
-                className={`h-8 w-8 text-sm font-medium transition-colors disabled:opacity-40 ${
+                aria-pressed={isSelected(day)}
+                aria-current={isToday(day) ? 'date' : undefined}
+                className={`h-9 w-9 text-sm font-medium tabular-nums transition-colors sm:h-10 sm:w-10 disabled:opacity-40 ${
                   isSelected(day)
-                    ? 'bg-brand text-white'
+                    ? 'bg-brand font-bold text-white'
                     : isToday(day)
-                      ? 'border border-brand text-brand hover:bg-brand/10'
+                      ? 'border-2 border-brand font-bold text-brand hover:bg-brand-tint'
                       : 'text-text-main hover:bg-zinc-100'
                 }`}
               >
@@ -154,16 +156,17 @@ export default function DatePicker({
 
       {/* Time picker */}
       <div className="flex items-center gap-2 border-t border-zinc-200 px-3 py-2.5">
-        <Clock size={14} className="shrink-0 text-text-muted" />
-        <span className="text-xs text-text-muted">Time:</span>
+        <Clock size={14} aria-hidden="true" className="shrink-0 text-zinc-600" />
+        <span className="text-xs font-semibold text-zinc-600">Time:</span>
         <input
           type="number"
           min={0}
           max={23}
           value={hour}
+          aria-label="Hour"
           disabled={disabled}
           onChange={(e) => { setHour(e.target.value); commitTime(e.target.value, minute, selYear, selMonth, selDay) }}
-          className="w-12 border border-zinc-300 px-2 py-1 text-center text-sm outline-none focus:border-brand disabled:bg-gray-100"
+          className="h-10 w-12 border-2 border-zinc-300 px-1 text-center text-sm font-semibold tabular-nums outline-none transition-colors focus:border-brand disabled:bg-gray-100"
         />
         <span className="text-text-muted">:</span>
         <input
@@ -171,12 +174,13 @@ export default function DatePicker({
           min={0}
           max={59}
           value={minute}
+          aria-label="Minute"
           disabled={disabled}
           onChange={(e) => { setMinute(e.target.value); commitTime(hour, e.target.value, selYear, selMonth, selDay) }}
-          className="w-12 border border-zinc-300 px-2 py-1 text-center text-sm outline-none focus:border-brand disabled:bg-gray-100"
+          className="h-10 w-12 border-2 border-zinc-300 px-1 text-center text-sm font-semibold tabular-nums outline-none transition-colors focus:border-brand disabled:bg-gray-100"
         />
         {!inline ? (
-          <button type="button" onClick={() => setOpen(false)} className="ml-auto text-xs font-semibold text-brand hover:underline">
+          <button type="button" onClick={() => setOpen(false)} className="ml-auto inline-flex min-h-10 items-center px-2 text-sm font-semibold text-brand hover:underline">
             Done
           </button>
         ) : null}
@@ -194,7 +198,7 @@ export default function DatePicker({
         type="button"
         onClick={() => { if (!disabled) setOpen(p => !p) }}
         disabled={disabled}
-        className={`flex w-full items-center gap-3 border-2 px-4 py-3 text-left text-sm outline-none transition-colors ${
+        className={`flex min-h-12 w-full items-center gap-3 border-2 px-4 py-3 text-left text-sm outline-none transition-colors focus-visible:border-brand ${
           disabled
             ? 'cursor-not-allowed border-zinc-300 bg-gray-100 text-text-muted'
             : open
@@ -202,7 +206,7 @@ export default function DatePicker({
               : 'border-zinc-300 bg-white text-text-main hover:border-brand'
         }`}
       >
-        <Calendar size={15} className="shrink-0 text-text-muted" />
+        <Calendar size={16} aria-hidden="true" className="shrink-0 text-zinc-600" />
         <span className={value ? 'text-text-main' : 'text-text-muted'}>
           {value ? formatDisplay(value) : placeholder}
         </span>

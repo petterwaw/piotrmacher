@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { X } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState, useTransition, Suspense } from 'react'
 
@@ -219,6 +220,14 @@ export default function Header() {
     }
   }, [loading, user])
 
+  const inputClassName =
+    'mb-3 min-h-12 w-full border-2 border-zinc-300 bg-gray-50 px-4 py-3 text-base text-text-main outline-none transition-colors placeholder:text-zinc-500 focus:border-brand focus:bg-white'
+
+  const segmentClassName = (active: boolean) =>
+    `flex-1 min-h-10 px-3 py-2 text-sm font-semibold transition-colors ${
+      active ? 'bg-white text-text-main shadow-sm' : 'text-zinc-600 hover:text-text-main'
+    }`
+
   return (
     <>
       <Suspense fallback={null}>
@@ -228,21 +237,29 @@ export default function Header() {
         <div className="mx-auto hidden max-w-[1320px] border border-white/40 bg-white/80 shadow-sm backdrop-blur md:block">
           <div className="min-h-[64px] items-center justify-between px-6 md:flex">
             <div className="flex items-center gap-8">
-              <Link href={logoHref} className="text-[38px] font-black italic tracking-tight text-[#4CAF50]">
+              <Link href={logoHref} className="text-[38px] font-black italic leading-none tracking-tight text-brand-bright transition-colors hover:text-brand">
                 PIOTRMACHER
               </Link>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex min-h-10 items-center gap-2">
               {loading ? (
-                <div className="bg-gray-100 px-4 py-2 text-sm text-text-muted">Loading...</div>
+                <div aria-hidden="true" className="flex items-center gap-2">
+                  <div className="h-10 w-10 bg-zinc-200/80 motion-safe:animate-pulse" />
+                  <div className="h-10 w-24 bg-zinc-200/80 motion-safe:animate-pulse" />
+                </div>
               ) : user ? (
                 <>
-                  <Link href="/profile" className="inline-flex h-10 w-10 items-center justify-center border border-gray-200 bg-white hover:border-brand hover:bg-gray-50">
+                  <Link
+                    href="/profile"
+                    aria-label="Account"
+                    title="Account"
+                    className="inline-flex h-10 w-10 items-center justify-center border border-gray-300 bg-white transition-colors hover:border-brand hover:bg-brand-tint"
+                  >
                     <UserIcon />
                   </Link>
                   <form action="/api/auth/logout" method="post" className="inline">
-                    <button type="submit" className="border border-[#4CAF50] bg-[#4CAF50] px-5 py-2 text-sm font-semibold text-white hover:bg-[#81C784] hover:border-[#81C784]">
+                    <button type="submit" className="min-h-10 border border-brand bg-brand px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-hover hover:border-brand-hover">
                       Logout
                     </button>
                   </form>
@@ -252,14 +269,14 @@ export default function Header() {
                   <button
                     type="button"
                     onClick={() => openAuthModal('signup')}
-                    className="border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-text-main hover:border-brand hover:bg-gray-50"
+                    className="min-h-10 border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand"
                   >
                     Register
                   </button>
                   <button
                     type="button"
                     onClick={() => openAuthModal('signin')}
-                    className="border border-[#4CAF50] bg-[#4CAF50] px-5 py-2 text-sm font-semibold text-white hover:bg-[#81C784] hover:border-[#81C784]"
+                    className="min-h-10 border border-brand bg-brand px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-hover hover:border-brand-hover"
                   >
                     Sign in
                   </button>
@@ -271,34 +288,43 @@ export default function Header() {
         </div>
 
         <div className="mx-auto flex max-w-[1320px] min-h-[56px] items-center justify-between px-3 md:hidden">
-<Link href={logoHref} className="text-[30px] font-black italic tracking-tight text-[#4CAF50]">
+          <Link href={logoHref} className="text-[30px] font-black italic leading-none tracking-tight text-brand-bright">
             PIOTRMACHER
           </Link>
 
-          <div className="relative" ref={mobileMenuRef}>
-            {loading ? null : user ? (
+          <div className="relative flex h-11 w-11 items-center justify-center" ref={mobileMenuRef}>
+            {loading ? (
+              <div aria-hidden="true" className="h-11 w-11 rounded-full bg-zinc-200/80 motion-safe:animate-pulse" />
+            ) : user ? (
               <>
                 <button
                   type="button"
                   onClick={() => setShowMobileUserMenu((prev) => !prev)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gray-100"
+                  aria-label="Account menu"
+                  aria-haspopup="menu"
+                  aria-expanded={showMobileUserMenu}
+                  className={`inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
+                    showMobileUserMenu ? 'bg-brand-tint ring-2 ring-brand' : 'bg-white/80 ring-1 ring-zinc-300 active:bg-zinc-100'
+                  }`}
                 >
                   <UserIcon />
                 </button>
 
                 {showMobileUserMenu ? (
-                  <div className="absolute right-0 top-11 z-20 w-40 border-2 border-zinc-300 bg-white shadow-md">
+                  <div role="menu" className="animate-pop-in absolute right-0 top-[calc(100%+6px)] z-20 w-48 border-2 border-zinc-300 bg-white shadow-lg shadow-black/10">
                     <Link
                       href="/profile"
+                      role="menuitem"
                       onClick={() => setShowMobileUserMenu(false)}
-                      className="block px-4 py-3 text-sm font-medium text-text-main hover:bg-gray-50"
+                      className="flex min-h-12 items-center px-4 text-sm font-semibold text-text-main transition-colors hover:bg-zinc-50 active:bg-zinc-100"
                     >
                       Account
                     </Link>
                     <form action="/api/auth/logout" method="post" className="border-t border-border-soft">
                       <button
                         type="submit"
-                        className="w-full px-4 py-3 text-left text-sm font-medium text-text-main hover:bg-gray-50"
+                        role="menuitem"
+                        className="flex min-h-12 w-full items-center px-4 text-left text-sm font-semibold text-text-main transition-colors hover:bg-zinc-50 active:bg-zinc-100"
                       >
                         Logout
                       </button>
@@ -310,7 +336,8 @@ export default function Header() {
               <button
                 type="button"
                 onClick={() => openAuthModal('signin')}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gray-100"
+                aria-label="Sign in"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/80 ring-1 ring-zinc-300 transition-colors active:bg-zinc-100"
               >
                 <UserIcon />
               </button>
@@ -320,18 +347,24 @@ export default function Header() {
       </header>
 
       {showAuthModal ? (
-        <div className="fixed inset-0 z-[100] bg-black/45 px-3 md:flex md:items-center md:justify-center">
-          <div className="absolute inset-0" onClick={closeAuthModal} />
+        <div className="animate-overlay-in fixed inset-0 z-[100] bg-black/50 md:flex md:items-center md:justify-center md:px-4">
+          <div className="absolute inset-0" onClick={closeAuthModal} aria-hidden="true" />
 
-          <div className="fixed bottom-0 left-0 right-0 z-[101] bg-white p-5 shadow-2xl md:static md:w-full md:max-w-md md:p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-[44px] font-black italic leading-none tracking-tight text-[#4CAF50]">PIOTRMACHER</h3>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={authMode === 'signin' ? 'Sign in' : 'Register'}
+            className="animate-sheet-in md:animate-dialog-in fixed bottom-0 left-0 right-0 z-[101] max-h-[calc(100dvh-1rem)] overflow-y-auto border-t-2 border-zinc-300 bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl md:static md:w-full md:max-w-md md:border-2 md:p-6"
+          >
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <p className="text-[40px] font-black italic leading-none tracking-tight text-brand-bright md:text-[44px]">PIOTRMACHER</p>
               <button
                 type="button"
                 onClick={closeAuthModal}
-                className="inline-flex h-8 w-8 items-center justify-center border border-gray-300 bg-white text-lg text-text-muted hover:border-brand hover:bg-gray-50"
+                aria-label="Close"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-gray-300 bg-white text-text-muted transition-colors hover:border-brand hover:text-brand"
               >
-                x
+                <X size={20} aria-hidden="true" />
               </button>
             </div>
 
@@ -339,14 +372,16 @@ export default function Header() {
               <button
                 type="button"
                 onClick={() => setAuthMode('signin')}
-                className={`flex-1 px-3 py-2 text-sm font-semibold ${authMode === 'signin' ? 'bg-white text-text-main shadow-sm' : 'text-text-muted'}`}
+                aria-pressed={authMode === 'signin'}
+                className={segmentClassName(authMode === 'signin')}
               >
                 Sign in
               </button>
               <button
                 type="button"
                 onClick={() => setAuthMode('signup')}
-                className={`flex-1 px-3 py-2 text-sm font-semibold ${authMode === 'signup' ? 'bg-white text-text-main shadow-sm' : 'text-text-muted'}`}
+                aria-pressed={authMode === 'signup'}
+                className={segmentClassName(authMode === 'signup')}
               >
                 Register
               </button>
@@ -358,7 +393,9 @@ export default function Header() {
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 placeholder="Username"
-                className="mb-3 w-full border-2 border-zinc-300 bg-gray-50 px-4 py-3 outline-none focus:border-[#66BB6A]"
+                aria-label="Username"
+                autoComplete="username"
+                className={inputClassName}
               />
             ) : null}
 
@@ -367,7 +404,9 @@ export default function Header() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="E-mail"
-              className="mb-3 w-full border-2 border-zinc-300 bg-gray-50 px-4 py-3 outline-none focus:border-[#66BB6A]"
+              aria-label="E-mail"
+              autoComplete="email"
+              className={inputClassName}
             />
 
             <input
@@ -375,7 +414,9 @@ export default function Header() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Password"
-              className="mb-3 w-full border-2 border-zinc-300 bg-gray-50 px-4 py-3 outline-none focus:border-[#66BB6A]"
+              aria-label="Password"
+              autoComplete={authMode === 'signin' ? 'current-password' : 'new-password'}
+              className={inputClassName}
             />
 
             {authMode === 'signup' ? (
@@ -384,25 +425,33 @@ export default function Header() {
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 placeholder="Confirm password"
-                className="mb-3 w-full border-2 border-zinc-300 bg-gray-50 px-4 py-3 outline-none focus:border-[#66BB6A]"
+                aria-label="Confirm password"
+                autoComplete="new-password"
+                className={inputClassName}
               />
             ) : null}
 
-            {authError ? <p className="mb-2 text-sm text-[#E8541E]">{authError}</p> : null}
-            {authMessage ? <p className="mb-2 text-sm text-green-700">{authMessage}</p> : null}
+            {authError ? <p role="alert" className="mb-2 text-sm font-medium text-danger">{authError}</p> : null}
+            {authMessage ? <p role="status" className="mb-2 text-sm font-medium text-brand">{authMessage}</p> : null}
 
             <button
               type="button"
               onClick={submitAuth}
               disabled={isPending}
-              className="mt-2 w-full border border-[#4CAF50] bg-[#4CAF50] px-4 py-3 text-lg font-semibold text-white hover:bg-[#81C784] hover:border-[#81C784] disabled:opacity-70"
+              className="mt-2 min-h-12 w-full border border-brand bg-brand px-4 py-3 text-base font-semibold text-white transition-colors hover:bg-brand-hover hover:border-brand-hover disabled:opacity-60 disabled:hover:bg-brand"
             >
-              {isPending ? 'Please wait...' : authMode === 'signin' ? 'Sign in' : 'Create account'}
+              {isPending ? 'Please wait…' : authMode === 'signin' ? 'Sign in' : 'Create account'}
             </button>
+
+            <div className="my-4 flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-zinc-500" aria-hidden="true">
+              <span className="h-px flex-1 bg-zinc-200" />
+              or
+              <span className="h-px flex-1 bg-zinc-200" />
+            </div>
 
             <a
               href="/api/auth/google?next=/home"
-              className="mt-3 inline-flex w-full items-center justify-center border-2 border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-text-main hover:bg-gray-50 hover:border-brand"
+              className="inline-flex min-h-12 w-full items-center justify-center border-2 border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-text-main transition-colors hover:bg-zinc-50 hover:border-brand"
             >
               <GoogleIcon />
               <span className="ml-2">Continue with Google</span>

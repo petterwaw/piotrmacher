@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type Dispatch, type SetStateAction } from 'react'
+import { Minus, Plus } from 'lucide-react'
 
 type Rules = {
   correct_winner: number
@@ -61,10 +62,12 @@ function calcPoints(
 
 function GoalStepper({
   value,
+  label,
   onIncrease,
   onDecrease,
 }: {
   value: number
+  label: string
   onIncrease: () => void
   onDecrease: () => void
 }) {
@@ -73,23 +76,28 @@ function GoalStepper({
       <button
         type="button"
         onClick={onIncrease}
-        className="h-8 w-8 border-2 border-brand bg-brand text-base font-bold leading-none text-white transition-colors hover:border-brand-soft hover:bg-brand-soft"
+        disabled={value >= MAX_GOALS}
+        aria-label={`Increase ${label}`}
+        className="touch-target inline-flex h-10 w-10 items-center justify-center border-2 border-brand bg-brand text-white transition-colors hover:border-brand-hover hover:bg-brand-hover active:bg-brand-hover disabled:opacity-40 disabled:hover:bg-brand"
       >
-        +
+        <Plus size={18} strokeWidth={3} aria-hidden="true" />
       </button>
-      <span className="w-8 text-center font-mono text-2xl font-bold text-text-main">{value}</span>
+      <span className="w-10 text-center text-3xl font-black leading-none tabular-nums text-text-main">{value}</span>
       <button
         type="button"
         onClick={onDecrease}
-        className="h-8 w-8 border-2 border-zinc-300 bg-white text-base font-bold leading-none text-text-main transition-colors hover:border-zinc-400"
+        disabled={value <= 0}
+        aria-label={`Decrease ${label}`}
+        className="touch-target inline-flex h-10 w-10 items-center justify-center border-2 border-zinc-300 bg-white text-text-main transition-colors hover:border-zinc-500 active:bg-zinc-100 disabled:opacity-40 disabled:hover:border-zinc-300"
       >
-        -
+        <Minus size={18} strokeWidth={3} aria-hidden="true" />
       </button>
     </div>
   )
 }
 
 function ScorePairControl({
+  label,
   home,
   away,
   onIncreaseHome,
@@ -97,6 +105,7 @@ function ScorePairControl({
   onIncreaseAway,
   onDecreaseAway,
 }: {
+  label: string
   home: number
   away: number
   onIncreaseHome: () => void
@@ -107,9 +116,9 @@ function ScorePairControl({
   return (
     <div className="border-2 border-zinc-300 bg-white px-4 py-3">
       <div className="flex items-center justify-center gap-4">
-        <GoalStepper value={home} onIncrease={onIncreaseHome} onDecrease={onDecreaseHome} />
-        <span className="text-2xl font-bold text-zinc-500">:</span>
-        <GoalStepper value={away} onIncrease={onIncreaseAway} onDecrease={onDecreaseAway} />
+        <GoalStepper value={home} label={`${label} home goals`} onIncrease={onIncreaseHome} onDecrease={onDecreaseHome} />
+        <span aria-hidden="true" className="text-2xl font-black text-zinc-400">:</span>
+        <GoalStepper value={away} label={`${label} away goals`} onIncrease={onIncreaseAway} onDecrease={onDecreaseAway} />
       </div>
     </div>
   )
@@ -132,13 +141,14 @@ export default function ScoreTester({ rules }: { rules: Rules }) {
   }
 
   return (
-    <div className="mt-6 border-2 border-zinc-300 bg-zinc-50 p-4">
+    <div className="mt-6 border-2 border-zinc-300 bg-zinc-50 p-4 sm:p-5">
       <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-text-main">Score tester</h4>
       <div className="flex flex-col gap-4">
         <div className="grid min-w-0 gap-4 md:grid-cols-2">
           <div className="min-w-0">
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-500">Your pick</label>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-zinc-600">Your pick</p>
             <ScorePairControl
+              label="your pick"
               home={predHome}
               away={predAway}
               onIncreaseHome={() => increase(setPredHome)}
@@ -149,8 +159,9 @@ export default function ScoreTester({ rules }: { rules: Rules }) {
           </div>
 
           <div className="min-w-0">
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-500">Final score</label>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-zinc-600">Final score</p>
             <ScorePairControl
+              label="final score"
               home={finalHome}
               away={finalAway}
               onIncreaseHome={() => increase(setFinalHome)}
@@ -161,22 +172,22 @@ export default function ScoreTester({ rules }: { rules: Rules }) {
           </div>
         </div>
 
-        <div className="w-full border-2 border-zinc-300 bg-white p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Points summary</p>
-          <div className="space-y-1">
+        <div className="w-full border-2 border-zinc-300 bg-white p-3 sm:p-4" aria-live="polite">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-zinc-600">Points summary</p>
+          <div className="space-y-1.5">
             {result.breakdown.length === 0 ? (
-              <p className="text-xs text-zinc-500">No points scored.</p>
+              <p className="text-sm text-zinc-600">No points scored.</p>
             ) : (
               result.breakdown.map((b) => (
-                <div key={b.label} className="flex items-center justify-between text-xs text-zinc-600">
+                <div key={b.label} className="flex items-center justify-between gap-3 text-sm text-zinc-700">
                   <span>{b.label}</span>
-                  <span className="font-bold text-brand">+{b.pts}</span>
+                  <span className="font-bold tabular-nums text-brand">+{b.pts}</span>
                 </div>
               ))
             )}
-            <div className="mt-2 flex items-center justify-between border-t border-zinc-300 pt-2 text-sm font-bold text-text-main">
+            <div className="mt-2 flex items-center justify-between border-t-2 border-zinc-200 pt-2 text-base font-black text-text-main">
               <span>Total</span>
-              <span className="text-brand">{result.total} pts</span>
+              <span className="tabular-nums text-brand">{result.total} pts</span>
             </div>
           </div>
         </div>

@@ -45,9 +45,10 @@ export default async function RoomLayout({
       <div className="mb-3 md:hidden">
         <Link
           href="/home"
-          className="inline-flex h-11 w-11 items-center justify-center text-text-main transition-colors hover:text-brand"
+          aria-label="Back to rooms"
+          className="-ml-2 inline-flex h-11 w-11 items-center justify-center text-text-main transition-colors hover:text-brand"
         >
-          <ArrowLeft size={24} />
+          <ArrowLeft size={24} aria-hidden="true" />
         </Link>
       </div>
 
@@ -55,9 +56,11 @@ export default async function RoomLayout({
         <aside className="hidden md:block xl:absolute xl:left-0 xl:top-0 xl:w-44">
           <Link
             href="/home"
+            aria-label="Back to rooms"
+            title="Back to rooms"
             className="mb-4 inline-flex h-12 w-12 items-center justify-center text-text-main transition-colors hover:text-brand"
           >
-            <ArrowLeft size={28} />
+            <ArrowLeft size={28} aria-hidden="true" />
           </Link>
 
           <RoomNavigation roomId={room_id} roomStatus={roomStatus} showSettings={showSettings} showPickem={showPickem} isHost={isHost} inviteCode={isHost ? room?.invite_code ?? null : null} />
