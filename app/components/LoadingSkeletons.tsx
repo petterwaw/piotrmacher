@@ -58,19 +58,17 @@ export function MatchCardSkeleton() {
         </div>
       </div>
 
-      <div className="flex flex-nowrap items-center justify-between gap-2 py-1 sm:gap-3">
-        <div className="flex w-[38%] min-w-0 flex-col items-center text-center">
-          <SkeletonBlock className="mb-2 h-12 w-12" />
-          <SkeletonBlock className="h-4 w-24" />
+      <div className="flex min-h-24 flex-nowrap items-center justify-between gap-2 py-1 sm:min-h-28 sm:gap-3">
+        <div className="flex w-[38%] min-w-0 flex-col items-center pl-8 text-center sm:pl-10">
+          <SkeletonBlock className="h-4 w-20" />
         </div>
 
         <div className="w-[24%] min-w-[112px] text-center">
           <SkeletonBlock className="mx-auto h-10 w-24" />
         </div>
 
-        <div className="flex w-[38%] min-w-0 flex-col items-center text-center">
-          <SkeletonBlock className="mb-2 h-12 w-12" />
-          <SkeletonBlock className="h-4 w-24" />
+        <div className="flex w-[38%] min-w-0 flex-col items-center pr-8 text-center sm:pr-10">
+          <SkeletonBlock className="h-4 w-20" />
         </div>
       </div>
 

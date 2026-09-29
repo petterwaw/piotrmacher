@@ -52,6 +52,14 @@ const STEP_BASE =
   'touch-target inline-flex h-10 w-10 items-center justify-center border-2 transition-colors disabled:opacity-40'
 const STEP_UP = `${STEP_BASE} border-brand bg-brand text-white hover:border-brand-hover hover:bg-brand-hover active:bg-brand-hover disabled:hover:border-brand disabled:hover:bg-brand`
 const STEP_DOWN = `${STEP_BASE} border-zinc-300 bg-white text-text-main hover:border-zinc-500 active:bg-zinc-100 disabled:hover:border-zinc-300`
+// Team crests bleed off the card's outer edges and fade out toward the centre,
+// like the edges of the day strip.
+// Each crest fills roughly a third of the card: oversized, zoomed in, cut off by
+// the card edge and by the divider above the footer, fading toward the score.
+const LOGO_BASE =
+  'pointer-events-none absolute top-1/2 aspect-square w-[62%] max-w-none -translate-y-1/2 scale-[1.4] select-none object-contain opacity-40'
+const HOME_LOGO_MASK = 'linear-gradient(to right, #000 30%, transparent 85%)'
+const AWAY_LOGO_MASK = 'linear-gradient(to left, #000 30%, transparent 85%)'
 const SECONDARY_ACTION =
   'inline-flex min-h-11 items-center justify-center gap-2 border-2 border-zinc-300 bg-white px-5 py-2 text-sm font-semibold text-text-main transition-colors hover:border-brand hover:text-brand active:bg-brand-tint disabled:opacity-60'
 
@@ -124,7 +132,7 @@ export default function ScorePredictionCard({
 
   const statusClassName = useMemo(() => {
     if (match.status === 'live') return 'bg-green-100 text-green-900'
-    if (match.status === 'finished') return 'bg-zinc-200/70 text-zinc-700'
+    if (match.status === 'finished') return 'bg-zinc-200 text-zinc-700'
     if (match.status === 'delayed') return 'bg-orange-100 text-orange-900'
     return 'bg-blue-100 text-blue-900'
   }, [match.status])
@@ -208,11 +216,36 @@ export default function ScorePredictionCard({
   const isSaving = isPending && !saveMessage
 
   return (
-    <article ref={cardRef} aria-labelledby={titleId} className="border-2 border-zinc-300 bg-white/90 p-4 sm:p-5">
+    <article ref={cardRef} aria-labelledby={titleId} className="relative overflow-hidden border-2 border-zinc-300 bg-white/90 p-4 sm:p-5">
       <h2 id={titleId} className="sr-only">
         {match.homeTeam} vs {match.awayTeam}
       </h2>
-      <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+      {/* Crest area: clipped by the card edges and by the footer divider below. */}
+      <div className="relative -mx-4 -mt-4 -mb-4 overflow-hidden px-4 pt-4 pb-4 sm:-mx-5 sm:-mt-5 sm:px-5 sm:pt-5">
+      {match.homeLogo ? (
+        <img
+          src={match.homeLogo}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
+          style={{ maskImage: HOME_LOGO_MASK, WebkitMaskImage: HOME_LOGO_MASK }}
+          className={`${LOGO_BASE} -left-[22%]`}
+        />
+      ) : null}
+      {match.awayLogo ? (
+        <img
+          src={match.awayLogo}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
+          style={{ maskImage: AWAY_LOGO_MASK, WebkitMaskImage: AWAY_LOGO_MASK }}
+          className={`${LOGO_BASE} -right-[22%]`}
+        />
+      ) : null}
+
+      <div className="relative z-10 mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
         <div />
         <p lang="pl" className="text-center text-sm tabular-nums text-zinc-600">
           {new Date(match.startTime).toLocaleString('pl-PL', {
@@ -248,17 +281,12 @@ export default function ScorePredictionCard({
         </div>
       ) : null}
 
-      <div className="flex flex-nowrap items-center justify-between gap-2 py-1 sm:gap-3">
-        <div className="flex w-[38%] min-w-0 flex-col items-center text-center">
-          {match.homeLogo ? (
-            <img src={match.homeLogo} alt="" aria-hidden="true" loading="lazy" decoding="async" className="mb-2 h-12 w-12 object-contain" />
-          ) : (
-            <div aria-hidden="true" className="mb-2 h-12 w-12 rounded-full bg-zinc-100" />
-          )}
+      <div className="relative flex min-h-24 flex-nowrap items-center justify-between gap-2 py-1 sm:min-h-28 sm:gap-3">
+        <div className="relative flex w-[38%] min-w-0 flex-col items-center pl-8 text-center sm:pl-10">
           <p className="text-sm font-bold leading-snug text-text-main">{match.homeTeam}</p>
         </div>
 
-        <div className="w-[24%] min-w-[112px] text-center">
+        <div className="relative w-[24%] min-w-[112px] text-center">
           {!isEditing ? (
             <div key="score" className={`flex flex-col items-center ${swapIn}`}>
               <p className="sr-only">
@@ -360,14 +388,11 @@ export default function ScorePredictionCard({
           )}
         </div>
 
-        <div className="flex w-[38%] min-w-0 flex-col items-center text-center">
-          {match.awayLogo ? (
-            <img src={match.awayLogo} alt="" aria-hidden="true" loading="lazy" decoding="async" className="mb-2 h-12 w-12 object-contain" />
-          ) : (
-            <div aria-hidden="true" className="mb-2 h-12 w-12 rounded-full bg-zinc-100" />
-          )}
+        <div className="relative flex w-[38%] min-w-0 flex-col items-center pr-8 text-center sm:pr-10">
           <p className="text-sm font-bold leading-snug text-text-main">{match.awayTeam}</p>
         </div>
+      </div>
+
       </div>
 
       {error ? <p role="alert" className="animate-message-in mt-3 text-center text-sm font-medium text-danger">{error}</p> : null}
