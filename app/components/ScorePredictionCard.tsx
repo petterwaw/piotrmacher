@@ -1,5 +1,6 @@
 'use client'
 
+import { displayFont } from '@/app/components/landing/fonts'
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, ChevronDown, LoaderCircle, Minus, Pencil, Plus } from 'lucide-react'
@@ -282,11 +283,11 @@ export default function ScorePredictionCard({
       ) : null}
 
       <div className="relative flex min-h-24 flex-nowrap items-center justify-between gap-2 py-1 sm:min-h-28 sm:gap-3">
-        <div className="relative flex w-[38%] min-w-0 flex-col items-center pl-8 text-center sm:pl-10">
-          <p className="text-sm font-bold leading-snug text-text-main">{match.homeTeam}</p>
+        <div className="relative flex min-w-0 flex-1 flex-col items-center text-center">
+          <p className={`${displayFont.className} team-name text-[clamp(0.95rem,4.2vw,1.5rem)] font-extrabold uppercase leading-[1.05] tracking-wide text-text-main`}>{match.homeTeam}</p>
         </div>
 
-        <div className="relative w-[24%] min-w-[112px] text-center">
+        <div className="relative shrink-0 text-center">
           {!isEditing ? (
             <div key="score" className={`flex flex-col items-center ${swapIn}`}>
               <p className="sr-only">
@@ -388,8 +389,8 @@ export default function ScorePredictionCard({
           )}
         </div>
 
-        <div className="relative flex w-[38%] min-w-0 flex-col items-center pr-8 text-center sm:pr-10">
-          <p className="text-sm font-bold leading-snug text-text-main">{match.awayTeam}</p>
+        <div className="relative flex min-w-0 flex-1 flex-col items-center text-center">
+          <p className={`${displayFont.className} team-name text-[clamp(0.95rem,4.2vw,1.5rem)] font-extrabold uppercase leading-[1.05] tracking-wide text-text-main`}>{match.awayTeam}</p>
         </div>
       </div>
 
