@@ -47,6 +47,7 @@ export default async function RoomLayout({
       <div className="mb-3 md:hidden">
         <Link
           href="/home"
+          prefetch
           aria-label="Back to rooms"
           className="press -ml-2 inline-flex h-11 w-11 items-center justify-center text-text-main transition-colors hover:text-brand"
         >
@@ -58,6 +59,7 @@ export default async function RoomLayout({
         <aside className="hidden md:block xl:absolute xl:left-0 xl:top-0 xl:w-44">
           <Link
             href="/home"
+          prefetch
             aria-label="Back to rooms"
             title="Back to rooms"
             className="press mb-4 inline-flex h-12 w-12 items-center justify-center text-text-main transition-colors hover:text-brand"

@@ -41,6 +41,8 @@ type ScorePredictionCardProps = {
   match: BasicMatch
   livePredictions?: LivePrediction[]
   roomStatus?: 'waiting' | 'active' | 'finished'
+  // The page was shown from cache and a fresh live score is on its way.
+  scoreLoading?: boolean
 }
 
 const MAX_PREDICTED_GOALS = 20
@@ -66,6 +68,7 @@ export default function ScorePredictionCard({
   match,
   livePredictions = [],
   roomStatus = 'waiting',
+  scoreLoading = false,
 }: ScorePredictionCardProps) {
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
@@ -196,6 +199,9 @@ export default function ScorePredictionCard({
     typeof match.liveScore?.home === 'number' &&
     typeof match.liveScore?.away === 'number'
 
+  // Only in-play matches wait for the fresh score; upcoming ones keep the
+  // cached pick and finished ones are no longer on this page.
+  const isScoreLoading = scoreLoading && isStarted && match.status !== 'cancelled'
   const showPlayerPredictionInCenter = !isStarted && !isEditing && savedPrediction
   // The transition stays pending through the follow-up refresh; once the save
   // is confirmed, "Saved." takes over from "Saving…".
@@ -227,8 +233,18 @@ export default function ScorePredictionCard({
             <span className="absolute inline-flex h-full w-full rounded-full bg-brand-bright opacity-75 motion-safe:animate-ping" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-brand" />
           </span>
-          <span aria-hidden="true">LIVE{typeof match.liveMinute === 'number' ? ` ${match.liveMinute}'` : ''}</span>
-          <span className="sr-only">Live{typeof match.liveMinute === 'number' ? `, minute ${match.liveMinute}` : ''}</span>
+          {isScoreLoading ? (
+            <>
+              <span aria-hidden="true">LIVE</span>
+              <span aria-hidden="true" className="inline-block h-4 w-7 bg-zinc-200/80 motion-safe:animate-pulse" />
+              <span className="sr-only">Live</span>
+            </>
+          ) : (
+            <>
+              <span aria-hidden="true">LIVE{typeof match.liveMinute === 'number' ? ` ${match.liveMinute}'` : ''}</span>
+              <span className="sr-only">Live{typeof match.liveMinute === 'number' ? `, minute ${match.liveMinute}` : ''}</span>
+            </>
+          )}
         </div>
       ) : null}
 
@@ -246,14 +262,22 @@ export default function ScorePredictionCard({
           {!isEditing ? (
             <div key="score" className={`flex flex-col items-center ${swapIn}`}>
               <p className="sr-only">
-                {showOfficialScore
-                  ? `Score: ${match.homeTeam} ${match.liveScore?.home ?? 0}, ${match.awayTeam} ${match.liveScore?.away ?? 0}`
-                  : showPlayerPredictionInCenter
-                    ? `Your pick: ${match.homeTeam} ${savedPrediction.home}, ${match.awayTeam} ${savedPrediction.away}`
-                    : 'No pick yet'}
+                {isScoreLoading
+                  ? 'Loading score'
+                  : showOfficialScore
+                    ? `Score: ${match.homeTeam} ${match.liveScore?.home ?? 0}, ${match.awayTeam} ${match.liveScore?.away ?? 0}`
+                    : showPlayerPredictionInCenter
+                      ? `Your pick: ${match.homeTeam} ${savedPrediction.home}, ${match.awayTeam} ${savedPrediction.away}`
+                      : 'No pick yet'}
               </p>
               <div aria-hidden="true" className="text-4xl font-black leading-none tracking-tight tabular-nums text-text-main">
-                {showOfficialScore ? (
+                {isScoreLoading ? (
+                  <span className="flex items-center justify-center">
+                    <span className="inline-block h-9 w-7 bg-zinc-200/80 motion-safe:animate-pulse" />
+                    <span className="mx-1.5 text-zinc-300">:</span>
+                    <span className="inline-block h-9 w-7 bg-zinc-200/80 motion-safe:animate-pulse" />
+                  </span>
+                ) : showOfficialScore ? (
                   <span>
                     <TickNumber value={match.liveScore?.home ?? 0} />
                     <span className="mx-1.5 text-zinc-400">:</span>

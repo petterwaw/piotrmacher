@@ -16,6 +16,12 @@ type LivePrediction = {
 
 export const metadata: Metadata = { title: 'Bets' }
 
+// Identifies this render on the client (see BetsByDay). Each request renders
+// once, so the render-time value is exactly what we want.
+function renderTimestamp() {
+  return Date.now()
+}
+
 export default async function BetsPage({
   params,
 }: {
@@ -61,6 +67,7 @@ export default async function BetsPage({
         .in('match_id', matchIds)
     : { data: [] }
 
+  const renderedAt = renderTimestamp()
   const betByMatchId = new Map((bets ?? []).map((bet) => [bet.match_id, bet]))
   const liveMatches = matches.filter((match) => match.status === 'live')
 
@@ -103,6 +110,7 @@ export default async function BetsPage({
           roomId={room_id}
           roomStatus={status}
           visibleDaysAhead={VISIBLE_DAYS_AHEAD}
+          renderedAt={renderedAt}
           matches={matches.map((match) => {
             const existingBet = betByMatchId.get(match.id)
             const liveMinute = match.live_minute ?? null

@@ -34,6 +34,8 @@ export default function RoomActionsMenu({
 
           alert('Room deleted successfully.')
           router.push('/home')
+          // The rooms list may be in the client cache and still show this room.
+          router.refresh()
         } catch {
           alert('Failed to delete room.')
         } finally {
@@ -56,6 +58,8 @@ export default function RoomActionsMenu({
 
           alert('You left the room.')
           router.push('/home')
+          // The rooms list may be in the client cache and still show this room.
+          router.refresh()
         } catch {
           alert('Failed to leave room.')
         } finally {

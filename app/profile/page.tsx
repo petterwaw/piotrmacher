@@ -20,19 +20,33 @@ type Profile = {
   createdAt?: string
 }
 
+// Last loaded profile, kept for the lifetime of the tab (a sign-out is a full
+// page load, so it never outlives the session). Re-opening the page renders it
+// straight away and refreshes it in the background instead of showing a
+// skeleton every time.
+let cachedProfile: Profile | null = null
+
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [username, setUsername] = useState('')
+  const [profile, setProfileState] = useState<Profile | null>(cachedProfile)
+  const [username, setUsername] = useState(cachedProfile?.username ?? '')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!cachedProfile)
   const [isPending, startTransition] = useTransition()
   const [editingUsername, setEditingUsername] = useState(false)
   const [editingPassword, setEditingPassword] = useState(false)
+
+  const setProfile = (update: (prev: Profile | null) => Profile | null) => {
+    setProfileState((prev) => {
+      const next = update(prev)
+      cachedProfile = next
+      return next
+    })
+  }
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -52,8 +66,9 @@ export default function ProfilePage() {
           throw new Error(data.error || 'Could not load profile.')
         }
 
-        setProfile(data.profile)
-        setUsername(data.profile.username)
+        const loaded = data.profile
+        setProfile(() => loaded)
+        setUsername(loaded.username)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not load profile.')
       } finally {
@@ -148,6 +163,7 @@ export default function ProfilePage() {
           throw new Error(data.error || 'Could not delete account.')
         }
 
+        cachedProfile = null
         window.location.href = '/home'
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not delete account.')

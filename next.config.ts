@@ -21,6 +21,18 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: {
+    // Client router cache. Every room page is dynamic (per-user cookies), and
+    // since Next 15 dynamic pages are not kept at all by default, so every tab
+    // switch was a fresh server render behind a skeleton. Keep visited pages
+    // for 5 minutes: switching tabs back and forth is instant. Mutations call
+    // router.refresh(), which drops the stale entry, and the Bets tab re-fetches
+    // live scores itself when it is shown from cache (see BetsByDay).
+    staleTimes: {
+      dynamic: 300,
+      static: 300,
+    },
+  },
   turbopack: {
     root: appRoot,
   },
