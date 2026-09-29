@@ -61,11 +61,21 @@ export default function RoomStatusSync({
       }
     }
 
-    const intervalId = window.setInterval(syncStatus, 5000)
+    // Every poll is a serverless invocation, so poll slowly and only while the
+    // tab is visible; check immediately when the user comes back to the tab.
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void syncStatus()
+    }, 30_000)
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void syncStatus()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
 
     return () => {
       cancelled = true
       window.clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [pathname, roomId, router])
 

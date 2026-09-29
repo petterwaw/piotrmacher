@@ -20,29 +20,12 @@ function loadDotEnvLocal() {
   }
 }
 
-async function triggerSync(baseUrl, secret) {
-  const response = await fetch(`${baseUrl}/api/internal/sync-matches`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${secret}`,
-    },
-  })
+// Local stand-in for the Supabase pg_cron job: calls /api/internal/tick.
+async function triggerTick(baseUrl, secret, jobs) {
+  const url = new URL('/api/internal/tick', baseUrl)
+  if (jobs) url.searchParams.set('jobs', jobs)
 
-  const payload = await response.json().catch(() => ({}))
-
-  const stamp = new Date().toISOString()
-  if (!response.ok) {
-    console.error(`[${stamp}] Sync failed:`, response.status, payload)
-    return
-  }
-
-  console.log(
-    `[${stamp}] Sync ok: eventsProcessed=${payload.eventsProcessed ?? 0}, eventsSkipped=${payload.eventsSkipped ?? 0}, matchesUpserted=${payload.matchesUpserted ?? 0}`
-  )
-}
-
-async function triggerEventDeactivation(baseUrl, secret) {
-  const response = await fetch(`${baseUrl}/api/internal/deactivate-finished-events`, {
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${secret}`,
@@ -53,62 +36,20 @@ async function triggerEventDeactivation(baseUrl, secret) {
   const stamp = new Date().toISOString()
 
   if (!response.ok) {
-    console.error(`[${stamp}] Event deactivation failed:`, response.status, payload)
+    console.error(`[${stamp}] Tick failed:`, response.status, payload)
     return
   }
 
-  console.log(
-    `[${stamp}] Event deactivation ok: checked=${payload.checked ?? 0}, deactivated=${payload.deactivated ?? 0}`
-  )
+  console.log(`[${stamp}] Tick ok:`, JSON.stringify(payload))
 }
 
-async function triggerScoring(baseUrl, secret) {
-  const response = await fetch(`${baseUrl}/api/internal/score-finished-matches`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${secret}`,
-    },
-  })
-
-  const payload = await response.json().catch(() => ({}))
-  const stamp = new Date().toISOString()
-
-  if (!response.ok) {
-    console.error(`[${stamp}] Scoring failed:`, response.status, payload)
-    return
-  }
-
-  console.log(
-    `[${stamp}] Scoring ok: jobsPicked=${payload.jobsPicked ?? 0}, betsUpdated=${payload.betsUpdated ?? 0}, roomPlayersUpdated=${payload.roomPlayersUpdated ?? 0}`
-  )
-}
-
-async function triggerPickemScoring(baseUrl, secret) {
-  const response = await fetch(`${baseUrl}/api/internal/score-pickem`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${secret}`,
-    },
-  })
-
-  const payload = await response.json().catch(() => ({}))
-  const stamp = new Date().toISOString()
-
-  if (!response.ok) {
-    console.error(`[${stamp}] Pickem scoring failed:`, response.status, payload)
-    return
-  }
-
-  console.log(
-    `[${stamp}] Pickem scoring ok: roomsChecked=${payload.roomsChecked ?? 0}, picksUpdated=${payload.picksUpdated ?? 0}, roomPlayersUpdated=${payload.roomPlayersUpdated ?? 0}`
-  )
-}
 async function main() {
   loadDotEnvLocal()
 
   const secret = process.env.CRON_SECRET
   const baseUrl = process.env.LOCAL_CRON_BASE_URL || 'http://localhost:3000'
   const intervalMs = Number(process.env.LOCAL_CRON_INTERVAL_MS || 5 * 60 * 1000)
+  const jobs = process.env.LOCAL_CRON_JOBS || null
 
   if (!secret) {
     throw new Error('Missing CRON_SECRET in environment.')
@@ -118,28 +59,18 @@ async function main() {
     throw new Error('LOCAL_CRON_INTERVAL_MS must be a number >= 5000.')
   }
 
-  const runOnce = process.argv.includes('--once')
+  await triggerTick(baseUrl, secret, jobs)
 
-  await triggerEventDeactivation(baseUrl, secret)
-  await triggerSync(baseUrl, secret)
-  await triggerScoring(baseUrl, secret)
-  await triggerPickemScoring(baseUrl, secret)
-
-  if (runOnce) {
+  if (process.argv.includes('--once')) {
     return
   }
 
   console.log(`Local cron started. Running every ${Math.round(intervalMs / 1000)}s against ${baseUrl}.`)
 
   setInterval(() => {
-    ;(async () => {
-      await triggerEventDeactivation(baseUrl, secret)
-      await triggerSync(baseUrl, secret)
-      await triggerScoring(baseUrl, secret)
-      await triggerPickemScoring(baseUrl, secret)
-    })().catch((error) => {
+    triggerTick(baseUrl, secret, jobs).catch((error) => {
       const stamp = new Date().toISOString()
-      console.error(`[${stamp}] Unexpected sync error:`, error)
+      console.error(`[${stamp}] Unexpected tick error:`, error)
     })
   }, intervalMs)
 }

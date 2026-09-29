@@ -1,7 +1,13 @@
-import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
+import type { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 import { isWorldCupPickemEvent } from '@/app/utils/pickem/eligibility'
 import { syncPickemGroupsForEvent, type PickemEvent } from '@/app/utils/pickem/groups'
-import { NextRequest, NextResponse } from 'next/server'
+import { recomputeRoomPoints } from '@/app/utils/scoring/processPendingScoringJobs'
+
+type ServiceSupabaseClient = ReturnType<typeof createServiceRoleSupabaseClient>
+
+export type PickemScoringResult =
+  | { ok: true; roomsChecked: number; picksUpdated: number; roomPlayersUpdated: number; scoringStatusByEvent?: Record<string, unknown> }
+  | { ok: false; error: string }
 
 type Rules = {
   pickem_correct_position?: number
@@ -95,28 +101,21 @@ function calculatePickemPoints(
   }, 0)
 }
 
-async function processPickemScoring(request: NextRequest) {
-  const auth = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const supabase = createServiceRoleSupabaseClient()
-
+// Only active rooms are scored: finished rooms keep their final standings even
+// if provider data (e.g. team ids after a provider switch) changes later.
+export async function scorePickem(supabase: ServiceSupabaseClient): Promise<PickemScoringResult> {
   const { data: rooms, error: roomsError } = await supabase
     .from('rooms')
     .select('id, event_id, status, rules')
-    .in('status', ['active', 'finished'])
+    .eq('status', 'active')
 
   if (roomsError) {
-    return NextResponse.json({ error: 'Could not load rooms.' }, { status: 500 })
+    return { ok: false, error: 'Could not load rooms.' }
   }
 
   const activeRooms = (rooms ?? []) as RoomRow[]
   if (activeRooms.length === 0) {
-    return NextResponse.json({ ok: true, roomsChecked: 0, picksUpdated: 0, roomPlayersUpdated: 0 })
+    return { ok: true, roomsChecked: 0, picksUpdated: 0, roomPlayersUpdated: 0 }
   }
 
   const eventIds = [...new Set(activeRooms.map((room) => room.event_id))]
@@ -129,7 +128,7 @@ async function processPickemScoring(request: NextRequest) {
     .filter((event) => isWorldCupPickemEvent(event))
 
   if (scoringEvents.length === 0) {
-    return NextResponse.json({ ok: true, roomsChecked: 0, picksUpdated: 0, roomPlayersUpdated: 0 })
+    return { ok: true, roomsChecked: 0, picksUpdated: 0, roomPlayersUpdated: 0 }
   }
 
   const scoringEventIdSet = new Set(scoringEvents.map((event) => event.id))
@@ -137,11 +136,11 @@ async function processPickemScoring(request: NextRequest) {
   const scoringRooms = activeRooms.filter((room) => scoringEventIdSet.has(room.event_id))
 
   if (scoringRooms.length === 0) {
-    return NextResponse.json({ ok: true, roomsChecked: 0, picksUpdated: 0, roomPlayersUpdated: 0 })
+    return { ok: true, roomsChecked: 0, picksUpdated: 0, roomPlayersUpdated: 0 }
   }
 
   for (const event of scoringEvents) {
-    await syncPickemGroupsForEvent(event as PickemEvent, { force: true })
+    await syncPickemGroupsForEvent(event as PickemEvent)
   }
 
   const roomById = new Map(scoringRooms.map((room) => [room.id, room]))
@@ -153,12 +152,12 @@ async function processPickemScoring(request: NextRequest) {
     .in('room_id', roomIds)
 
   if (picksError) {
-    return NextResponse.json({ error: 'Could not load Pickem picks.' }, { status: 500 })
+    return { ok: false, error: 'Could not load Pickem picks.' }
   }
 
   const pickRows = (picks ?? []) as PickRow[]
   if (pickRows.length === 0) {
-    return NextResponse.json({ ok: true, roomsChecked: scoringRooms.length, picksUpdated: 0, roomPlayersUpdated: 0 })
+    return { ok: true, roomsChecked: scoringRooms.length, picksUpdated: 0, roomPlayersUpdated: 0 }
   }
 
   const pickEventIds = [...new Set(pickRows.map((pick) => pick.event_id))]
@@ -168,7 +167,7 @@ async function processPickemScoring(request: NextRequest) {
     .in('event_id', pickEventIds)
 
   if (groupTeamsError) {
-    return NextResponse.json({ error: 'Could not load Pickem group standings.' }, { status: 500 })
+    return { ok: false, error: 'Could not load Pickem group standings.' }
   }
 
   const teamsPerGroupByEvent = new Map<string, Map<string, number>>()
@@ -193,7 +192,7 @@ async function processPickemScoring(request: NextRequest) {
     .eq('status', 'finished')
 
   if (finishedMatchesError) {
-    return NextResponse.json({ error: 'Could not load match status for Pickem scoring.' }, { status: 500 })
+    return { ok: false, error: 'Could not load match status for Pickem scoring.' }
   }
 
   const finishedMatchCountByEvent = new Map<string, number>()
@@ -232,7 +231,7 @@ async function processPickemScoring(request: NextRequest) {
   }
 
   const pickUpdates: Array<{ id: string; points: number }> = []
-  const roomUserDelta = new Map<string, { roomId: string; userId: string; delta: number }>()
+  const affectedRoomIds = new Set<string>()
 
   for (const pick of pickRows) {
     const room = roomById.get(pick.room_id)
@@ -248,25 +247,9 @@ async function processPickemScoring(request: NextRequest) {
       positionByTeamId,
       toRuleScore(room.rules),
     )
-    const oldPoints = pick.points ?? 0
-    const delta = nextPoints - oldPoints
-
-    if (delta !== 0 || pick.points === null) {
+    if (pick.points !== nextPoints) {
       pickUpdates.push({ id: pick.id, points: nextPoints })
-    }
-
-    if (delta !== 0) {
-      const key = `${pick.room_id}:${pick.user_id}`
-      const current = roomUserDelta.get(key)
-      if (current) {
-        current.delta += delta
-      } else {
-        roomUserDelta.set(key, {
-          roomId: pick.room_id,
-          userId: pick.user_id,
-          delta,
-        })
-      }
+      affectedRoomIds.add(pick.room_id)
     }
   }
 
@@ -282,55 +265,20 @@ async function processPickemScoring(request: NextRequest) {
       .eq('id', update.id)
 
     if (updateError) {
-      return NextResponse.json({ error: 'Could not update Pickem points.' }, { status: 500 })
+      return { ok: false, error: 'Could not update Pickem points.' }
     }
   }
 
-  const deltaEntries = [...roomUserDelta.values()]
-  if (deltaEntries.length > 0) {
-    const deltaRoomIds = [...new Set(deltaEntries.map((entry) => entry.roomId))]
-    const deltaUserIds = [...new Set(deltaEntries.map((entry) => entry.userId))]
-
-    const { data: roomPlayers, error: roomPlayersError } = await supabase
-      .from('room_players')
-      .select('id, room_id, user_id, points')
-      .in('room_id', deltaRoomIds)
-      .in('user_id', deltaUserIds)
-
-    if (roomPlayersError) {
-      return NextResponse.json({ error: 'Could not load room players.' }, { status: 500 })
-    }
-
-    const playerByKey = new Map((roomPlayers ?? []).map((row) => [`${row.room_id}:${row.user_id}`, row]))
-
-    for (const entry of deltaEntries) {
-      const player = playerByKey.get(`${entry.roomId}:${entry.userId}`)
-      if (!player) continue
-
-      const { error: playerUpdateError } = await supabase
-        .from('room_players')
-        .update({ points: player.points + entry.delta })
-        .eq('id', player.id)
-
-      if (playerUpdateError) {
-        return NextResponse.json({ error: 'Could not update room player points.' }, { status: 500 })
-      }
-    }
+  const recomputeError = await recomputeRoomPoints(supabase, [...affectedRoomIds])
+  if (recomputeError) {
+    return { ok: false, error: 'Could not recompute room points.' }
   }
 
-  return NextResponse.json({
+  return {
     ok: true,
     roomsChecked: scoringRooms.length,
     picksUpdated: pickUpdates.length,
-    roomPlayersUpdated: deltaEntries.length,
+    roomPlayersUpdated: affectedRoomIds.size,
     scoringStatusByEvent,
-  })
-}
-
-export async function GET(request: NextRequest) {
-  return processPickemScoring(request)
-}
-
-export async function POST(request: NextRequest) {
-  return processPickemScoring(request)
+  }
 }

@@ -3,7 +3,8 @@ type PickemEventEligibilityInput = {
   provider_event_id?: string | null
 }
 
-const DEFAULT_WORLD_CUP_PROVIDER_EVENT_IDS = ['1']
+// '1' is the legacy API-Football id of the 2026 World Cup event.
+const DEFAULT_WORLD_CUP_PROVIDER_EVENT_IDS = ['1', 'fifa.world']
 
 function parseConfiguredProviderEventIds() {
   const raw = process.env.PICKEM_WORLD_CUP_PROVIDER_EVENT_IDS?.trim()

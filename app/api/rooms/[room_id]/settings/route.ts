@@ -1,4 +1,6 @@
+import { syncMatches } from '@/app/utils/jobs/syncMatches'
 import { createServerSupabaseClient } from '@/app/utils/supabase/server'
+import { createServiceRoleSupabaseClient } from '@/app/utils/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 
 type Rules = {
@@ -129,24 +131,16 @@ export async function PATCH(
         return NextResponse.json({ error: 'Could not start room.' }, { status: 500 })
       }
 
-      const cronSecret = process.env.CRON_SECRET
+      // Fetch the event's fixtures now so the room isn't empty until the next tick.
       let syncTriggered = false
-
-      if (cronSecret) {
-        try {
-          const syncUrl = new URL('/api/internal/sync-matches', request.nextUrl.origin)
-          const syncResponse = await fetch(syncUrl, {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${cronSecret}`,
-            },
-            cache: 'no-store',
-          })
-
-          syncTriggered = syncResponse.ok
-        } catch {
-          syncTriggered = false
-        }
+      try {
+        const syncResult = await syncMatches(createServiceRoleSupabaseClient(), {
+          eventIds: [room.event_id],
+          force: true,
+        })
+        syncTriggered = syncResult.failures.length === 0
+      } catch (error) {
+        console.error('[settings] Initial match sync failed:', error)
       }
 
       return NextResponse.json({ ok: true, syncTriggered })
